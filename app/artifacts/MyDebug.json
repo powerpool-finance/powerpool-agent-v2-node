@@ -1,0 +1,22 @@
+{
+  "abi": [
+    {
+      "inputs": [],
+      "name": "getNow",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "nowTimestamp",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "nowBlock",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ]
+}

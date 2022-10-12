@@ -1,0 +1,13 @@
+.git
+app
+config
+keys
+tests
+node_modules
+Makefile
+.prettier*
+.eslintrc.json
+tsconfig.json
+*.log
+Dockerfile
+docker-compose.yaml

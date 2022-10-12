@@ -1,0 +1,650 @@
+import { Network } from './Network';
+import {
+  AgentConfig,
+  ContractWrapper, EventWrapper,
+  Executor,
+  ExecutorType,
+  GetJobResponse,
+  Resolver,
+  TxEnvelope,
+} from './Types.js';
+import {BigNumber, ethers, providers, Wallet} from 'ethers';
+import {getAgentRewardsAbi, getPPAgentV2Abi} from './services/AbiService.js';
+import { getEncryptedJson } from './services/KeyService.js';
+import { DEFAULT_SYNC_FROM_CHAINS, DEFAULT_SYNC_FROM_CONTRACTS, MIN_EXECUTION_GAS } from './Constants.js';
+import { Job } from './Job.js';
+import {nowMs, nowTimeString} from './Utils.js';
+import { FlashbotsExecutor } from './executors/FlashbotsExecutor.js';
+import { PGAExecutor } from './executors/PGAExecutor.js';
+
+const FLAG_ACCEPT_MAX_BASE_FEE_LIMIT = 1;
+const FLAG_ACCRUE_REWARD = 2;
+const BIG_NUMBER_1E18 = BigNumber.from(10).pow(18);
+
+export class Agent {
+  private executorType: ExecutorType;
+  private network: Network;
+  private address: string;
+  private keeperId: number;
+  private contract: ContractWrapper;
+  private rewardsContract: ContractWrapper;
+  private workerSigner: ethers.Wallet;
+  private executor: Executor;
+
+  // Agent Config
+  private minKeeperCvp: BigNumber;
+  private fullSyncFrom: number;
+  private acceptMaxBaseFeeLimit: boolean;
+  private accrueReward: boolean;
+  private cfg: number;
+
+  private jobs: Map<string, Job>;
+  private ownerBalances: Map<string, BigNumber>;
+  private ownerJobs: Map<string, Set<string>>;
+  private lastBlockTimestamp: number;
+  private pendingIntervalTxEnvelopeSet: Set<TxEnvelope>;
+  private keyAddress: string;
+  private keyPass: string;
+  private rewardsContractAddress: string;
+  private rewardsCheckIntervalMinutes: number;
+
+  private toString(): string {
+    return `(network: ${this.network.getName()}, address: ${this.address})`;
+  }
+
+  private clog(...args: any[]) {
+    console.log(`>>> ${nowTimeString()} >>> Agent${this.toString()}:`, ...args);
+  }
+
+  private err(...args: any[]): Error {
+    return new Error(`AgentError${this.toString()}: ${args.join(' ')}`);
+  }
+
+  constructor(address: string, agentConfig: AgentConfig, network: Network) {
+    this.jobs = new Map();
+    this.ownerBalances = new Map();
+    this.pendingIntervalTxEnvelopeSet = new Set();
+    this.ownerJobs = new Map();
+    this.address = address;
+    this.network = network;
+    this.executorType = agentConfig.executor;
+
+    this.lastBlockTimestamp = 0;
+    this.cfg = 0;
+
+    if (!('keeper_address' in agentConfig) || !agentConfig.keeper_address || agentConfig.keeper_address.length === 0) {
+      throw this.err(`Missing keeper_address for agent: (network=${this.network.getName()
+      },address=${this.address
+      },keeper_address_value=${agentConfig.keeper_address})`);
+    }
+
+    if (!('key_pass' in agentConfig) || !agentConfig.key_pass || agentConfig.key_pass.length === 0) {
+      throw this.err(`Missing key_pass for agent: (network=${this.network.getName()
+      },address=${this.address
+      },key_pass_value=${agentConfig.key_pass})`);
+    }
+
+    this.keyAddress = ethers.utils.getAddress(agentConfig.keeper_address);
+    this.keyPass = agentConfig.key_pass;
+
+    // rewardsContract
+    if (ethers.utils.isAddress(agentConfig.rewards_contract)) {
+      this.rewardsContractAddress = agentConfig.rewards_contract;
+
+      this.clog('Rewards contract set to', agentConfig.rewards_contract);
+    }
+
+    if ('rewards_check_interval_minutes' in agentConfig && agentConfig.rewards_check_interval_minutes > 0) {
+      this.rewardsCheckIntervalMinutes = agentConfig.rewards_check_interval_minutes;
+    } else {
+      this.rewardsCheckIntervalMinutes = 10;
+    }
+
+    // acceptMaxBaseFeeLimit
+    if ('accept_max_base_fee_limit' in agentConfig) {
+      this.acceptMaxBaseFeeLimit = !!agentConfig.accept_max_base_fee_limit;
+      if (this.acceptMaxBaseFeeLimit) {
+        this.cfg = this.cfg | FLAG_ACCEPT_MAX_BASE_FEE_LIMIT;
+      }
+    } else {
+      this.acceptMaxBaseFeeLimit = false;
+    }
+
+    // accrueReward
+    this.accrueReward = !!agentConfig.accrue_reward;
+    if (this.accrueReward) {
+      this.cfg = this.cfg | FLAG_ACCRUE_REWARD;
+    }
+
+    this.network.getNewBlockEventEmitter().on(
+      'newBlock',
+      this.newBlockEventHandler.bind(this)
+    );
+
+    this.fullSyncFrom = agentConfig.deployed_at
+      || (this.network.getName() in DEFAULT_SYNC_FROM_CONTRACTS
+        && DEFAULT_SYNC_FROM_CONTRACTS[this.network.getName()][this.address])
+      || DEFAULT_SYNC_FROM_CHAINS[this.network.getName()]
+      || 0
+    this.clog('Sync from', this.fullSyncFrom);
+  }
+
+  private initAgentRewards() {
+    const agentRewardsAbi = getAgentRewardsAbi();
+    this.rewardsContract = this.network.getContractWrapperFactory().build(this.rewardsContractAddress, agentRewardsAbi);
+
+    this.checkRewardAvailableTick();
+  }
+
+  private async checkRewardAvailableTick() {
+    const available = await this.rewardsContract.ethCall('cooldownPassed', [this.keeperId]);
+    if (available) {
+      const tx = {
+        to: this.rewardsContractAddress,
+        // @ts-ignore
+        from: this.workerSigner.address,
+        data: this.rewardsContract.getNativeContract().interface.encodeFunctionData(
+          'claim',
+          [this.keeperId, this.workerSigner.address]
+        ),
+      };
+      this.populateTxExtraFields(tx);
+      await this.sendNonExecuteTransaction(tx);
+    }
+
+    setTimeout(this.checkRewardAvailableTick.bind(this), this.rewardsCheckIntervalMinutes * 1000 * 60);
+  }
+
+  public async init() {
+    const ppAgentV2Abi = getPPAgentV2Abi();
+    this.contract = this.network.getContractWrapperFactory().build(this.address, ppAgentV2Abi);
+
+    // Ensure version matches
+    const version = await this.contract.ethCall('VERSION');
+    if (version !== '2.1.0') {
+      throw this.err(`Invalid version: ${version}`);
+    }
+
+    this.keeperId = await this.contract.ethCall('workerKeeperIds', [this.keyAddress]);
+    if (this.keeperId < 1) {
+      throw this.err(`Worker address '${this.keyAddress}' is not assigned  to any keeper`);
+    }
+
+    const keyString = getEncryptedJson(this.keyAddress);
+    if (!keyString) {
+      throw this.err(`Empty JSON key for address ${this.keyAddress}`);
+    }
+
+    const label = `${this.keyAddress} worker key decryption time:`;
+    console.time(label);
+    try {
+      this.workerSigner = await ethers.Wallet.fromEncryptedJson(keyString, this.keyPass);
+    } catch (e) {
+      throw this.err(`Error decrypting JSON key for address ${this.keyAddress}`, e);
+    }
+    console.timeLog(label);
+    this.workerSigner.connect(this.getNetwork().getProvider());
+
+    this.clog('Worker address:', this.workerSigner.address)
+
+    switch (this.executorType) {
+      case 'flashbots':
+        // eslint-disable-next-line no-case-declarations
+        let wallet;
+        try {
+          wallet = await Wallet.fromEncryptedJson(
+            getEncryptedJson(this.network.getFlashbotsAddress()),
+            this.network.getFlashbotsPass()
+          );
+        } catch(e) {
+          this.clog('Flashbots wallet decryption error for the address:', this.network.getFlashbotsAddress(), e);
+          process.exit(0);
+        }
+        if (wallet.address.toLowerCase() !== this.network.getFlashbotsAddress().toLowerCase()) {
+          throw this.err('Flashbots address recovery error');
+        }
+        wallet.connect(this.network.getProvider());
+
+        this.executor = new FlashbotsExecutor(
+          this.network.getName(),
+          this.network.getFlashbotsRpc(),
+          this.network.getProvider(),
+          this.workerSigner,
+          wallet,
+          this.contract
+        );
+        break;
+      case 'pga':
+        this.executor = new PGAExecutor(
+          this.network.getName(),
+          this.network.getProvider(),
+          this.workerSigner,
+          this.contract
+        );
+        break;
+      default:
+        throw this.err(`Invalid executor type: '${this.executorType}'. Only 'flashbots' and 'pga' are supported.`)
+    }
+
+    const keeperConfig = await this.contract.ethCall('getKeeper', [this.keeperId]);
+
+    if (this.workerSigner.address != keeperConfig.worker) {
+      throw this.err(
+        `The worker address for the keeper #${this.keeperId} stored on chain (${
+          keeperConfig.worker
+        }) doesn't match the one specified in config (${this.workerSigner.address}).`
+      )
+    }
+
+    // Task #1
+    const agentConfig = await this.contract.ethCall('getConfig');
+    this.minKeeperCvp = agentConfig.minKeeperCvp_;
+    if (keeperConfig.currentStake.lt(agentConfig.minKeeperCvp_)) {
+      throw this.err(`The keeper's stake for agent '${this.address
+      }' is insufficient: ${keeperConfig.currentStake.div(BIG_NUMBER_1E18)
+      } CVP (actual) < ${this.minKeeperCvp.div(BIG_NUMBER_1E18)} CVP (required).`)
+    }
+    this.clog(`Keeper deposit: (current=${keeperConfig.currentStake},min=${this.minKeeperCvp})`);
+    // TODO: track agent SetAgentParams
+    // TODO: assert the keeper has enough CVP for a job
+    // TODO: set event listener for the global contract change
+
+    // this.workerNonce = await this.network.getProvider().getTransactionCount(this.workerSigner.address);
+    await this.executor.init();
+
+    if (this.rewardsContractAddress) {
+      this.initAgentRewards();
+    }
+
+    // Task #2
+    const upTo = await this.resyncAllJobs();
+    this.initializeListeners(upTo);
+    setTimeout(this.verifyLastExecutionAtLoop.bind(this), 3 * 60 * 1000);
+    this.clog('✅ Agent initialization done!')
+  }
+
+  public async verifyLastExecutionAtLoop() {
+    this.clog('verifyLastExecutionAtLoop')
+    const jobKeys = Array.from(this.jobs.keys()).filter(jobKey => this.jobs.get(jobKey).isIntervalJob());
+
+    const res = await this.network.getExternalLensContract().ethCall('getJobRawBytes32', [this.address, jobKeys]);
+
+    for (let i = 0; i < res.results.length; i++) {
+      const rawJob = res.results[i].toString();
+      const job = this.jobs.get(jobKeys[i]);
+      job.rewatchIfRequired(rawJob);
+    }
+
+    setTimeout(this.verifyLastExecutionAtLoop.bind(this), 3 * 60 * 1000);
+  }
+
+  public getJobOwnerBalance(address: string): BigNumber {
+    if (!this.ownerBalances.has(address)) {
+      throw this.err(`getJobOwnerBalance(): Address ${address} not tracked`);
+    }
+    return this.ownerBalances.get(address);
+  }
+
+  public getNetwork(): Network {
+    return this.network;
+  }
+
+  public getAddress(): string {
+    return this.address;
+  }
+
+  public getKeeperId(): number {
+    return this.keeperId;
+  }
+
+  public getCfg(): number {
+    return this.cfg;
+  }
+
+  /**
+   * Job Update Pipeline:
+   * 1. Handle RegisterJob events
+   * 2. Handle JobUpdate events
+   * 3. Handle SetJobResolver events
+   * 4. Handle SetJobResolver events
+   * @private
+   */
+  private async resyncAllJobs(): Promise<number> {
+    const latestBock = await this.network.getLatestBlockNumber();
+
+    // 1. Handle registers
+    // const newJobs = {};
+    const registerLogs = await this.contract.getPastEvents('RegisterJob', this.fullSyncFrom, latestBock)
+    const newJobs = new Map<string, Job>();
+
+    for (const event of registerLogs) {
+      newJobs.set(event.args.jobKey, new Job(event, this));
+    }
+
+    // Config can change rawJob w/o events
+    const jobKeys = Array.from(newJobs.keys());
+
+    // 2. Handle resolver updates (should fetch them via lens instead?)
+    let res = await this.network.getExternalLensContract().ethCall('getJobs', [this.address, jobKeys]);
+    const jobOwnersSet = new Set<string>();
+    const jobs: Array<GetJobResponse> = res.results;
+    for (let i = 0; i < jobs.length; i++) {
+      const owner = jobs[i].owner;
+      newJobs.get(jobKeys[i]).applyJob(jobs[i]);
+      jobOwnersSet.add(owner);
+      if (!this.ownerJobs.has(owner)) {
+        this.ownerJobs.set(owner, new Set());
+      }
+      const set = this.ownerJobs.get(owner);
+      set.add(jobKeys[i]);
+    }
+
+    // 3. Load job owner balances
+    const jobOwnersArray = Array.from(jobOwnersSet);
+    res = await this.network.getExternalLensContract().ethCall('getOwnerBalances', [this.address, jobOwnersArray]);
+    const jobOwnerBalances: Array<BigNumber> = res.results;
+    for (let i = 0; i < jobs.length; i++) {
+      this.ownerBalances.set(jobOwnersArray[i], jobOwnerBalances[i]);
+    }
+
+    this.jobs = newJobs;
+
+    await this.startAllJobs();
+
+    return latestBock;
+  }
+
+  private async addJob(creationEvent: EventWrapper) {
+    const jobKey = creationEvent.args.jobKey;
+    const owner = creationEvent.args.owner;
+
+    const job = new Job(creationEvent, this);
+    this.jobs.set(jobKey, job);
+
+    let res = await this.network.getExternalLensContract().ethCall('getJobs', [this.address, [jobKey]]);
+    if (res.results.length !== 1) {
+      throw this.err(`addJob(): invalid getJobs() response length: ${res.results.length}`);
+    }
+    job.applyJob(res.results[0]);
+
+    if (!this.ownerJobs.has(owner)) {
+      this.ownerJobs.set(owner, new Set());
+    }
+    const set = this.ownerJobs.get(owner);
+    set.add(jobKey);
+
+    res = await this.network.getExternalLensContract().ethCall('getOwnerBalances', [this.address, [owner]]);
+    if (res.results.length !== 1) {
+      throw this.err(`addJob(): invalid getOwnerBalances() response length: ${res.results.length}`);
+    }
+
+    this.ownerBalances.set(owner, res.results[0]);
+    await job.watch();
+  }
+
+  private newBlockEventHandler(blockTimestamp: number) {
+    if (this.lastBlockTimestamp < blockTimestamp) {
+      this.lastBlockTimestamp = blockTimestamp;
+    }
+
+    for (const envelope of this.pendingIntervalTxEnvelopeSet) {
+      if (envelope.minTimestamp < this.lastBlockTimestamp) {
+        this.pendingIntervalTxEnvelopeSet.delete(envelope);
+        this.trySendExecuteEnvelope(envelope);
+      }
+    }
+  }
+
+  private async startAllJobs() {
+    for (const [, job] of this.jobs) {
+      await job.watch();
+    }
+  }
+
+  public registerResolver(jobKey: string, resolver: Resolver, callback: (calldata) => void) {
+    this.network.registerResolver(`${this.address}/${jobKey}`, resolver, callback);
+  }
+
+  public unregisterResolver(jobKey: string) {
+    this.network.unregisterResolver(`${this.address}/${jobKey}`);
+  }
+
+  public sendOrEnqueueTxEnvelope(envelope: TxEnvelope) {
+    this.clog('minTimestamp', envelope.minTimestamp, 'lastBlockTimestamp', this.lastBlockTimestamp);
+    if (envelope.minTimestamp && envelope.minTimestamp > this.lastBlockTimestamp) {
+      this.clog(`Enqueuing tx due insufficient execution timestamp: (data=${envelope.tx.data})`);
+      // Enqueue locally
+      this.pendingIntervalTxEnvelopeSet.add(envelope);
+    } else {
+      this.clog('Sending tx directly to the executor');
+      this.trySendExecuteEnvelope(envelope)
+    }
+  }
+
+  private async populateTxExtraFields(tx: ethers.UnsignedTransaction) {
+    tx.chainId = this.network.getChainId();
+    // @ts-ignore (estimations will fail w/o this `from` assignment
+    tx.from = this.workerSigner.address;
+    const maxPriorityFeePerGas = await this.network.getMaxPriorityFeePerGas()
+    console.log({maxPriorityFeePerGas, maxFeePerGas: tx.maxFeePerGas});
+    tx.maxPriorityFeePerGas = String(BigInt(maxPriorityFeePerGas) * 5n);
+
+    const maxPriorityFeePerGasBigInt = BigInt(tx.maxPriorityFeePerGas);
+    const maxFeePerGasBigInt = BigInt(String(tx.maxFeePerGas));
+    console.log({maxPriorityFeePerGasBigInt, maxFeePerGasBigInt});
+    if (maxPriorityFeePerGasBigInt > maxFeePerGasBigInt) {
+      tx.maxPriorityFeePerGas = maxFeePerGasBigInt.toString(10);
+    }
+  }
+
+  private async trySendExecuteEnvelope(envelope: TxEnvelope) {
+    const { tx, jobKey, ppmCompensation, fixedCompensation, creditsAvailable } = envelope;
+    if (tx.maxFeePerGas === 0) {
+      this.clog(`Dropping tx due job gasPrice limit: (data=${tx.data})`);
+      return;
+    }
+    await this.populateTxExtraFields(tx);
+    const minTxFee = BigNumber.from(tx.maxFeePerGas)
+      .add(tx.maxPriorityFeePerGas)
+      .mul(MIN_EXECUTION_GAS)
+      .mul(ppmCompensation)
+      .div(100)
+      .add(fixedCompensation);
+
+    if (minTxFee.gt(creditsAvailable)) {
+      this.clog(`⛔️ Ignoring a tx with insufficient credits: (data=${tx.data},required=${minTxFee},available=${creditsAvailable})`);
+    } else {
+      this.executor.push(`${this.address}/${jobKey}`, tx);
+    }
+  }
+
+  public async sendNonExecuteTransaction(tx: ethers.UnsignedTransaction) {
+    return this.executor.push(`other-tx-type/${nowMs()}`, tx);
+  }
+
+  private initializeListeners(blockNumber: number) {
+    this.contract.on('DepositJobCredits', (event) => {
+      const {jobKey, amount, fee} = event.args;
+
+      this.clog(`'DepositJobCredits' event: (block=${event.blockNumber
+      },jobKey=${jobKey
+      },amount=${amount
+      },fee=${fee})`);
+
+      if (!this.jobs.has(jobKey)) {
+        this.clog(`Ignoring DepositJobCredits event due the job missing: (jobKey=${jobKey})`);
+        return;
+      }
+
+      if (this.jobs.get(jobKey).isInitializing()) {
+        this.clog(`Ignoring DepositJobCredits event due still initializing: (jobKey=${jobKey})`);
+        return;
+      }
+
+      const job = this.jobs.get(jobKey);
+      job.applyJobCreditsDeposit(BigNumber.from(amount));
+      job.watch();
+    });
+
+    this.contract.on('WithdrawJobCredits', (event) => {
+      const {jobKey, amount} = event.args;
+
+      this.clog(`'WithdrawJobCredits' event: (block=${event.blockNumber
+      },jobKey=${jobKey
+      },amount=${amount})`);
+
+      const job = this.jobs.get(jobKey);
+      job.applyJobCreditWithdrawal(BigNumber.from(amount));
+      job.watch();
+    });
+
+    this.contract.on('DepositJobOwnerCredits', (event) => {
+      const {jobOwner, amount, fee} = event.args;
+
+      this.clog(`'DepositJobOwnerCredits' event: (block=${event.blockNumber
+      },jobOwner=${jobOwner
+      },amount=${amount
+      },fee=${fee})`);
+
+      if (this.ownerBalances.has(jobOwner)) {
+        const newBalance = this.ownerBalances.get(jobOwner).add(BigNumber.from(amount));
+        this.ownerBalances.set(jobOwner, newBalance);
+      } else {
+        this.ownerBalances.set(jobOwner, BigNumber.from(amount));
+      }
+
+      if (this.ownerJobs.has(jobOwner)) {
+        for (const jobKey of this.ownerJobs.get(jobOwner)) {
+          const job = this.jobs.get(jobKey);
+          if (!job.isInitializing()) {
+            this.jobs.get(jobKey).watch();
+          }
+        }
+      }
+    });
+
+    this.contract.on('WithdrawJobOwnerCredits', (event) => {
+      const {jobOwner, amount} = event.args;
+
+      this.clog(`'WithdrawJobOwnerCredits' event: (block=${event.blockNumber
+      },jobOwner=${jobOwner
+      },amount=${amount})`);
+
+      if (this.ownerBalances.has(jobOwner)) {
+        const newBalance = this.ownerBalances.get(jobOwner).sub(BigNumber.from(amount));
+        this.ownerBalances.set(jobOwner, newBalance);
+      } else {
+        throw this.err(`On 'WithdrawJobOwnerCredits' event: The owner is not initialized: ${jobOwner}`);
+      }
+
+      if (this.ownerJobs.has(jobOwner)) {
+        for (const jobKey of this.ownerJobs.get(jobOwner)) {
+          this.jobs.get(jobKey).watch();
+        }
+      }
+    });
+
+    this.contract.on('AcceptJobTransfer', (event) => {
+      const {jobKey_, to_: ownerAfter} = event.args;
+
+      this.clog(`'AcceptJobTransfer' event: (block=${event.blockNumber
+      },jobKey_=${jobKey_
+      },to_=${ownerAfter})`);
+
+      const job = this.jobs.get(jobKey_);
+      const ownerBefore = job.getOwner();
+      this.ownerJobs.get(ownerBefore).delete(jobKey_);
+
+      if (!this.ownerJobs.has(ownerAfter)) {
+        this.ownerJobs.set(ownerAfter, new Set());
+      }
+      this.ownerJobs.get(ownerAfter).add(jobKey_);
+
+      job.applyOwner(ownerAfter);
+      job.watch();
+    });
+
+    this.contract.on('JobUpdate', (event) => {
+      const {jobKey, maxBaseFeeGwei, rewardPct, fixedReward, jobMinCvp, intervalSeconds} = event.args;
+
+      this.clog(`'JobUpdate' event: (block=${event.blockNumber
+      },jobKey=${jobKey
+      },maxBaseFeeGwei=${maxBaseFeeGwei
+      },reardPct=${rewardPct
+      },fixedReward=${fixedReward
+      },jobMinCvp=${jobMinCvp
+      },intervalSeconds=${intervalSeconds})`);
+
+      const job = this.jobs.get(jobKey);
+      job.applyUpdate(maxBaseFeeGwei, rewardPct, fixedReward, jobMinCvp, intervalSeconds);
+      job.watch();
+    });
+
+    this.contract.on('SetJobResolver', (event) => {
+      const {jobKey, resolverAddress, resolverCalldata} = event.args;
+
+      this.clog(`'SetJobResolver' event: (block=${event.blockNumber
+      },jobKey=${jobKey
+      },resolverAddress=${resolverAddress
+      },useJobOwnerCredits_=${resolverCalldata})`);
+
+      const job = this.jobs.get(jobKey);
+      job.applyResolver(resolverAddress, resolverCalldata);
+      job.watch();
+    });
+
+    this.contract.on('SetJobConfig', (event) => {
+      const {jobKey, isActive_, useJobOwnerCredits_, assertResolverSelector_} = event.args;
+
+      this.clog(`'SetJobConfig' event: (block=${event.blockNumber
+      },jobKey=${jobKey
+      },isActive=${isActive_
+      },useJobOwnerCredits_=${useJobOwnerCredits_
+      },assertResolverSelector_=${assertResolverSelector_})`);
+
+      const job = this.jobs.get(jobKey);
+      job.applyConfig(isActive_, useJobOwnerCredits_, assertResolverSelector_);
+      job.watch();
+    });
+
+    this.contract.on('RegisterJob', (event) => {
+      const {jobKey, jobAddress, jobId, owner, params} = event.args;
+
+      this.clog(`'RegisterJob' event: (block=${event.blockNumber
+      },jobKey=${jobKey
+      },jobAddress=${jobAddress
+      },jobId=${jobId
+      },owner=${owner
+      },params=${JSON.stringify(params)})`);
+
+      this.addJob(event);
+    });
+
+    this.contract.on('Execute', (event) => {
+      const {jobKey, job: jobAddress, keeperId, gasUsed, baseFee, gasPrice, compensation, binJobAfter} = event.args;
+
+      this.clog(`'Execute' event: (block=${event.blockNumber
+      },jobKey=${jobKey
+      },jobAddress=${jobAddress
+      },keeperId=${keeperId.toNumber()
+      },gasUsed=${gasUsed.toNumber()},baseFee=${baseFee.toNumber()}gwei,gasPrice=${gasPrice.toNumber()
+      }wei,compensation=${compensation.toNumber() / 1e18}eth/${compensation.toNumber()}wei,binJobAfter=${binJobAfter})`);
+
+      const job = this.jobs.get(jobKey);
+      job.applyRawJobData(binJobAfter);
+      job.watch();
+    });
+
+    this.contract.on('SetAgentParams', (event) => {
+      const {minKeeperCvp_, timeoutSeconds_, feePct_} = event.args;
+
+      this.clog(`'SetAgentParams' event: (block=${event.blockNumber
+      },minKeeperCvp_=${minKeeperCvp_
+      },timeoutSeconds_=${timeoutSeconds_
+      },feePct_=${feePct_})`);
+
+      this.clog("'SetAgentParams' event requires the bot to be restarted");
+      process.exit(0);
+    });
+  }
+}
