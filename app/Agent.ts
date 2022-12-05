@@ -161,7 +161,8 @@ export class Agent {
 
     // Ensure version matches
     const version = await this.contract.ethCall('VERSION');
-    if (version !== '2.1.0') {
+    const SUPPORTED_AGENT_VERSIONS = ['2.1.0', '2.2.0'];
+    if (!SUPPORTED_AGENT_VERSIONS.includes(version)) {
       throw this.err(`Invalid version: ${version}`);
     }
 

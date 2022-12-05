@@ -1,5 +1,5 @@
 import {ContractWrapper, Executor} from '../Types.js';
-import { nowTimeString } from '../Utils.js';
+import {fbReasonStringToHexString, nowTimeString} from '../Utils.js';
 import { ethers, utils } from 'ethers';
 import { FlashbotsBundleProvider,
   FlashbotsBundleResolution,
@@ -49,6 +49,7 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
       this.fbSigner,
       this.fbRpc,
       this.networkName
+      // {chainId: 5, name: goerli}
     );
   }
 
@@ -103,7 +104,7 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
       } else if (simulation.firstRevert !== undefined) {
         console.log({simulation});
         console.log({results: simulation.results[0]});
-        console.log('string', simulation.firstRevert['revert']);
+        console.log('parsed reason', fbReasonStringToHexString(simulation.firstRevert['revert']));
         this.clog(`Tx ${txHash}: Ignoring the tx due to the Flashbots simulation revert: ${JSON.stringify(simulation.firstRevert)}`)
         return;
       }

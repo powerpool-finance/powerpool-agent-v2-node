@@ -118,3 +118,10 @@ export function parseConfig(config: BigNumber): ParsedJobConfig {
     checkKeeperMinCvpDeposit: !(config.and(CFG_CHECK_KEEPER_MIN_CVP_DEPOSIT)).eq(BN_ZERO)
   }
 }
+
+export function fbReasonStringToHexString(reason: string): string {
+  const  buff = Uint8Array.from(reason, e => e.charCodeAt(0) )
+  return '0x' + [...new Uint8Array(buff)]
+    .map(x => x.toString(16).padStart(2, '0'))
+    .join('');
+}
