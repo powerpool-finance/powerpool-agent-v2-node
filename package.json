@@ -1,6 +1,6 @@
 {
-  "name": "power-agent-v2-bot",
-  "version": "0.1.0",
+  "name": "powerpool-agent-v2-node",
+  "version": "0.1.1",
   "description": "",
   "main": "index.js",
   "scripts": {
