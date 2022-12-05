@@ -52,6 +52,7 @@ class App {
 }
 
 (async function() {
+  console.log(`PowerPool Agent Node version: ${process.env.npm_package_version}`);
   const app = new App();
   await app.start();
 })();
