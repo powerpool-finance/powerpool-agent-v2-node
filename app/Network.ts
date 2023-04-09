@@ -145,6 +145,11 @@ export class Network {
     return (await this.provider.getGasPrice()).toNumber();
   }
 
+  public async getJobRawBytes32(agent: string, jobKey: string): Promise<string> {
+    const res = await this.externalLens.ethCall('getJobRawBytes32', [agent, [jobKey]]);
+    return res.results[0];
+  }
+
   public async init() {
     if (this.agents.length === 0) {
       this.clog(`Ignoring '${this.getName()}' network setup as it has no agents configured.`);

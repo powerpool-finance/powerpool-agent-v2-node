@@ -617,7 +617,7 @@ export abstract class AbstractAgent implements IAgent {
       job.watch();
     });
 
-    this.contract.on('SetJobConfig', (event) => {
+    this.contract.on('SetJobConfig', async (event) => {
       const {jobKey, isActive_, useJobOwnerCredits_, assertResolverSelector_} = event.args;
 
       this.clog(`'SetJobConfig' event: (block=${event.blockNumber
@@ -627,7 +627,8 @@ export abstract class AbstractAgent implements IAgent {
       },assertResolverSelector_=${assertResolverSelector_})`);
 
       const job = this.jobs.get(jobKey);
-      job.applyConfig(isActive_, useJobOwnerCredits_, assertResolverSelector_);
+      const binJob = await this.network.getJobRawBytes32(this.address, jobKey);
+      job.applyRawJobData(binJob);
       job.watch();
     });
 
