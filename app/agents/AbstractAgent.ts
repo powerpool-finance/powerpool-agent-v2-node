@@ -1,32 +1,34 @@
-import { Network } from './Network';
+import { Network } from '../Network';
 import {
   AgentConfig,
   ContractWrapper, EventWrapper,
   Executor,
   ExecutorType,
-  GetJobResponse,
+  GetJobResponse, IAgent,
   Resolver,
-  TxEnvelope,
-} from './Types.js';
-import {BigNumber, ethers, providers, Wallet} from 'ethers';
-import {getAgentRewardsAbi, getPPAgentV2Abi} from './services/AbiService.js';
-import { getEncryptedJson } from './services/KeyService.js';
-import { DEFAULT_SYNC_FROM_CHAINS, DEFAULT_SYNC_FROM_CONTRACTS, MIN_EXECUTION_GAS } from './Constants.js';
-import { Job } from './Job.js';
-import {nowMs, nowTimeString} from './Utils.js';
-import { FlashbotsExecutor } from './executors/FlashbotsExecutor.js';
-import { PGAExecutor } from './executors/PGAExecutor.js';
+  TxEnvelope
+} from '../Types.js';
+import {BigNumber, ethers, Wallet} from 'ethers';
+import {getAgentRewardsAbi} from '../services/AbiService.js';
+import { getEncryptedJson } from '../services/KeyService.js';
+import { DEFAULT_SYNC_FROM_CHAINS, MIN_EXECUTION_GAS } from '../Constants.js';
+import {nowMs, nowTimeString} from '../Utils.js';
+import { FlashbotsExecutor } from '../executors/FlashbotsExecutor.js';
+import { PGAExecutor } from '../executors/PGAExecutor.js';
+import { getAgentDefaultSyncFromSafe } from '../ConfigGetters.js';
+import { LightJob } from '../jobs/LightJob.js';
+import { RandaoJob } from '../jobs/RandaoJob.js';
 
 const FLAG_ACCEPT_MAX_BASE_FEE_LIMIT = 1;
 const FLAG_ACCRUE_REWARD = 2;
 const BIG_NUMBER_1E18 = BigNumber.from(10).pow(18);
 
-export class Agent {
+export abstract class AbstractAgent implements IAgent {
   private executorType: ExecutorType;
-  private network: Network;
-  private address: string;
-  private keeperId: number;
-  private contract: ContractWrapper;
+  protected network: Network;
+  protected address: string;
+  protected keeperId: number;
+  protected contract: ContractWrapper;
   private rewardsContract: ContractWrapper;
   private workerSigner: ethers.Wallet;
   private executor: Executor;
@@ -38,7 +40,7 @@ export class Agent {
   private accrueReward: boolean;
   private cfg: number;
 
-  private jobs: Map<string, Job>;
+  protected jobs: Map<string, LightJob | RandaoJob>;
   private ownerBalances: Map<string, BigNumber>;
   private ownerJobs: Map<string, Set<string>>;
   private lastBlockTimestamp: number;
@@ -48,15 +50,15 @@ export class Agent {
   private rewardsContractAddress: string;
   private rewardsCheckIntervalMinutes: number;
 
-  private toString(): string {
+  protected toString(): string {
     return `(network: ${this.network.getName()}, address: ${this.address})`;
   }
 
-  private clog(...args: any[]) {
+  protected clog(...args: any[]) {
     console.log(`>>> ${nowTimeString()} >>> Agent${this.toString()}:`, ...args);
   }
 
-  private err(...args: any[]): Error {
+  protected err(...args: any[]): Error {
     return new Error(`AgentError${this.toString()}: ${args.join(' ')}`);
   }
 
@@ -122,8 +124,7 @@ export class Agent {
     );
 
     this.fullSyncFrom = agentConfig.deployed_at
-      || (this.network.getName() in DEFAULT_SYNC_FROM_CONTRACTS
-        && DEFAULT_SYNC_FROM_CONTRACTS[this.network.getName()][this.address])
+      || getAgentDefaultSyncFromSafe(this.address, this.network.getName())
       || DEFAULT_SYNC_FROM_CHAINS[this.network.getName()]
       || 0
     this.clog('Sync from', this.fullSyncFrom);
@@ -143,7 +144,8 @@ export class Agent {
         to: this.rewardsContractAddress,
         // @ts-ignore
         from: this.workerSigner.address,
-        data: this.rewardsContract.getNativeContract().interface.encodeFunctionData(
+        // TODO: use wrapper for function encoding when Web3 is added
+        data: (this.rewardsContract.getNativeContract() as ethers.Contract).interface.encodeFunctionData(
           'claim',
           [this.keeperId, this.workerSigner.address]
         ),
@@ -155,18 +157,27 @@ export class Agent {
     setTimeout(this.checkRewardAvailableTick.bind(this), this.rewardsCheckIntervalMinutes * 1000 * 60);
   }
 
+  abstract _getSupportedAgentVersions(): string[];
+  abstract _beforeInit();
+  abstract _afterInit();
+
+  // private _initAgentContract
+
   public async init() {
-    const ppAgentV2Abi = getPPAgentV2Abi();
-    this.contract = this.network.getContractWrapperFactory().build(this.address, ppAgentV2Abi);
+    await this._beforeInit();
+
+    if (!this.contract) {
+      throw this.err('Constructor not initialized');
+    }
 
     // Ensure version matches
+    // TODO: extract check
     const version = await this.contract.ethCall('VERSION');
-    const SUPPORTED_AGENT_VERSIONS = ['2.1.0', '2.2.0'];
-    if (!SUPPORTED_AGENT_VERSIONS.includes(version)) {
+    if (!this._getSupportedAgentVersions().includes(version)) {
       throw this.err(`Invalid version: ${version}`);
     }
 
-    this.keeperId = await this.contract.ethCall('workerKeeperIds', [this.keyAddress]);
+    this.keeperId = parseInt(await this.contract.ethCall('workerKeeperIds', [this.keyAddress]));
     if (this.keeperId < 1) {
       throw this.err(`Worker address '${this.keyAddress}' is not assigned  to any keeper`);
     }
@@ -260,7 +271,9 @@ export class Agent {
     // Task #2
     const upTo = await this.resyncAllJobs();
     this.initializeListeners(upTo);
-    setTimeout(this.verifyLastExecutionAtLoop.bind(this), 3 * 60 * 1000);
+    // setTimeout(this.verifyLastExecutionAtLoop.bind(this), 3 * 60 * 1000);
+
+    await this._afterInit();
     this.clog('✅ Agent initialization done!')
   }
 
@@ -316,10 +329,10 @@ export class Agent {
     // 1. Handle registers
     // const newJobs = {};
     const registerLogs = await this.contract.getPastEvents('RegisterJob', this.fullSyncFrom, latestBock)
-    const newJobs = new Map<string, Job>();
+    const newJobs = new Map<string, RandaoJob | LightJob>();
 
     for (const event of registerLogs) {
-      newJobs.set(event.args.jobKey, new Job(event, this));
+      newJobs.set(event.args.jobKey, this._buildNewJob(event));
     }
 
     // Config can change rawJob w/o events
@@ -354,12 +367,13 @@ export class Agent {
 
     return latestBock;
   }
+  abstract _buildNewJob(event): LightJob | RandaoJob;
 
   private async addJob(creationEvent: EventWrapper) {
     const jobKey = creationEvent.args.jobKey;
     const owner = creationEvent.args.owner;
 
-    const job = new Job(creationEvent, this);
+    const job = this._buildNewJob(creationEvent);
     this.jobs.set(jobKey, job);
 
     let res = await this.network.getExternalLensContract().ethCall('getJobs', [this.address, [jobKey]]);
@@ -380,7 +394,6 @@ export class Agent {
     }
 
     this.ownerBalances.set(owner, res.results[0]);
-    await job.watch();
   }
 
   private newBlockEventHandler(blockTimestamp: number) {
@@ -400,6 +413,14 @@ export class Agent {
     for (const [, job] of this.jobs) {
       await job.watch();
     }
+  }
+
+  public registerIntervalJobExecution(jobKey: string, timestamp: number, callback: (calldata) => void) {
+    this.network.registerTimeout(`${this.address}/${jobKey}/execution`, timestamp, callback);
+  }
+
+  public unregisterIntervalJobExecution(jobKey: string) {
+    this.network.unregisterTimeout(`${this.address}/${jobKey}/execution`);
   }
 
   public registerResolver(jobKey: string, resolver: Resolver, callback: (calldata) => void) {
@@ -463,7 +484,9 @@ export class Agent {
     return this.executor.push(`other-tx-type/${nowMs()}`, tx);
   }
 
-  private initializeListeners(blockNumber: number) {
+  abstract _afterInitializeListeners(blockNumber: number);
+
+  protected initializeListeners(blockNumber: number) {
     this.contract.on('DepositJobCredits', (event) => {
       const {jobKey, amount, fee} = event.args;
 
@@ -647,5 +670,7 @@ export class Agent {
       this.clog("'SetAgentParams' event requires the bot to be restarted");
       process.exit(0);
     });
+
+    this._afterInitializeListeners(blockNumber);
   }
 }

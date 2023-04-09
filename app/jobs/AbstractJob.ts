@@ -1,20 +1,18 @@
 import {
   CALLDATA_SOURCE,
   EventWrapper,
-  GetJobResponse,
+  GetJobResponse, IAgent,
   JobDetails,
   JobType,
   ParsedJobConfig,
   RegisterJobEventArgs,
   Resolver,
-  SetResolverEventArgs,
-  UpdateJobEventArgs,
-} from './Types.js';
-import { BigNumber, ethers, providers, Event } from 'ethers';
-import { Agent } from './Agent.js';
-import { encodeExecute, nowS, nowTimeString, parseConfig, parseRawJob, toNumber } from './Utils.js';
-import { Network } from './Network.js';
-import { BN_ZERO } from './Constants.js';
+  UpdateJobEventArgs
+} from '../Types.js';
+import { BigNumber, ethers, Event } from 'ethers';
+import { encodeExecute, nowS, nowTimeString, parseConfig, parseRawJob, toNumber } from '../Utils.js';
+import { Network } from '../Network.js';
+import { BN_ZERO } from '../Constants.js';
 import { clearTimeout } from 'timers';
 
 /**
@@ -47,18 +45,18 @@ import { clearTimeout } from 'timers';
  * - pre-defined calldata changed (SetJobPreDefinedCalldata event)
  * - resolver calldata changed (SetJobResolver event)
  */
-export class Job {
-  private address: string;
-  private id: number;
-  private key: string;
+export abstract class AbstractJob {
+  protected address: string;
+  protected id: number;
+  protected key: string;
 
-  private networkName: string;
-  private agentAddress: string;
+  protected networkName: string;
+  protected agentAddress: string;
 
-  private agent: Agent;
+  protected agent: IAgent;
 
-  private owner: string;
-  private details: JobDetails;
+  protected owner: string;
+  protected details: JobDetails;
   private config: ParsedJobConfig;
   private jobLevelMinKeeperCvp: BigNumber;
   private resolver: Resolver;
@@ -69,21 +67,16 @@ export class Job {
 
   private initializing = true;
 
-  private toString(): string {
+  protected abstract clog(...args): void;
+  protected abstract err(...args): Error;
+
+  protected toString(): string {
     return `(network: ${this.networkName}, agent: ${this.agentAddress}, job: ${
       this.address
     }, id: ${this.id}, key: ${this.key}, type: ${this.getJobTypeString()})`;
   }
 
-  private clog(...args) {
-    console.log(`>>> ${nowTimeString()} >>> Job${this.toString()}:`, ...args);
-  }
-
-  private err(...args): Error {
-    return new Error(`JobError${this.toString()}: ${args.join(' ')}`);
-  }
-
-  constructor(creationEvent: EventWrapper, agent: Agent) {
+  constructor(creationEvent: EventWrapper, agent: IAgent) {
     const args: RegisterJobEventArgs = creationEvent.args as never;
     if (creationEvent.name !== 'RegisterJob') {
       throw new Error(`Job->constructor(): Not RegisterJob event in constructor: ${creationEvent}`);
@@ -162,8 +155,11 @@ export class Job {
     if (Array.isArray(this.details)) {
       throw new Error('details are an array')
     }
+    this._afterApplyJob(job);
     return true;
   }
+
+  protected abstract _afterApplyJob(job: GetJobResponse): void;
 
   /**
    * Applies job data by its raw 32-byte EVM word.
@@ -253,10 +249,13 @@ export class Job {
     this.clog('unwatch()');
     switch (this.getJobType()) {
       case JobType.IntervalResolver:
+        this.clog('Deprecated job type: IntervalResolver');
+        break;
       case JobType.Resolver:
         this.agent.unregisterResolver(this.key);
         break;
       case JobType.SelectorOrPDCalldata:
+        this.agent.unregisterIntervalJobExecution(this.key);
         break;
       default:
         throw this.err(`Invalid job type: ${this.getJobType()}`);
@@ -289,49 +288,27 @@ export class Job {
       return;
     }
 
+    if (!this.beforeJobWatch()) {
+      return;
+    }
+
     switch (this.getJobType()) {
       case JobType.IntervalResolver:
-        this.watchIntervalJob();
+        this.clog('Deprecated job type: IntervalResolver');
         break;
       case JobType.Resolver:
         this.agent.registerResolver(this.key, this.resolver, this.resolverSuccessCallback.bind(this));
         break;
       case JobType.SelectorOrPDCalldata:
-        this.watchIntervalJob();
+        this.agent.registerIntervalJobExecution(this.key, this.nextExecutionTimestamp(), this.intervalJobAvailableCallback.bind(this));
         break;
       default:
         throw this.err(`Invalid job type: ${this.getJobType()}`);
     }
   }
 
-  private async watchIntervalJob() {
-    const secondsToCall = this.secondsToCall(this.details.lastExecutionAt);
-    if (typeof this.details.lastExecutionAt !== 'number') {
-      throw this.err(`watchIntervalJob(): this.lastExecutionAt not configured: (value=${this.details.lastExecutionAt
-        },typeof=${typeof this.details.lastExecutionAt})`);
-    }
-    console.log({
-      action: 'execute now',
-      key: this.key,
-      secondsToCall,
-      now: nowS(),
-      lastExecution: this.details.lastExecutionAt,
-      interval: this.details.intervalSeconds,
-      secondsToCallManual: this.details.lastExecutionAt + this.details.intervalSeconds - nowS()
-    });
-    if (secondsToCall < this.averageBlockTimeSeconds) {
-      if (this.getJobType() === JobType.IntervalResolver) {
-        this.clog('watchIntervalJob()->registerResolver()')
-        this.agent.registerResolver(this.key, this.resolver, this.resolverSuccessCallback.bind(this));
-      } else {
-        await this.tryExecuteIntervalJob();
-      }
-    } else {
-      const timeout = secondsToCall + 1;
-      this.clog(`watchIntervalJob()->setTimeout ${timeout} seconds`)
-      this.intervalTimeout = setTimeout(this.watchIntervalJob.bind(this), timeout * 1000);
-    }
-  }
+  protected abstract intervalJobAvailableCallback(blockNumber: number);
+  protected abstract beforeJobWatch(): boolean;
 
   private async resolverSuccessCallback(invokeCalldata) {
     if (this.getJobType() === JobType.IntervalResolver) {
@@ -345,7 +322,7 @@ export class Job {
     );
   }
 
-  private buildIntervalCalldata(): string {
+  protected buildIntervalCalldata(): string {
     return encodeExecute(this.address, this.id, this.agent.getCfg(), this.agent.getKeeperId());
   }
 
@@ -353,7 +330,7 @@ export class Job {
     return encodeExecute(this.address, this.id, this.agent.getCfg(), this.agent.getKeeperId(), jobCalldata);
   }
 
-  private async buildTx(calldata: string): Promise<ethers.UnsignedTransaction> {
+  protected async buildTx(calldata: string): Promise<ethers.UnsignedTransaction> {
     const maxFeePerGas = await this.calculateMaxFeePerGas();
     return {
       to: this.agent.getAddress(),
@@ -391,7 +368,7 @@ export class Job {
     return balanceAvailable;
   }
 
-  private async executeTx(jobKey: string, tx: ethers.UnsignedTransaction, minTimestamp = 0) {
+  protected async executeTx(jobKey: string, tx: ethers.UnsignedTransaction, minTimestamp = 0) {
     return this.agent.sendOrEnqueueTxEnvelope({
       jobKey,
       tx,
@@ -408,7 +385,7 @@ export class Job {
 
   private nextExecutionTimestamp(): number {
     if (this.details.intervalSeconds === 0) {
-      throw this.err(`Unexpected nextExecutionTimestamp() call for job ${this.key}`);
+      throw this.err(`Unexpected nextExecutionTimestamp() callback for job ${this.key}`);
     }
 
     return this.details.lastExecutionAt + this.details.intervalSeconds;

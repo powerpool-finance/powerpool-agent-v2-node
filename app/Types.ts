@@ -1,6 +1,9 @@
 import { BigNumber, ethers } from 'ethers';
+import { Network } from './Network';
+import { Contract } from 'web3-eth-contract';
+import { WebsocketProvider } from 'web3-core';
 
-export type AvailableNetworkNames = 'mainnet' | 'arbitrum' | 'bsc'  | 'polygon' | 'goerli' | 'rinkeby';
+export type AvailableNetworkNames = 'mainnet' | 'bsc'  | 'polygon' | 'goerli';
 export type ExecutorType = 'flashbots' | 'pga';
 
 export enum CALLDATA_SOURCE {
@@ -51,6 +54,12 @@ export interface GetJobResponse {
   details: JobDetails;
   preDefinedCalldata: string;
   resolver: Resolver;
+  randaoData: {
+    jobNextKeeperId: number,
+    jobReservedSlasherId: number,
+    jobSlashingPossibleAfter: number,
+    jobCreatedAt: number
+  };
 }
 
 export interface JobDetails {
@@ -112,11 +121,11 @@ export interface Executor {
 }
 
 export interface ClientWrapper {
-  getDefaultProvider(): ethers.providers.BaseProvider;
+  getDefaultProvider(): ethers.providers.BaseProvider | object;
 }
 
 export interface ContractWrapperFactory {
-  getDefaultProvider(): ethers.providers.BaseProvider;
+  getDefaultProvider(): ethers.providers.BaseProvider | object;
   getLatestBlockNumber(): Promise<number>;
   build(
     addressOrName: string,
@@ -132,8 +141,8 @@ export interface ErrorWrapper {
 
 export interface ContractWrapper {
   decodeError(response: string): ErrorWrapper;
-  getNativeContract(): ethers.Contract;
-  getDefaultProvider(): ethers.providers.BaseProvider;
+  getNativeContract(): ethers.Contract | Contract;
+  getDefaultProvider(): ethers.providers.BaseProvider | WebsocketProvider;
   ethCall(method: string, args?: any[], overrides?: object, callStatic?: boolean): Promise<any>;
   ethCallStatic(method: string, args?: any[], overrides?: object): Promise<any>;
   getPastEvents(eventName: string, from: number, to: number): Promise<any[]>;
@@ -143,6 +152,8 @@ export interface ContractWrapper {
 export interface EventWrapper {
   name: string;
   args: { [key: string]: any };
+  logIndex: number;
+
   blockNumber: number;
   blockHash: string;
   nativeEvent: any;
@@ -183,4 +194,41 @@ export interface TxEnvelope {
   fixedCompensation: BigNumber;
   ppmCompensation: number;
   minTimestamp?: number;
+}
+
+export interface AgentHardcodedConfig {
+  deployedAt: number;
+  version: string;
+  strategy: string;
+  subgraph?: string;
+}
+
+export interface IRandaoAgent {
+  registerIntervalJobSlashing(jobKey: string, timestamp: number, callback: (calldata) => void);
+  unregisterIntervalJobSlashing(jobKey: string);
+}
+
+export interface IAgent {
+  getNetwork(): Network;
+
+  getAddress(): string;
+
+  getKeeperId(): number;
+
+  getCfg(): number;
+
+  // METHODS
+  init(): void;
+
+  registerIntervalJobExecution(jobKey: string, timestamp: number, callback: (calldata) => void);
+
+  unregisterIntervalJobExecution(jobKey: string);
+
+  registerResolver(jobKey: string, resolver: Resolver, callback: (calldata) => void);
+
+  unregisterResolver(jobKey: string): void;
+
+  getJobOwnerBalance(address: string): BigNumber;
+
+  sendOrEnqueueTxEnvelope(envelope: TxEnvelope);
 }

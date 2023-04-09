@@ -62,7 +62,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       return;
     }
     tx.nonce = await this.genericProvider.getTransactionCount(this.workerSigner.address);
-    tx.gasLimit = gasLimitEstimation.mul(15).div(10);
+    tx.gasLimit = gasLimitEstimation.mul(20).div(10);
 
     this.clog(`📝 Signing tx with calldata=${tx.data} ...`);
     const signedTx = await this.workerSigner.signTransaction(tx);

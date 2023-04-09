@@ -100,7 +100,8 @@ export class EthersContract implements ContractWrapper {
         }
         return filterFunctionResultObject(res);
       } catch (e) {
-        this.clog(`Error querying method '${method}' with arguments ${JSON.stringify(args)} and overrides ${JSON.stringify(overrides)}:
+        this.clog(`Error(attempt=${this.attempts - errorCounter}/${this.attempts}) querying method '${
+          method}' with arguments ${JSON.stringify(args)} and overrides ${JSON.stringify(overrides)}:
 ${e.message}: ${Error().stack}`);
         await sleep(this.attemptTimeoutSeconds * 1000);
       }
@@ -117,6 +118,7 @@ ${e.message}: ${Error().stack}`);
       return {
         name: event.event,
         args: filterFunctionResultObject(event.args),
+        logIndex: event.logIndex,
         blockNumber: event.blockNumber,
         blockHash: event.blockHash,
         nativeEvent: {}
@@ -127,10 +129,12 @@ ${e.message}: ${Error().stack}`);
   public on(eventName: string, eventEmittedCallback: WrapperListener): ContractWrapper {
     this.contract.on(eventName, (...args) => {
       const event = args[args.length - 1];
+      console.log('😁😁😁😁😁😁😁😁😁😁😁', event.transactionHash, event.logIndex, eventName);
       const onlyFields = filterFunctionResultObject(event.args);
       eventEmittedCallback({
         name: eventName,
         args: onlyFields,
+        logIndex: event.logIndex,
         blockNumber: event.blockNumber,
         blockHash: event.blockHash,
         nativeEvent: {}
