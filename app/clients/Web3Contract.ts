@@ -1,20 +1,24 @@
-import { ethers } from 'ethers';
 import { nowTimeString } from '../Utils.js';
 import { ContractWrapper, ErrorWrapper, WrapperListener } from '../Types.js';
+import { Contract } from 'web3-eth-contract';
+import Web3 from 'web3';
+import { WebsocketProvider } from 'web3-core';
 
 export class Web3Contract implements ContractWrapper {
   private primaryEndpoint: string;
-  private provider: ethers.providers.BaseProvider;
-  private contract: ethers.Contract;
+  private provider: WebsocketProvider;
+
+  private web3: Web3;
+  private contract: Contract;
 
   private address: string;
 
   private attempts = 3;
   private attemptTimeoutSeconds = 1;
 
-  constructor(addressOrName: string, contractInterface: ethers.ContractInterface, signerOrProvider?: any) {
+  constructor(addressOrName: string, contractInterface: any, web3: Web3) {
     this.address = addressOrName;
-    // this.contract = new (addressOrName, contractInterface, signerOrProvider);
+    this.contract = new web3.eth.Contract(contractInterface, addressOrName);
   }
 
   private toString(): string {
@@ -29,11 +33,11 @@ export class Web3Contract implements ContractWrapper {
     return new Error(`NetworkError${this.toString()}: ${args.join(' ')}`);
   }
 
-  public getNativeContract(): ethers.Contract {
+  public getNativeContract(): Contract {
     return this.contract;
   }
 
-  public getDefaultProvider(): ethers.providers.BaseProvider {
+  public getDefaultProvider(): WebsocketProvider {
     if (!this.provider) {
       throw this.err('Provider not initialized');
     }
@@ -68,6 +72,9 @@ export class Web3Contract implements ContractWrapper {
   }
 
   on(eventName: string, eventEmittedCallback: WrapperListener): ContractWrapper {
-    return undefined;
+    this.contract.events[eventName]({}).on('data', (error, event) => {
+      console.log('got event', eventName);
+    });
+    return this;
   }
 }
