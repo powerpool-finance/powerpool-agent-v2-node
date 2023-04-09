@@ -331,7 +331,7 @@ export abstract class AbstractJob {
   }
 
   protected async buildTx(calldata: string): Promise<ethers.UnsignedTransaction> {
-    const maxFeePerGas = await this.calculateMaxFeePerGas();
+    const maxFeePerGas = (await this.calculateMaxFeePerGas()).toString();
     return {
       to: this.agent.getAddress(),
 
@@ -345,14 +345,17 @@ export abstract class AbstractJob {
     }
   }
 
-  private async calculateMaxFeePerGas(): Promise<number> {
-    const gasPrice = await this.agent.getNetwork().queryGasPrice();
-    const currentDouble = Math.ceil(gasPrice * 2);
-    const max = this.details.maxBaseFeeGwei * 1e9;
+  private async calculateMaxFeePerGas(): Promise<bigint> {
+    const gasPrice = this.agent.getNetwork().getBaseFee();
+    const max = BigInt(this.details.maxBaseFeeGwei) * BigInt(1e9);
+
     console.log({gasPrice, max});
+
     if (max < gasPrice) {
-      return 0;
+      return 0n;
     }
+
+    const currentDouble = gasPrice * 2n;
     if (currentDouble > max) {
       return max;
     } else {

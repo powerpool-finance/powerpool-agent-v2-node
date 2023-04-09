@@ -42,6 +42,7 @@ export class Network {
   private newBlockNotifications: Map<number, Set<string>>;
   private contractWrapperFactory: ContractWrapperFactory;
   private newBlockEventEmitter: EventEmitter;
+  private latestBaseFee: bigint;
 
   private toString(): string {
     return `(name: ${this.name}, rpc: ${this.rpc})`;
@@ -145,6 +146,10 @@ export class Network {
     return (await this.provider.getGasPrice()).toNumber();
   }
 
+  public getBaseFee(): bigint {
+    return this.latestBaseFee;
+  }
+
   public async getJobRawBytes32(agent: string, jobKey: string): Promise<string> {
     const res = await this.externalLens.ethCall('getJobRawBytes32', [agent, [jobKey]]);
     return res.results[0];
@@ -172,6 +177,8 @@ export class Network {
     }
 
     this.chainId = (await this.provider.getNetwork()).chainId;
+    this.latestBaseFee = BigInt((await this.provider.getGasPrice()).toString());
+
 
     for (const agent of this.agents) {
       await agent.init();
@@ -182,6 +189,7 @@ export class Network {
       const block = await this.provider.getBlock(blockNumber);
       const fetchBlockDelay = nowMs() - before;
 
+      this.latestBaseFee = BigInt(block.baseFeePerGas.toString());
       this.newBlockEventEmitter.emit('newBlock', block.timestamp);
 
       if (this.newBlockNotifications.has(blockNumber)) {
@@ -196,7 +204,7 @@ export class Network {
       }
 
       this.clog(`🧱 New block: (number=${blockNumber},timestamp=${block.timestamp},hash=${block.hash
-      },txCount=${block.transactions.length},fetchDelayMs=${fetchBlockDelay})`);
+      },txCount=${block.transactions.length},baseFee=${block.baseFeePerGas},fetchDelayMs=${fetchBlockDelay})`);
     });
     this.clog('✅ Network initialization done!')
   }

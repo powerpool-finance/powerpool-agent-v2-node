@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import YAML from 'yamljs';
 
-import { Config, AllNetworksConfig, Storage } from './Types';
+import { Config, AllNetworksConfig, Storage, AvailableNetworkNames } from "./Types";
 import { Network } from './Network.js';
 import { nowTimeString } from './Utils.js';
 import { fileURLToPath } from 'url';

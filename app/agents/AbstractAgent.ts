@@ -443,13 +443,15 @@ export abstract class AbstractAgent implements IAgent {
     }
   }
 
+  // Here only the `maxPriorityFeePerGas` is assigned.
+  // The `maxFeePerGas` is assigned earlier during job.buildTx().
   private async populateTxExtraFields(tx: ethers.UnsignedTransaction) {
     tx.chainId = this.network.getChainId();
     // @ts-ignore (estimations will fail w/o this `from` assignment
     tx.from = this.workerSigner.address;
     const maxPriorityFeePerGas = await this.network.getMaxPriorityFeePerGas()
     console.log({maxPriorityFeePerGas, maxFeePerGas: tx.maxFeePerGas});
-    tx.maxPriorityFeePerGas = String(BigInt(maxPriorityFeePerGas) * 5n);
+    tx.maxPriorityFeePerGas = String(BigInt(maxPriorityFeePerGas) * 2n);
 
     const maxPriorityFeePerGasBigInt = BigInt(tx.maxPriorityFeePerGas);
     const maxFeePerGasBigInt = BigInt(String(tx.maxFeePerGas));
