@@ -4,9 +4,6 @@ import { IRandaoAgent } from '../Types';
 import { RandaoJob } from '../jobs/RandaoJob.js';
 
 export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
-  // jobKey => keeper
-  private assignedKeepers: Map<string, number>;
-
   // jobKeys
   private myJobs: Set<string>
   private slashingEpochBlocks: number;
@@ -25,7 +22,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
     this.contract = this.network.getContractWrapperFactory().build(this.address, ppAgentV2Abi);
   }
 
-  async _afterInit() {
+  protected async _beforeResyncAllJobs() {
     const rdConfig = await this.contract.ethCall('getRdConfig', []);
     this.slashingEpochBlocks = rdConfig.slashingEpochBlocks;
     this.period1 = rdConfig.period1;
@@ -47,8 +44,21 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
     this.network.unregisterTimeout(`${this.address}/${jobKey}/slashing`);
   }
 
-  async _tormSlashCurrent() {
-    // TODO: walk thorugh jobs, try slash execute
+  public getPeriod1Duration(): number {
+    if (typeof this.period1 !== 'number') {
+      console.log({period1: this.period1});
+      throw this.err('period1 is not a number')
+    }
+
+    return this.period1;
+  }
+
+  public getPeriod2Duration(): number {
+    if (typeof this.period2 !== 'number') {
+      throw this.err('period2 is not a number')
+    }
+
+    return this.period2;
   }
 
   _afterInitializeListeners() {

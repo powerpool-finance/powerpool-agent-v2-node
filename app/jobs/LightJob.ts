@@ -9,13 +9,19 @@ export class LightJob extends AbstractJob {
     return new Error(`LightJobError${this.toString()}: ${args.join(' ')}`);
   }
 
+  protected _beforeJobWatch(): boolean {
+    return true;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   protected _afterApplyJob(): void {
   }
 
-  protected intervalJobAvailableCallback(_blockNumber: number) {
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  protected _watchIntervalJob(): void {
   }
-  protected beforeJobWatch(): boolean {
-    return true;
+
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  protected intervalJobAvailableCallback(_blockNumber: number) {
   }
 }

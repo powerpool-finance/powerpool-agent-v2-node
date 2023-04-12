@@ -50,6 +50,8 @@ export abstract class AbstractAgent implements IAgent {
   private rewardsContractAddress: string;
   private rewardsCheckIntervalMinutes: number;
 
+  abstract _getSupportedAgentVersions(): string[];
+
   protected toString(): string {
     return `(network: ${this.network.getName()}, address: ${this.address})`;
   }
@@ -61,6 +63,10 @@ export abstract class AbstractAgent implements IAgent {
   protected err(...args: any[]): Error {
     return new Error(`AgentError${this.toString()}: ${args.join(' ')}`);
   }
+
+  protected _beforeInit(): void {}
+  protected _afterInit(): void {}
+  protected async _beforeResyncAllJobs() {}
 
   constructor(address: string, agentConfig: AgentConfig, network: Network) {
     this.jobs = new Map();
@@ -156,10 +162,6 @@ export abstract class AbstractAgent implements IAgent {
 
     setTimeout(this.checkRewardAvailableTick.bind(this), this.rewardsCheckIntervalMinutes * 1000 * 60);
   }
-
-  abstract _getSupportedAgentVersions(): string[];
-  abstract _beforeInit();
-  abstract _afterInit();
 
   // private _initAgentContract
 
@@ -267,6 +269,8 @@ export abstract class AbstractAgent implements IAgent {
     if (this.rewardsContractAddress) {
       this.initAgentRewards();
     }
+
+    await this._beforeResyncAllJobs();
 
     // Task #2
     const upTo = await this.resyncAllJobs();
@@ -630,7 +634,7 @@ export abstract class AbstractAgent implements IAgent {
 
       const job = this.jobs.get(jobKey);
       const binJob = await this.network.getJobRawBytes32(this.address, jobKey);
-      job.applyRawJobData(binJob);
+      job.applyBinJobData(binJob);
       job.watch();
     });
 
@@ -658,7 +662,7 @@ export abstract class AbstractAgent implements IAgent {
       }wei,compensation=${compensation.toNumber() / 1e18}eth/${compensation.toNumber()}wei,binJobAfter=${binJobAfter})`);
 
       const job = this.jobs.get(jobKey);
-      job.applyRawJobData(binJobAfter);
+      job.applyBinJobData(binJobAfter);
       job.watch();
     });
 

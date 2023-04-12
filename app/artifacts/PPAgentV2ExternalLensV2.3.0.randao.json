@@ -204,11 +204,6 @@
         "type": "uint256"
       },
       {
-        "internalType": "bytes32",
-        "name": "blockHash",
-        "type": "bytes32"
-      },
-      {
         "components": [
           {
             "internalType": "address",
@@ -302,11 +297,6 @@
         "type": "uint256"
       },
       {
-        "internalType": "bytes32",
-        "name": "blockHash",
-        "type": "bytes32"
-      },
-      {
         "components": [
           {
             "internalType": "address",
@@ -387,27 +377,27 @@
         "type": "address"
       },
       {
-        "internalType": "bytes32[]",
-        "name": "jobKeys",
-        "type": "bytes32[]"
+        "internalType": "bytes32",
+        "name": "jobKey",
+        "type": "bytes32"
       }
     ],
-    "name": "getJobRawBytes32",
+    "name": "getJobBytes32AndNextBlockSlasherId",
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "blockNumber",
+        "name": "nextBlockNumber",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "nextBlockSlasherId",
         "type": "uint256"
       },
       {
         "internalType": "bytes32",
-        "name": "blockHash",
+        "name": "binJob",
         "type": "bytes32"
-      },
-      {
-        "internalType": "bytes32[]",
-        "name": "results",
-        "type": "bytes32[]"
       }
     ],
     "stateMutability": "view",
@@ -432,11 +422,6 @@
         "internalType": "uint256",
         "name": "blockNumber",
         "type": "uint256"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "blockHash",
-        "type": "bytes32"
       },
       {
         "components": [
@@ -591,11 +576,6 @@
         "type": "uint256"
       },
       {
-        "internalType": "bytes32",
-        "name": "blockHash",
-        "type": "bytes32"
-      },
-      {
         "internalType": "uint256[]",
         "name": "results",
         "type": "uint256[]"
@@ -625,14 +605,38 @@
         "type": "uint256"
       },
       {
-        "internalType": "bytes32",
-        "name": "blockHash",
-        "type": "bytes32"
-      },
-      {
         "internalType": "uint256[]",
         "name": "results",
         "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "ppAgentV2",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "jobKeys",
+        "type": "bytes32[]"
+      }
+    ],
+    "name": "getJobsRawBytes32",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "blockNumber",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "results",
+        "type": "bytes32[]"
       }
     ],
     "stateMutability": "view",
@@ -657,11 +661,6 @@
         "internalType": "uint256",
         "name": "blockNumber",
         "type": "uint256"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "blockHash",
-        "type": "bytes32"
       },
       {
         "components": [
@@ -755,11 +754,6 @@
         "internalType": "uint256",
         "name": "blockNumber",
         "type": "uint256"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "blockHash",
-        "type": "bytes32"
       },
       {
         "internalType": "uint256[]",

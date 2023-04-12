@@ -1,6 +1,6 @@
 import { AbstractJob } from './AbstractJob.js';
 import { nowTimeString } from '../Utils.js';
-import { GetJobResponse, JobType } from "../Types";
+import { GetJobResponse, IRandaoAgent, JobType } from '../Types.js';
 
 export class RandaoJob extends AbstractJob {
   protected assignedKeeperId: number;
@@ -20,20 +20,19 @@ export class RandaoJob extends AbstractJob {
     this.assignedKeeperId = keeperId;
   }
 
-  public applyKeeperRemoved() {
-    console.log(this.key, 'keeperID remove 🧱🧱🧱🧱🧱🧱🧱🧱🧱🧱🧱🧱🧱', this.assignedKeeperId, '->', 0);
-    this.assignedKeeperId = 0;
-  }
-
-  protected async intervalJobSlashingAvailableCallback() {
-  }
-
-  private nextSlashingTimestamp(): number {
+  private intervalPeriod2StartsAt(): number {
     if (this.details.intervalSeconds === 0) {
-      throw this.err(`Unexpected nextSlashingTimestamp() callback for job ${this.key}`);
+      throw this.err(`Unexpected slashingAvailableTimestamp() callback for job ${this.key}`);
     }
 
-    return this.details.lastExecutionAt + this.details.intervalSeconds;
+    return this.details.lastExecutionAt + this.details.intervalSeconds + (this.agent as IRandaoAgent).getPeriod1Duration();
+  }
+
+  protected _beforeJobWatch(): boolean {
+    return this.assignedKeeperId !== 0;
+  }
+
+  protected _afterJobWatch(): void {
   }
 
   protected _afterApplyJob(job: GetJobResponse): void {
@@ -43,9 +42,20 @@ export class RandaoJob extends AbstractJob {
     this.slashingPossibleAfter = parseInt(job.randaoData.jobSlashingPossibleAfter.toString());
   }
 
+  protected _unwatchIntervalJob(): void {
+    super._unwatchIntervalJob();
+    (this.agent as IRandaoAgent).unregisterIntervalJobSlashing(this.key);
+  }
+
+  protected _watchIntervalJob(): void {
+    super._watchIntervalJob();
+    (this.agent as IRandaoAgent).registerIntervalJobSlashing(
+      this.key, this.intervalPeriod2StartsAt(), this.intervalJobSlashingAvailableCallback.bind(this));
+  }
+
   protected async intervalJobAvailableCallback(blockNumber: number) {
-    console.log('job callback', this.key, blockNumber, {assigned: this.assignedKeeperId, me: this.agent.getKeeperId()});
     if (this.assignedKeeperId === this.agent.getKeeperId()) {
+      console.log('job callback', this.key, blockNumber, {assigned: this.assignedKeeperId, me: this.agent.getKeeperId()});
       this.agent.unregisterIntervalJobExecution(this.key);
       return this.executeTx(
         this.key,
@@ -56,7 +66,27 @@ export class RandaoJob extends AbstractJob {
     }
   }
 
-  protected beforeJobWatch(): boolean {
-    return this.assignedKeeperId !== 0;
+  private async intervalJobSlashingAvailableCallback(blockNumber: number) {
+    // WARNING: Either `rdConfig.slashingEpochBlocks` or `totalActiveKeepers` can affect the actual keeper id
+    // that will be in the previous block
+    const res = await this.agent.getNetwork().getExternalLensContract()
+      .ethCall('getJobBytes32AndNextBlockSlasherId', [this.agentAddress, this.key]);
+
+    // const nextBlockNumber = res.nextBlockNumber.toNumber();
+    const nextBlockSlasherId = res.nextBlockSlasherId.toNumber();
+    const binJob = res.binJob;
+
+    this.applyBinJobData(binJob);
+    if (this.agent.getKeeperId() === nextBlockSlasherId) {
+      this.unwatch();
+      return this.executeTx(
+        this.key,
+        await this.buildTx(
+          this.buildIntervalCalldata()
+        )
+      );
+    } else {
+      this.clog('Slasher is not me', { nextBlockSlasherId, me: this.agent.getKeeperId() });
+    }
   }
 }

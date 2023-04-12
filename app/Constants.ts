@@ -58,7 +58,7 @@ export const EXTERNAL_LENS_CONTRACTS_2_2_0: { [network: string]: string } = {
 export const EXTERNAL_LENS_CONTRACTS_2_3_0: { [network: string]: string } = {
   mainnet: '',
   goerli: '',
-  sepolia: '0xbbDf835B2F1b6886911C0A6Be9E056D35a55bcac'
+  sepolia: '0x3606422e94ea26E5eE2653AC0d137c2Bf8b232F8'
 }
 
 export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {

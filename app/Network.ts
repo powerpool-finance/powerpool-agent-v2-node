@@ -269,19 +269,19 @@ export class Network {
 
   private _validateKeyLength(key: string, type: string): void {
     if (key.length < 3) {
-      throw this.err(`Invalid key length: type=${type},key=${key}`);
+      throw this.err(`Invalid callback key length: type=${type},key=${key}`);
     }
   }
 
   private _validateKeyNotInMap(key: string, map: {[key: string]: object}, type: string): void {
     if (map[key]) {
-      throw this.err(`Key already exists: type=${type},key=${key}`);
+      throw this.err(`Callback key already exists: type=${type},key=${key}`);
     }
   }
 
   private _validateKeyInMap(key: string, map: {[key: string]: object}, type: string): void {
     if (!map[key]) {
-      throw this.err(`Key already exists: type=${type},key=${key}`);
+      throw this.err(`Callback key already exists: type=${type},key=${key}`);
     }
   }
 

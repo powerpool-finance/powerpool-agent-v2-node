@@ -17,21 +17,6 @@ export class AgentLight_2_2_0 extends AbstractAgent {
     this.contract = this.network.getContractWrapperFactory().build(this.address, ppAgentV2Abi);
   }
 
-  async _afterInit() {
-    // TODO: fetch rdConfig
-    const rdConfig = await this.contract.ethCall('rdConfig', []);
-    console.log({rdConfig});
-
-    // TODO: fetch assigned jobs
-    const assignedJobs = await this.contract.ethCall('getJobsAssignedToKeeper', [this.keeperId]);
-    if (assignedJobs == 0) {
-      console.log({assignedJobs});
-      await this._tormSlashCurrent();
-    }
-    console.log({ assignedJobs});
-    // tODO: start my jobs
-  }
-
   _buildNewJob(event): LightJob {
     return new LightJob(event, this);
   }

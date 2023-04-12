@@ -76,6 +76,19 @@ export abstract class AbstractJob {
     }, id: ${this.id}, key: ${this.key}, type: ${this.getJobTypeString()})`;
   }
 
+  protected _watchIntervalJob(): void {
+    this.agent.registerIntervalJobExecution(
+      this.key, this.nextExecutionTimestamp(), this.intervalJobAvailableCallback.bind(this));
+  }
+
+  protected _unwatchIntervalJob(): void {
+    this.agent.unregisterIntervalJobExecution(this.key);
+  }
+  protected _beforeJobWatch(): boolean { return true }
+  protected _afterJobWatch(): void {}
+  protected abstract _afterApplyJob(job: GetJobResponse): void;
+  protected abstract intervalJobAvailableCallback(blockNumber: number);
+
   constructor(creationEvent: EventWrapper, agent: IAgent) {
     const args: RegisterJobEventArgs = creationEvent.args as never;
     if (creationEvent.name !== 'RegisterJob') {
@@ -159,8 +172,6 @@ export abstract class AbstractJob {
     return true;
   }
 
-  protected abstract _afterApplyJob(job: GetJobResponse): void;
-
   /**
    * Applies job data by its raw 32-byte EVM word.
    * Called from:
@@ -169,7 +180,7 @@ export abstract class AbstractJob {
    * @param rawJob
    * @returns boolean Requires restart watcher
    */
-  public applyRawJobData(rawJob: string): boolean {
+  public applyBinJobData(rawJob: string): boolean {
     if (typeof rawJob !== 'string') {
       throw this.err('rawJob is not a string:', typeof rawJob, rawJob);
     }
@@ -255,15 +266,10 @@ export abstract class AbstractJob {
         this.agent.unregisterResolver(this.key);
         break;
       case JobType.SelectorOrPDCalldata:
-        this.agent.unregisterIntervalJobExecution(this.key);
+        this._unwatchIntervalJob();
         break;
       default:
         throw this.err(`Invalid job type: ${this.getJobType()}`);
-    }
-
-    if (this.intervalTimeout) {
-      clearTimeout(this.intervalTimeout);
-      this.intervalTimeout = null;
     }
   }
 
@@ -288,7 +294,7 @@ export abstract class AbstractJob {
       return;
     }
 
-    if (!this.beforeJobWatch()) {
+    if (!this._beforeJobWatch()) {
       return;
     }
 
@@ -300,15 +306,14 @@ export abstract class AbstractJob {
         this.agent.registerResolver(this.key, this.resolver, this.resolverSuccessCallback.bind(this));
         break;
       case JobType.SelectorOrPDCalldata:
-        this.agent.registerIntervalJobExecution(this.key, this.nextExecutionTimestamp(), this.intervalJobAvailableCallback.bind(this));
+        this._watchIntervalJob();
         break;
       default:
         throw this.err(`Invalid job type: ${this.getJobType()}`);
     }
-  }
 
-  protected abstract intervalJobAvailableCallback(blockNumber: number);
-  protected abstract beforeJobWatch(): boolean;
+    this._afterJobWatch();
+  }
 
   private async resolverSuccessCallback(invokeCalldata) {
     if (this.getJobType() === JobType.IntervalResolver) {

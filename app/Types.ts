@@ -203,9 +203,11 @@ export interface AgentHardcodedConfig {
   subgraph?: string;
 }
 
-export interface IRandaoAgent {
+export interface IRandaoAgent extends IAgent {
   registerIntervalJobSlashing(jobKey: string, timestamp: number, callback: (calldata) => void);
   unregisterIntervalJobSlashing(jobKey: string);
+  getPeriod1Duration(): number;
+  getPeriod2Duration(): number;
 }
 
 export interface IAgent {
