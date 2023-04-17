@@ -28,6 +28,11 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: {[agent: string]: Age
       version: '2.3.0',
       strategy: 'randao',
     },
+    '0xa45B8e6D417Aed09D59950B8E587fC99a00c74c3': {
+      deployedAt: 8766880,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
   },
   sepolia: {
     '0xB1b973fB49DE8128664839E2C6cDFd5D8E0a8e28': {
