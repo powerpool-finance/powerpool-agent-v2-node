@@ -62,7 +62,7 @@ export const EXTERNAL_LENS_CONTRACTS_2_2_0: { [network: string]: string } = {
 
 export const EXTERNAL_LENS_CONTRACTS_2_3_0: { [network: string]: string } = {
   mainnet: '',
-  goerli: '0x09981814c70d5ee3e2e3aae152bfb933def6bf3e',
+  goerli: '0x1a348FDcD9EcB6c81CA5043B4278716189e6aEe4',
   sepolia: '0x3606422e94ea26E5eE2653AC0d137c2Bf8b232F8'
 }
 
