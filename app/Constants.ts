@@ -33,6 +33,11 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: {[agent: string]: Age
       version: '2.3.0',
       strategy: 'randao',
     },
+    '0xc6420892469D344d207c701B64e578Df39Bf0918': {
+      deployedAt: 8848050,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
   },
   sepolia: {
     '0xB1b973fB49DE8128664839E2C6cDFd5D8E0a8e28': {
@@ -42,6 +47,11 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: {[agent: string]: Age
     },
     '0x43f033F7038BF02929dDA36d6aCfd7590683A8f4': {
       deployedAt: 3202169,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
+    '0x4d9bC98452820FD96B2C31741e8C4DdcC795bEce': {
+      deployedAt: 3311189,
       version: '2.3.0',
       strategy: 'randao',
     }
@@ -62,7 +72,7 @@ export const EXTERNAL_LENS_CONTRACTS_2_2_0: { [network: string]: string } = {
 
 export const EXTERNAL_LENS_CONTRACTS_2_3_0: { [network: string]: string } = {
   mainnet: '',
-  goerli: '0x09981814c70d5ee3e2e3aae152bfb933def6bf3e',
+  goerli: '0x1a348FDcD9EcB6c81CA5043B4278716189e6aEe4',
   sepolia: '0x3606422e94ea26E5eE2653AC0d137c2Bf8b232F8'
 }
 
