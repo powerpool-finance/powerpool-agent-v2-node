@@ -24,6 +24,8 @@ interface TimeoutWithCallback {
 }
 
 export class Network {
+  source: string;
+  graphUrl: string;
   private name: string;
   private networkConfig: NetworkConfig;
   private rpc: string;
@@ -60,6 +62,7 @@ export class Network {
     this.contractWrapperFactory = new EthersContractWrapperFactory([networkConfig.rpc]);
     this.name = name;
     this.rpc = networkConfig.rpc;
+    this.source = networkConfig.source;
     this.networkConfig = networkConfig;
     this.flashbotsRpc = networkConfig?.flashbots?.rpc;
     this.flashbotsAddress = networkConfig?.flashbots?.address;

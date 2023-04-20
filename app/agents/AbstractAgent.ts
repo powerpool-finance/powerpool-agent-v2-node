@@ -18,6 +18,8 @@ import { PGAExecutor } from '../executors/PGAExecutor.js';
 import { getAgentDefaultSyncFromSafe } from '../ConfigGetters.js';
 import { LightJob } from '../jobs/LightJob.js';
 import { RandaoJob } from '../jobs/RandaoJob.js';
+import { BlockchainSource } from '../dataSources/blockchainSource.js';
+import { SubgraphSource } from '../dataSources/subgraphSource.js';
 
 const FLAG_ACCEPT_MAX_BASE_FEE_LIMIT = 1;
 const FLAG_ACCRUE_REWARD = 2;
@@ -29,6 +31,7 @@ export abstract class AbstractAgent implements IAgent {
   protected address: string;
   protected keeperId: number;
   protected contract: ContractWrapper;
+  private source: BlockchainSource | SubgraphSource;
   private rewardsContract: ContractWrapper;
   private workerSigner: ethers.Wallet;
   private executor: Executor;
@@ -79,6 +82,13 @@ export abstract class AbstractAgent implements IAgent {
 
     this.lastBlockTimestamp = 0;
     this.cfg = 0;
+
+    // setting data source
+    if (network.source === 'blockchain') {
+      this.source = new BlockchainSource(network);
+    } else if (network.source === 'subgraph' && network.graphUrl) {
+      this.source = new SubgraphSource(network);
+    }
 
     if (!('keeper_address' in agentConfig) || !agentConfig.keeper_address || agentConfig.keeper_address.length === 0) {
       throw this.err(`Missing keeper_address for agent: (network=${this.network.getName()
@@ -329,7 +339,6 @@ export abstract class AbstractAgent implements IAgent {
    */
   private async resyncAllJobs(): Promise<number> {
     const latestBock = await this.network.getLatestBlockNumber();
-
     // 1. Handle registers
     // const newJobs = {};
     const registerLogs = await this.contract.getPastEvents('RegisterJob', this.fullSyncFrom, latestBock)
