@@ -1,6 +1,7 @@
 import { AbstractJob } from './AbstractJob.js';
-import { nowTimeString } from '../Utils.js';
+import {nowTimeString, parseConfig} from '../Utils.js';
 import { GetJobResponse, IRandaoAgent, JobType } from '../Types.js';
+import { BigNumber } from 'ethers';
 
 export class RandaoJob extends AbstractJob {
   protected assignedKeeperId: number;
@@ -18,6 +19,22 @@ export class RandaoJob extends AbstractJob {
   public applyKeeperAssigned(keeperId: number) {
     console.log(this.key, 'keeperID update ✅✅✅✅✅✅✅✅✅✅✅✅✅', this.assignedKeeperId, '->', keeperId);
     this.assignedKeeperId = keeperId;
+  }
+
+  public applyJob(job: GetJobResponse, source?: string): boolean {
+    if (source === 'blockchain') {
+      this.resolver = {resolverAddress: job.resolver.resolverAddress, resolverCalldata: job.resolver.resolverCalldata};
+      this.details = job.details;
+      this.owner = job.owner;
+      this.config = parseConfig(BigNumber.from(job.details.config));
+      if (Array.isArray(this.details)) {
+        throw new Error('details are an array')
+      }
+      this._afterApplyJob(job);
+    } else {
+      //
+    }
+    return true;
   }
 
   private intervalPeriod2StartsAt(): number {

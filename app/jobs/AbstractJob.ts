@@ -57,9 +57,9 @@ export abstract class AbstractJob {
 
   protected owner: string;
   protected details: JobDetails;
-  private config: ParsedJobConfig;
+  protected config: ParsedJobConfig;
   private jobLevelMinKeeperCvp: BigNumber;
-  private resolver: Resolver;
+  protected resolver: Resolver;
 
   private averageBlockTimeSeconds: number;
   private network: Network;
@@ -101,10 +101,12 @@ export abstract class AbstractJob {
     this.averageBlockTimeSeconds = agent.getNetwork().getAverageBlockTimeSeconds();
     this.network = agent.getNetwork();
 
-    this.address = args.jobAddress;
-    this.id = args.jobId.toNumber();
-    this.key = args.jobKey;
-    // NOTICE: this.details object remains uninitialized
+    if (this.network.source === 'blockchain') {
+      this.address = args.jobAddress;
+      this.id = args.jobId.toNumber();
+      this.key = args.jobKey;
+      // NOTICE: this.details object remains uninitialized
+    }
   }
 
   public isInitializing(): boolean {
