@@ -1,7 +1,8 @@
 import { AbstractAgent } from './AbstractAgent.js';
 import { getPPAgentV2_3_0_RandaoAbi } from '../services/AbiService.js';
-import { IRandaoAgent } from '../Types';
+import { IRandaoAgent, TxGasUpdate } from "../Types";
 import { RandaoJob } from '../jobs/RandaoJob.js';
+import { BigNumber } from "ethers";
 
 export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
   // jobKeys
@@ -59,6 +60,41 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
     }
 
     return this.period2;
+  }
+
+  async selfUnassignFromJob(jobKey: string) {
+    const calldata = this.contract.encodeABI('releaseJob', [jobKey]);
+    const tx = {
+      to: this.getAddress(),
+
+      data: calldata,
+
+      // Typed-Transaction features
+      type: 2,
+
+      // EIP-1559; Type 2
+      maxFeePerGas: (this.network.getBaseFee() * 2n).toString()
+    };
+    await this.populateTxExtraFields(tx);
+    const envelope = {
+        txEstimationFailed(error): void {
+          throw this.err('Unassign transaction estimation failed:', error);
+          process.exit(1);
+        }, txExecutionFailed(error): void {
+          throw this.err('Transaction reverted (while the estimation was ok):', error);
+          process.exit(1);
+        }, txNotMinedInBlock(blockNumber: number, blockTimestamp: number, baseFee: number): TxGasUpdate | null {
+          // TODO: implement the required checks
+          return null;
+        },
+        jobKey,
+        tx,
+        creditsAvailable: BigNumber.from(0),
+        fixedCompensation: BigNumber.from(0),
+        ppmCompensation: 0,
+        minTimestamp: 0
+      };
+    await this._sendNonExecuteTransaction(envelope);
   }
 
   _afterInitializeListeners() {

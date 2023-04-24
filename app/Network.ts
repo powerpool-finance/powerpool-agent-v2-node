@@ -226,12 +226,13 @@ export class Network {
 
     for (const [, jobData] of Object.entries(this.timeoutData)) {
       if (jobData.triggerCallbackAfter <= blockTimestamp) {
+        // NOTICE: The callbacks are async, but we don't wait until the executions are finished
         jobData.callback(blockNumber, blockTimestamp);
         callbacksCalled++;
       }
     }
 
-    this.clog(`Block ${blockNumber} interval jobs executed: ${callbacksCalled}`);
+    this.clog(`Block ${blockNumber} interval callbacks triggered: ${callbacksCalled}`);
   }
 
   private async callResolversAndTriggerCallbacks(blockNumber: number) {

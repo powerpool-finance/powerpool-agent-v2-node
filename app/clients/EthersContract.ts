@@ -2,6 +2,7 @@ import { ethers } from 'ethers';
 import { buildSignature, buildAbiSelector, nowTimeString, sleep } from '../Utils.js';
 import { ContractWrapper, ErrorWrapper, EventWrapper, WrapperListener } from '../Types.js';
 import { Result, Fragment, ErrorFragment, FunctionFragment, EventFragment } from 'ethers/lib/utils.js';
+import EventEmitter from 'events';
 
 // DANGER: DOES NOT support method override
 export class EthersContract implements ContractWrapper {
@@ -16,8 +17,12 @@ export class EthersContract implements ContractWrapper {
 
   private readonly abiFunctionOutputKeys: Map<string, Array<string>>;
   private readonly abiEventKeys: Map<string, Array<string>>;
+  private readonly abiEvents: Map<string, any>;
+  private readonly abiEventByTopic: Map<string, any>;
+
   // map<selector, ErrorFragment>
   private readonly abiErrorFragments: Map<string, ErrorFragment>;
+  private readonly eventEmitter: EventEmitter;
 
   constructor(
     addressOrName: string,
@@ -31,7 +36,10 @@ export class EthersContract implements ContractWrapper {
     this.providers = providers;
     this.abiFunctionOutputKeys = new Map();
     this.abiEventKeys = new Map();
+    this.abiEvents = new Map();
+    this.abiEventByTopic = new Map();
     this.abiErrorFragments = new Map();
+    this.eventEmitter = new EventEmitter();
 
     for (const obj of contractInterface) {
       switch (obj.type) {
@@ -41,11 +49,36 @@ export class EthersContract implements ContractWrapper {
           }));
           break;
         case 'event':
+          // @ts-ignore
+          obj.signature = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(`${obj.name}(${obj.inputs.map(input => input.type).join(',')})`));
+          // @ts-ignore
+          this.abiEventByTopic.set(obj.signature, obj);
+
           this.abiEventKeys.set(obj.name, (obj as EventFragment).inputs.map(v => v.name));
+          this.abiEvents.set(obj.name, obj);
           break;
         default:
           break;
       }
+    }
+
+    providers.get(primaryEndpoint).on({
+      address: this.address,
+      // @ts-ignore
+      fromBlock: 'latest'
+    }, (log) => {
+      this.processLog(log);
+    });
+  }
+
+  private processLog(log) {
+    const topic0 = log.topics[0];
+    if (this.abiEventByTopic.has(topic0)) {
+      const abiEvent = this.abiEventByTopic.get(topic0);
+      const parsedLogs = this.contract.interface.parseLog(log);
+      this.eventEmitter.emit(abiEvent.name, Object.assign(log, parsedLogs));
+    } else {
+      throw this.err('EthersContract: event missing from abi', log);
     }
   }
   public decodeError(response: string): ErrorWrapper {
@@ -80,6 +113,13 @@ export class EthersContract implements ContractWrapper {
     return this.providers.get(this.primaryEndpoint);
   }
 
+  public encodeABI(method: string, args = []): string {
+    if (!(method in this.contract)) {
+      throw this.err(`Contract ${this.address} doesn't have method '${method}' in the provided abi.`)
+    }
+    return this.contract.interface.encodeFunctionData(method, args);
+  }
+
   public async ethCallStatic(method: string, args = [], overrides = {}): Promise<any> {
     return this.ethCall(method, args, overrides, true);
   }
@@ -91,6 +131,9 @@ export class EthersContract implements ContractWrapper {
     let errorCounter = this.attempts;
 
     do {
+      const timeout = setTimeout(() => {
+        throw new Error(`Call execution took more than 15 seconds: method=${method},args=${JSON.stringify(args)}.`);
+      }, 15000);
       try {
         let res;
         if (callStatic) {
@@ -98,11 +141,13 @@ export class EthersContract implements ContractWrapper {
         } else {
           res = await this.contract[method](...args);
         }
+        clearTimeout(timeout);
         return filterFunctionResultObject(res);
       } catch (e) {
         this.clog(`Error(attempt=${this.attempts - errorCounter}/${this.attempts}) querying method '${
           method}' with arguments ${JSON.stringify(args)} and overrides ${JSON.stringify(overrides)}:
 ${e.message}: ${Error().stack}`);
+        clearTimeout(timeout);
         await sleep(this.attemptTimeoutSeconds * 1000);
       }
     } while (errorCounter-- > 0)
@@ -127,7 +172,7 @@ ${e.message}: ${Error().stack}`);
   }
 
   public on(eventName: string, eventEmittedCallback: WrapperListener): ContractWrapper {
-    this.contract.on(eventName, (...args) => {
+    this.eventEmitter.on(eventName, (...args) => {
       const event = args[args.length - 1];
       console.log('😁😁😁😁😁😁😁😁😁😁😁', event.transactionHash, event.logIndex, eventName);
       const onlyFields = filterFunctionResultObject(event.args);
@@ -142,7 +187,6 @@ ${e.message}: ${Error().stack}`);
     });
     return this;
   }
-
 }
 
 function filterFunctionResultObject(res: Result): { [key: string ]: any } {

@@ -33,6 +33,11 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: {[agent: string]: Age
       version: '2.3.0',
       strategy: 'randao',
     },
+    '0xc6420892469D344d207c701B64e578Df39Bf0918': {
+      deployedAt: 8848050,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
   },
   sepolia: {
     '0xB1b973fB49DE8128664839E2C6cDFd5D8E0a8e28': {
@@ -42,6 +47,11 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: {[agent: string]: Age
     },
     '0x43f033F7038BF02929dDA36d6aCfd7590683A8f4': {
       deployedAt: 3202169,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
+    '0x4d9bC98452820FD96B2C31741e8C4DdcC795bEce': {
+      deployedAt: 3311189,
       version: '2.3.0',
       strategy: 'randao',
     }

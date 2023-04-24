@@ -8,7 +8,7 @@ import {
   JobType,
   ParsedJobConfig,
   RegisterJobEventArgs,
-  Resolver,
+  Resolver, TxGasUpdate,
   UpdateJobEventArgs
 } from '../Types.js';
 import { BigNumber, ethers, Event } from 'ethers';
@@ -90,6 +90,8 @@ export abstract class AbstractJob {
   protected _afterJobWatch(): void {}
   protected abstract _afterApplyJob(job: GetJobResponse): void;
   protected abstract intervalJobAvailableCallback(blockNumber: number);
+  protected _txEstimationFailed(): void {}
+  protected _txExecutionFailed(): void {}
 
   constructor(creationEvent: EventWrapper, agent: IAgent) {
     const args: RegisterJobEventArgs = creationEvent.args as never;
@@ -346,7 +348,7 @@ export abstract class AbstractJob {
   }
 
   protected async buildTx(calldata: string): Promise<ethers.UnsignedTransaction> {
-    const maxFeePerGas = (await this.calculateMaxFeePerGas()).toString();
+    const maxFeePerGas = this.calculateMaxFeePerGas().toString();
     return {
       to: this.agent.getAddress(),
 
@@ -360,7 +362,7 @@ export abstract class AbstractJob {
     }
   }
 
-  private async calculateMaxFeePerGas(): Promise<bigint> {
+  private calculateMaxFeePerGas(): bigint {
     const gasPrice = this.agent.getNetwork().getBaseFee();
     const max = BigInt(this.details.maxBaseFeeGwei) * BigInt(1e9);
 
@@ -387,7 +389,18 @@ export abstract class AbstractJob {
   }
 
   protected async executeTx(jobKey: string, tx: ethers.UnsignedTransaction, minTimestamp = 0) {
-    return this.agent.sendOrEnqueueTxEnvelope({
+    return this.agent.sendTxEnvelope({
+      txEstimationFailed: (_): void => {
+        this.watch();
+      },
+      txExecutionFailed: (error): void => {
+        throw this.err('Transaction reverted (while the estimation was ok):', error);
+        process.exit(1);
+      },
+      txNotMinedInBlock(blockNumber: number, blockTimestamp: number, baseFee: number): TxGasUpdate | null {
+        // TODO: implement the required checks
+        return null;
+      },
       jobKey,
       tx,
       creditsAvailable: this.getCreditsAvailable(),

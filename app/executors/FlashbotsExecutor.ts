@@ -1,4 +1,4 @@
-import {ContractWrapper, Executor} from '../Types.js';
+import { ContractWrapper, Executor, TxEnvelope } from '../Types.js';
 import {fbReasonStringToHexString, nowTimeString} from '../Utils.js';
 import { ethers, utils } from 'ethers';
 import { FlashbotsBundleProvider,
@@ -53,14 +53,15 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
     );
   }
 
-  public push(key: string, tx: ethers.UnsignedTransaction) {
+  public push(key: string, envelope: TxEnvelope) {
     if (!this.fbProvider) {
       throw this.err('Flashbots Provider misconfigured');
     }
-    super.push(key, tx);
+    super.push(key, envelope);
   }
 
-  protected async process(tx: ethers.UnsignedTransaction) {
+  protected async process(envelope: TxEnvelope) {
+    const { tx } = envelope;
     let gasLimitEstimation;
     try {
       gasLimitEstimation = await this.genericProvider.estimateGas(tx);
