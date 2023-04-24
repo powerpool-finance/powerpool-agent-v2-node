@@ -1,11 +1,18 @@
 import { AbstractSource } from './AbstractSource.js';
 import { RandaoJob } from '../jobs/RandaoJob';
 import { LightJob } from '../jobs/LightJob';
+import { Network } from '../Network';
+import { ContractWrapper } from '../Types';
 
 /**
  * This class used for fetching data directly from blockchain
  */
 export class BlockchainSource extends AbstractSource {
+
+  constructor(network: Network, contract: ContractWrapper) {
+    super(network, contract);
+    this.type = 'blockchain';
+  }
   /**
    * Getting a RegisterJob events and initialise a job.
    * Returns Map structure which key is jobKey and value is instance of RandaoJob or LightJob. Await is required.

@@ -9,7 +9,6 @@ export abstract class AbstractSource {
   contract: ContractWrapper;
 
   constructor(network: Network, contract: ContractWrapper) {
-    this.type = 'blockchain';
     this.network = network;
     this.contract = contract;
 

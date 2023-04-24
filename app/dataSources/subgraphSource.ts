@@ -1,7 +1,8 @@
+import axios from 'axios';
 import { AbstractSource } from './AbstractSource.js';
+import { BlockchainSource } from './blockchainSource.js';
 import { RandaoJob } from '../jobs/RandaoJob';
 import { LightJob } from '../jobs/LightJob';
-import axios from 'axios';
 import { Network } from '../Network';
 import { ContractWrapper } from '../Types';
 
@@ -20,42 +21,44 @@ export class SubgraphSource extends AbstractSource {
   // lastExecutionAt: number;
 
   private jobsQuery: string;
+  private blockchainSource: BlockchainSource;
 
   private _meta: string;
 
   constructor(network: Network, contract: ContractWrapper) {
     super(network, contract);
+    this.type = 'subgraph'
     this._meta = `
       block {
         number
       }
     `
-    this.jobsQuery = `id
+    this.jobsQuery = `
+      id
       active
-      credits
       jobAddress
-      intervalSeconds
-      maxBaseFeeGwei
+      jobId
       assertResolverSelector
-      useJobOwnerCredits
-      lastExecutionAt
-      fixedReward
-      minKeeperCVP
-      rewardPct
-      totalCompensations
-      executionCount
+      credits
+      depositCount
       calldataSource
-      preDefinedCalldata,
+      fixedReward
+      executionCount
+      jobSelector
+      lastExecutionAt
+      maxBaseFeeGwei
+      minKeeperCVP
       resolverAddress
       resolverCalldata
-      jobSelector
-      pendingOwner {
-        id
-      }
-      assignedKeeperId {
-        id
-      }
+      rewardPct
+      totalCompensations
+      totalExpenses
+      totalProfit
+      useJobOwnerCredits
+      withdrawalCount
     `;
+
+    this.blockchainSource = new BlockchainSource(network, contract);
   }
 
   /**
@@ -93,7 +96,7 @@ export class SubgraphSource extends AbstractSource {
   }
 
   /**
-   * Getting a RegisterJob events and initialise a job.
+   * Getting a list of jobs from subgraph and initialise job.
    * Returns Map structure which key is jobKey and value is instance of RandaoJob or LightJob. Await is required.
    *
    * @param context - agent caller context. This can be Agent.2.2.0.light or Agent.2.3.0.randao
@@ -101,8 +104,28 @@ export class SubgraphSource extends AbstractSource {
    * @return Promise<Map<string, RandaoJob | LightJob>>
    */
   async getRegisteredJobs(context): Promise<Map<string, RandaoJob | LightJob>> {
-    await this.isGraphOk();
-    const newJobs = new Map<string, RandaoJob | LightJob>();
+    let newJobs = new Map<string, RandaoJob | LightJob>();
+    const graphIsFine = await this.isGraphOk();
+    if (!graphIsFine) {
+      newJobs = await this.blockchainSource.getRegisteredJobs(context);
+      return newJobs;
+    }
+    try {
+      const { jobs } = await this.query(this.network.graphUrl, `{
+          jobs {
+            ${this.jobsQuery}
+          }
+      }`)
+      jobs.forEach(job => {
+        newJobs.set(job.id, context._buildNewJob({
+          ...job,
+          name: 'RegisterJob',
+        }));
+      });
+    } catch (e) {
+      this.err(e);
+    }
+
     return newJobs;
   }
 }

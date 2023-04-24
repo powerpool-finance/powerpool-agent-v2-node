@@ -1,7 +1,9 @@
 import {
   CALLDATA_SOURCE,
   EventWrapper,
-  GetJobResponse, IAgent,
+  GetJobResponse,
+  GraphJob,
+  IAgent,
   JobDetails,
   JobType,
   ParsedJobConfig,
@@ -91,6 +93,7 @@ export abstract class AbstractJob {
 
   constructor(creationEvent: EventWrapper, agent: IAgent) {
     const args: RegisterJobEventArgs = creationEvent.args as never;
+    const jobGraph: GraphJob = creationEvent as unknown as GraphJob;
     if (creationEvent.name !== 'RegisterJob') {
       throw new Error(`Job->constructor(): Not RegisterJob event in constructor: ${creationEvent}`);
     }
@@ -106,8 +109,17 @@ export abstract class AbstractJob {
       this.id = args.jobId.toNumber();
       this.key = args.jobKey;
       // NOTICE: this.details object remains uninitialized
+    } else {
+      this.address = jobGraph.jobAddress;
+      this.id = parseInt(jobGraph.jobId, 10);
+      this.key = jobGraph.id;
+      // NOTICE: this.details object not exist on data that fetched from graph. All details data are in jobGraph itself
     }
   }
+
+  // buildGraphJob(): GraphJob {
+  //
+  // }
 
   public isInitializing(): boolean {
     return this.initializing;

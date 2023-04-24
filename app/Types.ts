@@ -64,6 +64,33 @@ export interface GetJobResponse {
   };
 }
 
+export interface GraphJob {
+  id: string,
+  active: boolean,
+  jobAddress: string,
+  jobId: string,
+  assertResolverSelector: boolean,
+  credits: string,
+  depositCount: string,
+  calldataSource: string,
+  fixedReward: string,
+  executionCount: string,
+  jobSelector: string,
+  lastExecutionAt: string,
+  maxBaseFeeGwei: string,
+  minKeeperCVP: string,
+  resolverAddress: string | null,
+  resolverCalldata: string | null,
+  rewardPct: string,
+  totalCompensations: string,
+  totalExpenses: string,
+  totalProfit: string,
+  useJobOwnerCredits: boolean,
+  withdrawalCount: string,
+  name: string,
+  args: { [key: string]: any },
+}
+
 export interface JobDetails {
   config: number;
   selector: string;
@@ -89,6 +116,7 @@ export interface RegisterJobEventParams {
 }
 
 export interface RegisterJobEventArgs {
+  id: string;
   jobKey: string;
   jobAddress: string;
   jobId: BigNumber;
