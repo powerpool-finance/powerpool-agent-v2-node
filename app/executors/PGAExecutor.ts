@@ -1,4 +1,4 @@
-import { ContractWrapper, Executor } from '../Types.js';
+import { ContractWrapper, Executor, TxEnvelope } from '../Types.js';
 import { ethers, utils } from 'ethers';
 import { nowTimeString } from '../Utils.js';
 import { AbstractExecutor } from './AbstractExecutor.js';
@@ -33,21 +33,28 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
   public init() {
   }
 
-  public push(key: string, tx: ethers.UnsignedTransaction) {
+  public push(key: string, envelope: TxEnvelope) {
     if (!this.workerSigner) {
       throw this.err('Worker signer misconfigured');
     }
-    super.push(key, tx);
+    super.push(key, envelope);
   }
 
-  protected async process(tx: ethers.UnsignedTransaction) {
+  protected async process(envelope: TxEnvelope) {
+    const { tx } = envelope;
     let gasLimitEstimation;
     try {
       gasLimitEstimation = await this.genericProvider.estimateGas(tx);
-    } catch (e) {
-      tx.nonce = await this.genericProvider.getTransactionCount(this.workerSigner.address);
-      const txSimulation = await this.genericProvider.call(tx);
-      this.printSolidityCustomError(txSimulation, tx.data as string);
+    } catch (_) {
+      try {
+        const txSimulation = await this.genericProvider.call(tx);
+        this.printSolidityCustomError(txSimulation, tx.data as string);
+        envelope.txEstimationFailed(tx.data as string);
+      } catch (e) {
+        console.log(e);
+        console.log('Exiting at PGAExecutor.process(): .call(tx) reverted');
+        process.exit(1);
+      }
 
       // force execute (only for debug)
       if (true) {
@@ -60,9 +67,10 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
         // console.log({res2});
       }
       return;
+    } finally {
+      tx.nonce = await this.genericProvider.getTransactionCount(this.workerSigner.address);
     }
-    tx.nonce = await this.genericProvider.getTransactionCount(this.workerSigner.address);
-    tx.gasLimit = gasLimitEstimation.mul(15).div(10);
+    tx.gasLimit = gasLimitEstimation.mul(20).div(10);
 
     this.clog(`📝 Signing tx with calldata=${tx.data} ...`);
     const signedTx = await this.workerSigner.signTransaction(tx);
@@ -77,7 +85,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       this.clog(`Tx ${txHash}: ⛓ Successfully mined in block #${res.blockNumber} with nonce ${tx.nonce
       }. The queue length is: ${this.queue.length}.`);
     } catch (e) {
-      throw this.err('Error sending tx', e);
+      envelope.txEstimationFailed(tx.data as string);
     }
     // TODO: setTimeout with .call(tx), send cancel tx (eth transfer) with a higher gas price
   }

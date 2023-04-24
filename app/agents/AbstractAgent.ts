@@ -1,32 +1,34 @@
-import { Network } from './Network';
+import { Network } from '../Network';
 import {
   AgentConfig,
   ContractWrapper, EventWrapper,
   Executor,
   ExecutorType,
-  GetJobResponse,
+  GetJobResponse, IAgent,
   Resolver,
-  TxEnvelope,
-} from './Types.js';
-import {BigNumber, ethers, providers, Wallet} from 'ethers';
-import {getAgentRewardsAbi, getPPAgentV2Abi} from './services/AbiService.js';
-import { getEncryptedJson } from './services/KeyService.js';
-import { DEFAULT_SYNC_FROM_CHAINS, DEFAULT_SYNC_FROM_CONTRACTS, MIN_EXECUTION_GAS } from './Constants.js';
-import { Job } from './Job.js';
-import {nowMs, nowTimeString} from './Utils.js';
-import { FlashbotsExecutor } from './executors/FlashbotsExecutor.js';
-import { PGAExecutor } from './executors/PGAExecutor.js';
+  TxEnvelope
+} from '../Types.js';
+import {BigNumber, ethers, Wallet} from 'ethers';
+import {getAgentRewardsAbi} from '../services/AbiService.js';
+import { getEncryptedJson } from '../services/KeyService.js';
+import { DEFAULT_SYNC_FROM_CHAINS, MIN_EXECUTION_GAS } from '../Constants.js';
+import {nowMs, nowTimeString} from '../Utils.js';
+import { FlashbotsExecutor } from '../executors/FlashbotsExecutor.js';
+import { PGAExecutor } from '../executors/PGAExecutor.js';
+import { getAgentDefaultSyncFromSafe } from '../ConfigGetters.js';
+import { LightJob } from '../jobs/LightJob.js';
+import { RandaoJob } from '../jobs/RandaoJob.js';
 
 const FLAG_ACCEPT_MAX_BASE_FEE_LIMIT = 1;
 const FLAG_ACCRUE_REWARD = 2;
 const BIG_NUMBER_1E18 = BigNumber.from(10).pow(18);
 
-export class Agent {
+export abstract class AbstractAgent implements IAgent {
   private executorType: ExecutorType;
-  private network: Network;
-  private address: string;
-  private keeperId: number;
-  private contract: ContractWrapper;
+  protected network: Network;
+  protected address: string;
+  protected keeperId: number;
+  protected contract: ContractWrapper;
   private rewardsContract: ContractWrapper;
   private workerSigner: ethers.Wallet;
   private executor: Executor;
@@ -38,32 +40,34 @@ export class Agent {
   private accrueReward: boolean;
   private cfg: number;
 
-  private jobs: Map<string, Job>;
+  protected jobs: Map<string, LightJob | RandaoJob>;
   private ownerBalances: Map<string, BigNumber>;
   private ownerJobs: Map<string, Set<string>>;
   private lastBlockTimestamp: number;
-  private pendingIntervalTxEnvelopeSet: Set<TxEnvelope>;
   private keyAddress: string;
   private keyPass: string;
-  private rewardsContractAddress: string;
-  private rewardsCheckIntervalMinutes: number;
 
-  private toString(): string {
+  abstract _getSupportedAgentVersions(): string[];
+
+  protected toString(): string {
     return `(network: ${this.network.getName()}, address: ${this.address})`;
   }
 
-  private clog(...args: any[]) {
+  protected clog(...args: any[]) {
     console.log(`>>> ${nowTimeString()} >>> Agent${this.toString()}:`, ...args);
   }
 
-  private err(...args: any[]): Error {
+  protected err(...args: any[]): Error {
     return new Error(`AgentError${this.toString()}: ${args.join(' ')}`);
   }
+
+  protected _beforeInit(): void {}
+  protected _afterInit(): void {}
+  protected async _beforeResyncAllJobs() {}
 
   constructor(address: string, agentConfig: AgentConfig, network: Network) {
     this.jobs = new Map();
     this.ownerBalances = new Map();
-    this.pendingIntervalTxEnvelopeSet = new Set();
     this.ownerJobs = new Map();
     this.address = address;
     this.network = network;
@@ -87,19 +91,6 @@ export class Agent {
     this.keyAddress = ethers.utils.getAddress(agentConfig.keeper_address);
     this.keyPass = agentConfig.key_pass;
 
-    // rewardsContract
-    if (ethers.utils.isAddress(agentConfig.rewards_contract)) {
-      this.rewardsContractAddress = agentConfig.rewards_contract;
-
-      this.clog('Rewards contract set to', agentConfig.rewards_contract);
-    }
-
-    if ('rewards_check_interval_minutes' in agentConfig && agentConfig.rewards_check_interval_minutes > 0) {
-      this.rewardsCheckIntervalMinutes = agentConfig.rewards_check_interval_minutes;
-    } else {
-      this.rewardsCheckIntervalMinutes = 10;
-    }
-
     // acceptMaxBaseFeeLimit
     if ('accept_max_base_fee_limit' in agentConfig) {
       this.acceptMaxBaseFeeLimit = !!agentConfig.accept_max_base_fee_limit;
@@ -122,51 +113,27 @@ export class Agent {
     );
 
     this.fullSyncFrom = agentConfig.deployed_at
-      || (this.network.getName() in DEFAULT_SYNC_FROM_CONTRACTS
-        && DEFAULT_SYNC_FROM_CONTRACTS[this.network.getName()][this.address])
+      || getAgentDefaultSyncFromSafe(this.address, this.network.getName())
       || DEFAULT_SYNC_FROM_CHAINS[this.network.getName()]
       || 0
     this.clog('Sync from', this.fullSyncFrom);
   }
 
-  private initAgentRewards() {
-    const agentRewardsAbi = getAgentRewardsAbi();
-    this.rewardsContract = this.network.getContractWrapperFactory().build(this.rewardsContractAddress, agentRewardsAbi);
+  public async init() {
+    await this._beforeInit();
 
-    this.checkRewardAvailableTick();
-  }
-
-  private async checkRewardAvailableTick() {
-    const available = await this.rewardsContract.ethCall('cooldownPassed', [this.keeperId]);
-    if (available) {
-      const tx = {
-        to: this.rewardsContractAddress,
-        // @ts-ignore
-        from: this.workerSigner.address,
-        data: this.rewardsContract.getNativeContract().interface.encodeFunctionData(
-          'claim',
-          [this.keeperId, this.workerSigner.address]
-        ),
-      };
-      this.populateTxExtraFields(tx);
-      await this.sendNonExecuteTransaction(tx);
+    if (!this.contract) {
+      throw this.err('Constructor not initialized');
     }
 
-    setTimeout(this.checkRewardAvailableTick.bind(this), this.rewardsCheckIntervalMinutes * 1000 * 60);
-  }
-
-  public async init() {
-    const ppAgentV2Abi = getPPAgentV2Abi();
-    this.contract = this.network.getContractWrapperFactory().build(this.address, ppAgentV2Abi);
-
     // Ensure version matches
+    // TODO: extract check
     const version = await this.contract.ethCall('VERSION');
-    const SUPPORTED_AGENT_VERSIONS = ['2.1.0', '2.2.0'];
-    if (!SUPPORTED_AGENT_VERSIONS.includes(version)) {
+    if (!this._getSupportedAgentVersions().includes(version)) {
       throw this.err(`Invalid version: ${version}`);
     }
 
-    this.keeperId = await this.contract.ethCall('workerKeeperIds', [this.keyAddress]);
+    this.keeperId = parseInt(await this.contract.ethCall('workerKeeperIds', [this.keyAddress]));
     if (this.keeperId < 1) {
       throw this.err(`Worker address '${this.keyAddress}' is not assigned  to any keeper`);
     }
@@ -253,15 +220,19 @@ export class Agent {
     // this.workerNonce = await this.network.getProvider().getTransactionCount(this.workerSigner.address);
     await this.executor.init();
 
-    if (this.rewardsContractAddress) {
-      this.initAgentRewards();
-    }
+    await this._beforeResyncAllJobs();
 
     // Task #2
     const upTo = await this.resyncAllJobs();
     this.initializeListeners(upTo);
-    setTimeout(this.verifyLastExecutionAtLoop.bind(this), 3 * 60 * 1000);
+    // setTimeout(this.verifyLastExecutionAtLoop.bind(this), 3 * 60 * 1000);
+
+    await this._afterInit();
     this.clog('✅ Agent initialization done!')
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private newBlockEventHandler(blockTimestamp) {
   }
 
   public async verifyLastExecutionAtLoop() {
@@ -316,10 +287,10 @@ export class Agent {
     // 1. Handle registers
     // const newJobs = {};
     const registerLogs = await this.contract.getPastEvents('RegisterJob', this.fullSyncFrom, latestBock)
-    const newJobs = new Map<string, Job>();
+    const newJobs = new Map<string, RandaoJob | LightJob>();
 
     for (const event of registerLogs) {
-      newJobs.set(event.args.jobKey, new Job(event, this));
+      newJobs.set(event.args.jobKey, this._buildNewJob(event));
     }
 
     // Config can change rawJob w/o events
@@ -354,12 +325,13 @@ export class Agent {
 
     return latestBock;
   }
+  abstract _buildNewJob(event): LightJob | RandaoJob;
 
   private async addJob(creationEvent: EventWrapper) {
     const jobKey = creationEvent.args.jobKey;
     const owner = creationEvent.args.owner;
 
-    const job = new Job(creationEvent, this);
+    const job = this._buildNewJob(creationEvent);
     this.jobs.set(jobKey, job);
 
     let res = await this.network.getExternalLensContract().ethCall('getJobs', [this.address, [jobKey]]);
@@ -380,26 +352,20 @@ export class Agent {
     }
 
     this.ownerBalances.set(owner, res.results[0]);
-    await job.watch();
-  }
-
-  private newBlockEventHandler(blockTimestamp: number) {
-    if (this.lastBlockTimestamp < blockTimestamp) {
-      this.lastBlockTimestamp = blockTimestamp;
-    }
-
-    for (const envelope of this.pendingIntervalTxEnvelopeSet) {
-      if (envelope.minTimestamp < this.lastBlockTimestamp) {
-        this.pendingIntervalTxEnvelopeSet.delete(envelope);
-        this.trySendExecuteEnvelope(envelope);
-      }
-    }
   }
 
   private async startAllJobs() {
     for (const [, job] of this.jobs) {
       await job.watch();
     }
+  }
+
+  public registerIntervalJobExecution(jobKey: string, timestamp: number, callback: (calldata) => void) {
+    this.network.registerTimeout(`${this.address}/${jobKey}/execution`, timestamp, callback);
+  }
+
+  public unregisterIntervalJobExecution(jobKey: string) {
+    this.network.unregisterTimeout(`${this.address}/${jobKey}/execution`);
   }
 
   public registerResolver(jobKey: string, resolver: Resolver, callback: (calldata) => void) {
@@ -410,25 +376,19 @@ export class Agent {
     this.network.unregisterResolver(`${this.address}/${jobKey}`);
   }
 
-  public sendOrEnqueueTxEnvelope(envelope: TxEnvelope) {
-    this.clog('minTimestamp', envelope.minTimestamp, 'lastBlockTimestamp', this.lastBlockTimestamp);
-    if (envelope.minTimestamp && envelope.minTimestamp > this.lastBlockTimestamp) {
-      this.clog(`Enqueuing tx due insufficient execution timestamp: (data=${envelope.tx.data})`);
-      // Enqueue locally
-      this.pendingIntervalTxEnvelopeSet.add(envelope);
-    } else {
-      this.clog('Sending tx directly to the executor');
-      this.trySendExecuteEnvelope(envelope)
-    }
+  public async sendTxEnvelope(envelope: TxEnvelope) {
+    await this.trySendExecuteEnvelope(envelope)
   }
 
-  private async populateTxExtraFields(tx: ethers.UnsignedTransaction) {
+  // Here only the `maxPriorityFeePerGas` is assigned.
+  // The `maxFeePerGas` is assigned earlier during job.buildTx().
+  protected async populateTxExtraFields(tx: ethers.UnsignedTransaction) {
     tx.chainId = this.network.getChainId();
     // @ts-ignore (estimations will fail w/o this `from` assignment
     tx.from = this.workerSigner.address;
     const maxPriorityFeePerGas = await this.network.getMaxPriorityFeePerGas()
     console.log({maxPriorityFeePerGas, maxFeePerGas: tx.maxFeePerGas});
-    tx.maxPriorityFeePerGas = String(BigInt(maxPriorityFeePerGas) * 5n);
+    tx.maxPriorityFeePerGas = String(BigInt(maxPriorityFeePerGas) * 2n);
 
     const maxPriorityFeePerGasBigInt = BigInt(tx.maxPriorityFeePerGas);
     const maxFeePerGasBigInt = BigInt(String(tx.maxFeePerGas));
@@ -452,18 +412,22 @@ export class Agent {
       .div(100)
       .add(fixedCompensation);
 
-    if (minTxFee.gt(creditsAvailable)) {
-      this.clog(`⛔️ Ignoring a tx with insufficient credits: (data=${tx.data},required=${minTxFee},available=${creditsAvailable})`);
-    } else {
-      this.executor.push(`${this.address}/${jobKey}`, tx);
-    }
+    // TODO: rewrite this estimation with a new randao formula
+    // if (minTxFee.gt(creditsAvailable)) {
+    //   this.clog(`⛔️ Ignoring a tx with insufficient credits: (data=${tx.data},required=${minTxFee},available=${creditsAvailable})`);
+    // } else {
+      this.executor.push(`${this.address}/${jobKey}`, envelope);
+    // }
   }
 
-  public async sendNonExecuteTransaction(tx: ethers.UnsignedTransaction) {
-    return this.executor.push(`other-tx-type/${nowMs()}`, tx);
+  protected async _sendNonExecuteTransaction(envelope: TxEnvelope) {
+    await this.populateTxExtraFields(envelope.tx);
+    return this.executor.push(`other-tx-type/${nowMs()}`, envelope);
   }
 
-  private initializeListeners(blockNumber: number) {
+  abstract _afterInitializeListeners(blockNumber: number);
+
+  protected initializeListeners(blockNumber: number) {
     this.contract.on('DepositJobCredits', (event) => {
       const {jobKey, amount, fee} = event.args;
 
@@ -594,7 +558,7 @@ export class Agent {
       job.watch();
     });
 
-    this.contract.on('SetJobConfig', (event) => {
+    this.contract.on('SetJobConfig', async (event) => {
       const {jobKey, isActive_, useJobOwnerCredits_, assertResolverSelector_} = event.args;
 
       this.clog(`'SetJobConfig' event: (block=${event.blockNumber
@@ -604,7 +568,8 @@ export class Agent {
       },assertResolverSelector_=${assertResolverSelector_})`);
 
       const job = this.jobs.get(jobKey);
-      job.applyConfig(isActive_, useJobOwnerCredits_, assertResolverSelector_);
+      const binJob = await this.network.getJobRawBytes32(this.address, jobKey);
+      job.applyBinJobData(binJob);
       job.watch();
     });
 
@@ -632,7 +597,7 @@ export class Agent {
       }wei,compensation=${compensation.toNumber() / 1e18}eth/${compensation.toNumber()}wei,binJobAfter=${binJobAfter})`);
 
       const job = this.jobs.get(jobKey);
-      job.applyRawJobData(binJobAfter);
+      job.applyBinJobData(binJobAfter);
       job.watch();
     });
 
@@ -647,5 +612,7 @@ export class Agent {
       this.clog("'SetAgentParams' event requires the bot to be restarted");
       process.exit(0);
     });
+
+    this._afterInitializeListeners(blockNumber);
   }
 }

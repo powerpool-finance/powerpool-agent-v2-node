@@ -8,6 +8,7 @@ import {
   CFG_USE_JOB_OWNER_CREDITS,
 } from './Constants.js';
 import { ParsedJobConfig, ParsedRawJob } from './Types.js';
+import { getIcapAddress } from "@ethersproject/address/src.ts";
 
 export function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms, []));
@@ -124,4 +125,8 @@ export function fbReasonStringToHexString(reason: string): string {
   return '0x' + [...new Uint8Array(buff)]
     .map(x => x.toString(16).padStart(2, '0'))
     .join('');
+}
+
+export function toChecksummedAddress(address: string): string {
+  return utils.getAddress(address);
 }

@@ -13,7 +13,8 @@
   },
   "parser": "@typescript-eslint/parser",
   "rules": {
-    "quotes": ["error", "single", "avoid-escape"]
+    "quotes": ["error", "single", "avoid-escape"],
+    "@typescript-eslint/no-empty-function": "off"
   },
   "plugins": ["prettier", "@typescript-eslint"]
 }

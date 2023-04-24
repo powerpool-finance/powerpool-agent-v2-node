@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import YAML from 'yamljs';
 
-import { Config, AllNetworksConfig, Storage } from './Types';
+import { Config, AllNetworksConfig, Storage, AvailableNetworkNames } from "./Types";
 import { Network } from './Network.js';
 import { nowTimeString } from './Utils.js';
 import { fileURLToPath } from 'url';
@@ -20,8 +20,10 @@ class App {
   private config: any;
 
   constructor() {
+    const configName = process.argv[2] ? process.argv[2].trim() : 'main';
+
     this.networks = {};
-    const config: Config = YAML.parse(fs.readFileSync(path.resolve(__dirname, '../config/main.yaml')).toString());
+    const config: Config = YAML.parse(fs.readFileSync(path.resolve(__dirname, `../config/${configName}.yaml`)).toString());
 
     console.log(config.networks);
     this.config = config;
