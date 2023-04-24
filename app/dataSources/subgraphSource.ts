@@ -48,6 +48,7 @@ export class SubgraphSource extends AbstractSource {
       lastExecutionAt
       maxBaseFeeGwei
       minKeeperCVP
+      preDefinedCalldata
       resolverAddress
       resolverCalldata
       rewardPct

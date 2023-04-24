@@ -343,24 +343,24 @@ export abstract class AbstractAgent implements IAgent {
     let newJobs = new Map<string, RandaoJob | LightJob>();
     newJobs = await this.source.getRegisteredJobs(this);
 
-    // // Config can change rawJob w/o events
-    // const jobKeys = Array.from(newJobs.keys());
-    //
-    // // 2. Handle resolver updates (should fetch them via lens instead?)
-    // let res = await this.network.getExternalLensContract().ethCall('getJobs', [this.address, jobKeys]);
-    // const jobOwnersSet = new Set<string>();
-    // const jobs: Array<GetJobResponse> = res.results;
-    // for (let i = 0; i < jobs.length; i++) {
-    //   const job = jobs[i];
-    //   const owner = job.owner;
-    //   newJobs.get(jobKeys[i]).applyJob(job, this.source.type);
-    //   jobOwnersSet.add(owner);
-    //   if (!this.ownerJobs.has(owner)) {
-    //     this.ownerJobs.set(owner, new Set());
-    //   }
-    //   const set = this.ownerJobs.get(owner);
-    //   set.add(jobKeys[i]);
-    // }
+    // Config can change rawJob w/o events
+    const jobKeys = Array.from(newJobs.keys());
+
+    // 2. Handle resolver updates (should fetch them via lens instead?)
+    let res = await this.network.getExternalLensContract().ethCall('getJobs', [this.address, jobKeys]);
+    const jobOwnersSet = new Set<string>();
+    const jobs: Array<GetJobResponse> = res.results;
+    for (let i = 0; i < jobs.length; i++) {
+      const job = jobs[i];
+      const owner = job.owner;
+      newJobs.get(jobKeys[i]).applyJob(job, this.source.type);
+      jobOwnersSet.add(owner);
+      if (!this.ownerJobs.has(owner)) {
+        this.ownerJobs.set(owner, new Set());
+      }
+      const set = this.ownerJobs.get(owner);
+      set.add(jobKeys[i]);
+    }
     //
     // // 3. Load job owner balances
     // if (this.source.type === 'blockchain') {
