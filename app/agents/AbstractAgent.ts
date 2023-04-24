@@ -341,7 +341,6 @@ export abstract class AbstractAgent implements IAgent {
     const latestBock = await this.network.getLatestBlockNumber();
     // 1. Handle registers
     let newJobs = new Map<string, RandaoJob | LightJob>();
-    console.log('source: ', this.source.type);
     newJobs = await this.source.getRegisteredJobs(this);
 
     // // Config can change rawJob w/o events

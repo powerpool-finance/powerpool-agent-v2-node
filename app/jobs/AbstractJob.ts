@@ -117,10 +117,6 @@ export abstract class AbstractJob {
     }
   }
 
-  // buildGraphJob(): GraphJob {
-  //
-  // }
-
   public isInitializing(): boolean {
     return this.initializing;
   }

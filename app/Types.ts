@@ -116,7 +116,6 @@ export interface RegisterJobEventParams {
 }
 
 export interface RegisterJobEventArgs {
-  id: string;
   jobKey: string;
   jobAddress: string;
   jobId: BigNumber;
