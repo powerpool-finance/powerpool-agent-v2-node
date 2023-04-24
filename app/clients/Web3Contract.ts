@@ -67,6 +67,13 @@ export class Web3Contract implements ContractWrapper {
     return Promise.resolve(undefined);
   }
 
+  public encodeABI(method: string, args = []): string {
+    if (!(method in this.contract.methods)) {
+      throw this.err(`Contract ${this.address} doesn't have method '${method}' in the provided abi.`)
+    }
+    return this.contract.methods[method](args).encodeABI();
+  }
+
   getPastEvents(eventName: string, from: number, to: number): Promise<any[]> {
     return Promise.resolve([]);
   }

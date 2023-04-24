@@ -117,7 +117,7 @@ export interface Resolver {
 export interface Executor {
   // The calldata starting with 0x00000000{address}{jobId}
   init();
-  push(key: string, tx: ethers.UnsignedTransaction);
+  push(key: string, tx: TxEnvelope);
 }
 
 export interface ClientWrapper {
@@ -147,6 +147,7 @@ export interface ContractWrapper {
   ethCallStatic(method: string, args?: any[], overrides?: object): Promise<any>;
   getPastEvents(eventName: string, from: number, to: number): Promise<any[]>;
   on(eventName: string, eventEmittedCallback: WrapperListener): ContractWrapper;
+  encodeABI(method: string, args?: any[]): string;
 }
 
 export interface EventWrapper {
@@ -187,9 +188,22 @@ export interface ParsedRawJob {
   config: string;
 }
 
+export interface TxGasUpdate {
+  action: 'update' | 'replace';
+  newMax: number;
+  newPriority: number;
+}
+
 export interface TxEnvelope {
   jobKey: string;
   tx: ethers.UnsignedTransaction;
+
+  // callbacks
+  txEstimationFailed: (error) => void;
+  txExecutionFailed: (error) => void;
+  txNotMinedInBlock: (blockNumber: number, blockTimestamp: number, baseFee: number) => null | TxGasUpdate;
+
+  // TODO: get rid of the fields below
   creditsAvailable: BigNumber;
   fixedCompensation: BigNumber;
   ppmCompensation: number;
@@ -208,6 +222,7 @@ export interface IRandaoAgent extends IAgent {
   unregisterIntervalJobSlashing(jobKey: string);
   getPeriod1Duration(): number;
   getPeriod2Duration(): number;
+  selfUnassignFromJob(jobKey: string): void;
 }
 
 export interface IAgent {
@@ -232,5 +247,5 @@ export interface IAgent {
 
   getJobOwnerBalance(address: string): BigNumber;
 
-  sendOrEnqueueTxEnvelope(envelope: TxEnvelope);
+  sendTxEnvelope(envelope: TxEnvelope);
 }

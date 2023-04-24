@@ -1,4 +1,4 @@
-import { ContractWrapper } from '../Types.js';
+import { ContractWrapper, TxEnvelope } from '../Types.js';
 import { BigNumber, ethers } from 'ethers';
 
 export abstract class AbstractExecutor {
@@ -9,7 +9,7 @@ export abstract class AbstractExecutor {
   protected currentTxKey: string;
   protected queue: string[];
   // protected queue: ethers.UnsignedTransaction[];
-  protected pendingTxs: Map<string, ethers.UnsignedTransaction>;
+  protected pendingTxs: Map<string, TxEnvelope>;
   protected queueKeys: object;
   protected queueHandlerLock: boolean;
   protected workerSigner: ethers.Wallet;
@@ -23,7 +23,7 @@ export abstract class AbstractExecutor {
 
   protected abstract clog(...args: any[]);
   protected abstract err(...args: any[]);
-  protected abstract process(tx: ethers.UnsignedTransaction);
+  protected abstract process(tx: TxEnvelope);
 
   protected printSolidityCustomError(bytes: string, txCalldata: string): void {
     if (bytes === '0x4e2c6c26') {
@@ -71,7 +71,7 @@ export abstract class AbstractExecutor {
     this.unlockQueue();
   }
 
-  public push(key: string, tx: ethers.UnsignedTransaction) {
+  public push(key: string, envelope: TxEnvelope) {
     if (!this.genericProvider) {
       throw this.err('Generic Provider misconfigured');
     }
@@ -81,8 +81,8 @@ export abstract class AbstractExecutor {
     if (!this.pendingTxs.has(key)) {
       this.queue.push(key);
     }
-    this.pendingTxs.set(key, tx);
-    this.clog(`📥 Enqueueing ${JSON.stringify(tx)}. The total queue length is now ${this.queue.length}...`);
+    this.pendingTxs.set(key, envelope);
+    this.clog(`📥 Enqueueing ${JSON.stringify(envelope.tx)}. The total queue length is now ${this.queue.length}...`);
 
     // WARNING: async func call
     this.processIfRequired();

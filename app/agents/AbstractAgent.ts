@@ -44,11 +44,8 @@ export abstract class AbstractAgent implements IAgent {
   private ownerBalances: Map<string, BigNumber>;
   private ownerJobs: Map<string, Set<string>>;
   private lastBlockTimestamp: number;
-  private pendingIntervalTxEnvelopeSet: Set<TxEnvelope>;
   private keyAddress: string;
   private keyPass: string;
-  private rewardsContractAddress: string;
-  private rewardsCheckIntervalMinutes: number;
 
   abstract _getSupportedAgentVersions(): string[];
 
@@ -71,7 +68,6 @@ export abstract class AbstractAgent implements IAgent {
   constructor(address: string, agentConfig: AgentConfig, network: Network) {
     this.jobs = new Map();
     this.ownerBalances = new Map();
-    this.pendingIntervalTxEnvelopeSet = new Set();
     this.ownerJobs = new Map();
     this.address = address;
     this.network = network;
@@ -94,19 +90,6 @@ export abstract class AbstractAgent implements IAgent {
 
     this.keyAddress = ethers.utils.getAddress(agentConfig.keeper_address);
     this.keyPass = agentConfig.key_pass;
-
-    // rewardsContract
-    if (ethers.utils.isAddress(agentConfig.rewards_contract)) {
-      this.rewardsContractAddress = agentConfig.rewards_contract;
-
-      this.clog('Rewards contract set to', agentConfig.rewards_contract);
-    }
-
-    if ('rewards_check_interval_minutes' in agentConfig && agentConfig.rewards_check_interval_minutes > 0) {
-      this.rewardsCheckIntervalMinutes = agentConfig.rewards_check_interval_minutes;
-    } else {
-      this.rewardsCheckIntervalMinutes = 10;
-    }
 
     // acceptMaxBaseFeeLimit
     if ('accept_max_base_fee_limit' in agentConfig) {
@@ -135,35 +118,6 @@ export abstract class AbstractAgent implements IAgent {
       || 0
     this.clog('Sync from', this.fullSyncFrom);
   }
-
-  private initAgentRewards() {
-    const agentRewardsAbi = getAgentRewardsAbi();
-    this.rewardsContract = this.network.getContractWrapperFactory().build(this.rewardsContractAddress, agentRewardsAbi);
-
-    this.checkRewardAvailableTick();
-  }
-
-  private async checkRewardAvailableTick() {
-    const available = await this.rewardsContract.ethCall('cooldownPassed', [this.keeperId]);
-    if (available) {
-      const tx = {
-        to: this.rewardsContractAddress,
-        // @ts-ignore
-        from: this.workerSigner.address,
-        // TODO: use wrapper for function encoding when Web3 is added
-        data: (this.rewardsContract.getNativeContract() as ethers.Contract).interface.encodeFunctionData(
-          'claim',
-          [this.keeperId, this.workerSigner.address]
-        ),
-      };
-      this.populateTxExtraFields(tx);
-      await this.sendNonExecuteTransaction(tx);
-    }
-
-    setTimeout(this.checkRewardAvailableTick.bind(this), this.rewardsCheckIntervalMinutes * 1000 * 60);
-  }
-
-  // private _initAgentContract
 
   public async init() {
     await this._beforeInit();
@@ -266,10 +220,6 @@ export abstract class AbstractAgent implements IAgent {
     // this.workerNonce = await this.network.getProvider().getTransactionCount(this.workerSigner.address);
     await this.executor.init();
 
-    if (this.rewardsContractAddress) {
-      this.initAgentRewards();
-    }
-
     await this._beforeResyncAllJobs();
 
     // Task #2
@@ -279,6 +229,10 @@ export abstract class AbstractAgent implements IAgent {
 
     await this._afterInit();
     this.clog('✅ Agent initialization done!')
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private newBlockEventHandler(blockTimestamp) {
   }
 
   public async verifyLastExecutionAtLoop() {
@@ -400,19 +354,6 @@ export abstract class AbstractAgent implements IAgent {
     this.ownerBalances.set(owner, res.results[0]);
   }
 
-  private newBlockEventHandler(blockTimestamp: number) {
-    if (this.lastBlockTimestamp < blockTimestamp) {
-      this.lastBlockTimestamp = blockTimestamp;
-    }
-
-    for (const envelope of this.pendingIntervalTxEnvelopeSet) {
-      if (envelope.minTimestamp < this.lastBlockTimestamp) {
-        this.pendingIntervalTxEnvelopeSet.delete(envelope);
-        this.trySendExecuteEnvelope(envelope);
-      }
-    }
-  }
-
   private async startAllJobs() {
     for (const [, job] of this.jobs) {
       await job.watch();
@@ -435,21 +376,13 @@ export abstract class AbstractAgent implements IAgent {
     this.network.unregisterResolver(`${this.address}/${jobKey}`);
   }
 
-  public sendOrEnqueueTxEnvelope(envelope: TxEnvelope) {
-    this.clog('minTimestamp', envelope.minTimestamp, 'lastBlockTimestamp', this.lastBlockTimestamp);
-    if (envelope.minTimestamp && envelope.minTimestamp > this.lastBlockTimestamp) {
-      this.clog(`Enqueuing tx due insufficient execution timestamp: (data=${envelope.tx.data})`);
-      // Enqueue locally
-      this.pendingIntervalTxEnvelopeSet.add(envelope);
-    } else {
-      this.clog('Sending tx directly to the executor');
-      this.trySendExecuteEnvelope(envelope)
-    }
+  public async sendTxEnvelope(envelope: TxEnvelope) {
+    await this.trySendExecuteEnvelope(envelope)
   }
 
   // Here only the `maxPriorityFeePerGas` is assigned.
   // The `maxFeePerGas` is assigned earlier during job.buildTx().
-  private async populateTxExtraFields(tx: ethers.UnsignedTransaction) {
+  protected async populateTxExtraFields(tx: ethers.UnsignedTransaction) {
     tx.chainId = this.network.getChainId();
     // @ts-ignore (estimations will fail w/o this `from` assignment
     tx.from = this.workerSigner.address;
@@ -479,15 +412,17 @@ export abstract class AbstractAgent implements IAgent {
       .div(100)
       .add(fixedCompensation);
 
-    if (minTxFee.gt(creditsAvailable)) {
-      this.clog(`⛔️ Ignoring a tx with insufficient credits: (data=${tx.data},required=${minTxFee},available=${creditsAvailable})`);
-    } else {
-      this.executor.push(`${this.address}/${jobKey}`, tx);
-    }
+    // TODO: rewrite this estimation with a new randao formula
+    // if (minTxFee.gt(creditsAvailable)) {
+    //   this.clog(`⛔️ Ignoring a tx with insufficient credits: (data=${tx.data},required=${minTxFee},available=${creditsAvailable})`);
+    // } else {
+      this.executor.push(`${this.address}/${jobKey}`, envelope);
+    // }
   }
 
-  public async sendNonExecuteTransaction(tx: ethers.UnsignedTransaction) {
-    return this.executor.push(`other-tx-type/${nowMs()}`, tx);
+  protected async _sendNonExecuteTransaction(envelope: TxEnvelope) {
+    await this.populateTxExtraFields(envelope.tx);
+    return this.executor.push(`other-tx-type/${nowMs()}`, envelope);
   }
 
   abstract _afterInitializeListeners(blockNumber: number);
