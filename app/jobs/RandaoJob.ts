@@ -25,22 +25,6 @@ export class RandaoJob extends AbstractJob {
     this.assignedKeeperId = keeperId;
   }
 
-  public applyJob(job: GetJobResponse, source?: string): boolean {
-    if (source === 'blockchain') {
-      this.resolver = {resolverAddress: job.resolver.resolverAddress, resolverCalldata: job.resolver.resolverCalldata};
-      this.details = job.details;
-      this.owner = job.owner;
-      this.config = parseConfig(BigNumber.from(job.details.config));
-      if (Array.isArray(this.details)) {
-        throw new Error('details are an array')
-      }
-      this._afterApplyJob(job);
-    } else {
-      //
-    }
-    return true;
-  }
-
   private intervalPeriod2StartsAt(): number {
     if (this.details.intervalSeconds === 0) {
       throw this.err(`Unexpected slashingAvailableTimestamp() callback for job ${this.key}`);

@@ -307,7 +307,7 @@ export abstract class AbstractAgent implements IAgent {
     for (let i = 0; i < jobs.length; i++) {
       const job = jobs[i];
       const owner = job.owner;
-      newJobs.get(jobKeys[i]).applyJob(job, this.source.type);
+      newJobs.get(jobKeys[i]).applyJob(job);
       jobOwnersSet.add(owner);
       if (!this.ownerJobs.has(owner)) {
         this.ownerJobs.set(owner, new Set());
@@ -315,21 +315,14 @@ export abstract class AbstractAgent implements IAgent {
       const set = this.ownerJobs.get(owner);
       set.add(jobKeys[i]);
     }
-    //
-    // // 3. Load job owner balances
-    // if (this.source.type === 'blockchain') {
-    //   const jobOwnersArray = Array.from(jobOwnersSet);
-    //   res = await this.network.getExternalLensContract().ethCall('getOwnerBalances', [this.address, jobOwnersArray]);
-    //   const jobOwnerBalances: Array<BigNumber> = res.results;
-    //   for (let i = 0; i < jobs.length; i++) {
-    //     this.ownerBalances.set(jobOwnersArray[i], jobOwnerBalances[i]);
-    //   }
-    // }
-    //
-    // this.jobs = newJobs;
-    //
-    // await this.startAllJobs();
-    //
+
+    // 3. Load job owner balances
+    this.ownerBalances = await this.source.getOwnersBalances(this, jobOwnersSet);
+
+    this.jobs = newJobs;
+
+    await this.startAllJobs();
+
     return latestBock;
   }
   abstract _buildNewJob(event): LightJob | RandaoJob;

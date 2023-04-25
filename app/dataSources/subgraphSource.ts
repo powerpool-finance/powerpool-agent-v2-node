@@ -5,6 +5,7 @@ import { RandaoJob } from '../jobs/RandaoJob';
 import { LightJob } from '../jobs/LightJob';
 import { Network } from '../Network';
 import { ContractWrapper } from '../Types';
+import {BigNumber} from "ethers";
 
 /**
  * This class used for fetching data from subgraph
@@ -128,5 +129,10 @@ export class SubgraphSource extends AbstractSource {
     }
 
     return newJobs;
+  }
+
+  async getOwnersBalances(context): Promise<Map<string, BigNumber>> {
+    const result = new Map<string, BigNumber>();
+    return result;
   }
 }
