@@ -261,10 +261,10 @@ export abstract class AbstractAgent implements IAgent {
   }
 
   public getJobOwnerBalance(address: string): BigNumber {
-    if (!this.ownerBalances.has(address)) {
+    if (!this.ownerBalances.has(address.toLowerCase())) {
       throw this.err(`getJobOwnerBalance(): Address ${address} not tracked`);
     }
-    return this.ownerBalances.get(address);
+    return this.ownerBalances.get(address.toLowerCase());
   }
 
   public getNetwork(): Network {
@@ -309,10 +309,10 @@ export abstract class AbstractAgent implements IAgent {
       const owner = job.owner;
       newJobs.get(jobKeys[i]).applyJob(job);
       jobOwnersSet.add(owner.toLowerCase());
-      if (!this.ownerJobs.has(owner)) {
-        this.ownerJobs.set(owner, new Set());
+      if (!this.ownerJobs.has(owner.toLowerCase())) {
+        this.ownerJobs.set(owner.toLowerCase(), new Set());
       }
-      const set = this.ownerJobs.get(owner);
+      const set = this.ownerJobs.get(owner.toLowerCase());
       set.add(jobKeys[i]);
     }
 
@@ -339,10 +339,10 @@ export abstract class AbstractAgent implements IAgent {
     }
     job.applyJob(res.results[0]);
 
-    if (!this.ownerJobs.has(owner)) {
-      this.ownerJobs.set(owner, new Set());
+    if (!this.ownerJobs.has(owner.toLowerCase())) {
+      this.ownerJobs.set(owner.toLowerCase(), new Set());
     }
-    const set = this.ownerJobs.get(owner);
+    const set = this.ownerJobs.get(owner.toLowerCase());
     set.add(jobKey);
 
     res = await this.network.getExternalLensContract().ethCall('getOwnerBalances', [this.address, [owner]]);
@@ -350,7 +350,7 @@ export abstract class AbstractAgent implements IAgent {
       throw this.err(`addJob(): invalid getOwnerBalances() response length: ${res.results.length}`);
     }
 
-    this.ownerBalances.set(owner, res.results[0]);
+    this.ownerBalances.set(owner.toLowerCase(), res.results[0]);
   }
 
   private async startAllJobs() {
@@ -470,15 +470,15 @@ export abstract class AbstractAgent implements IAgent {
       },amount=${amount
       },fee=${fee})`);
 
-      if (this.ownerBalances.has(jobOwner)) {
-        const newBalance = this.ownerBalances.get(jobOwner).add(BigNumber.from(amount));
-        this.ownerBalances.set(jobOwner, newBalance);
+      if (this.ownerBalances.has(jobOwner.toLowerCase())) {
+        const newBalance = this.ownerBalances.get(jobOwner.toLowerCase()).add(BigNumber.from(amount));
+        this.ownerBalances.set(jobOwner.toLowerCase(), newBalance);
       } else {
-        this.ownerBalances.set(jobOwner, BigNumber.from(amount));
+        this.ownerBalances.set(jobOwner.toLowerCase(), BigNumber.from(amount));
       }
 
-      if (this.ownerJobs.has(jobOwner)) {
-        for (const jobKey of this.ownerJobs.get(jobOwner)) {
+      if (this.ownerJobs.has(jobOwner.toLowerCase())) {
+        for (const jobKey of this.ownerJobs.get(jobOwner.toLowerCase())) {
           const job = this.jobs.get(jobKey);
           if (!job.isInitializing()) {
             this.jobs.get(jobKey).watch();
@@ -494,15 +494,15 @@ export abstract class AbstractAgent implements IAgent {
       },jobOwner=${jobOwner
       },amount=${amount})`);
 
-      if (this.ownerBalances.has(jobOwner)) {
-        const newBalance = this.ownerBalances.get(jobOwner).sub(BigNumber.from(amount));
-        this.ownerBalances.set(jobOwner, newBalance);
+      if (this.ownerBalances.has(jobOwner.toLowerCase())) {
+        const newBalance = this.ownerBalances.get(jobOwner.toLowerCase()).sub(BigNumber.from(amount));
+        this.ownerBalances.set(jobOwner.toLowerCase(), newBalance);
       } else {
         throw this.err(`On 'WithdrawJobOwnerCredits' event: The owner is not initialized: ${jobOwner}`);
       }
 
-      if (this.ownerJobs.has(jobOwner)) {
-        for (const jobKey of this.ownerJobs.get(jobOwner)) {
+      if (this.ownerJobs.has(jobOwner.toLowerCase())) {
+        for (const jobKey of this.ownerJobs.get(jobOwner.toLowerCase())) {
           this.jobs.get(jobKey).watch();
         }
       }
@@ -517,14 +517,14 @@ export abstract class AbstractAgent implements IAgent {
 
       const job = this.jobs.get(jobKey_);
       const ownerBefore = job.getOwner();
-      this.ownerJobs.get(ownerBefore).delete(jobKey_);
+      this.ownerJobs.get(ownerBefore.toLowerCase()).delete(jobKey_);
 
-      if (!this.ownerJobs.has(ownerAfter)) {
-        this.ownerJobs.set(ownerAfter, new Set());
+      if (!this.ownerJobs.has(ownerAfter.toLowerCase())) {
+        this.ownerJobs.set(ownerAfter.toLowerCase(), new Set());
       }
-      this.ownerJobs.get(ownerAfter).add(jobKey_);
+      this.ownerJobs.get(ownerAfter.toLowerCase()).add(jobKey_);
 
-      job.applyOwner(ownerAfter);
+      job.applyOwner(ownerAfter.toLowerCase());
       job.watch();
     });
 

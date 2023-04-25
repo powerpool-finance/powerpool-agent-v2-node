@@ -250,7 +250,7 @@ export abstract class AbstractJob {
   }
 
   public applyOwner(owner: string) {
-    this.owner = owner;
+    this.owner = owner.toLowerCase();
   }
 
   private assertType(title: string, type: string, value: any) {
