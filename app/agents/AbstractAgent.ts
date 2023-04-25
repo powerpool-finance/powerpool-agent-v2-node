@@ -301,14 +301,14 @@ export abstract class AbstractAgent implements IAgent {
     const jobKeys = Array.from(newJobs.keys());
 
     // 2. Handle resolver updates (should fetch them via lens instead?)
-    let res = await this.network.getExternalLensContract().ethCall('getJobs', [this.address, jobKeys]);
+    const res = await this.network.getExternalLensContract().ethCall('getJobs', [this.address, jobKeys]);
     const jobOwnersSet = new Set<string>();
     const jobs: Array<GetJobResponse> = res.results;
     for (let i = 0; i < jobs.length; i++) {
       const job = jobs[i];
       const owner = job.owner;
       newJobs.get(jobKeys[i]).applyJob(job);
-      jobOwnersSet.add(owner);
+      jobOwnersSet.add(owner.toLowerCase());
       if (!this.ownerJobs.has(owner)) {
         this.ownerJobs.set(owner, new Set());
       }
@@ -318,7 +318,6 @@ export abstract class AbstractAgent implements IAgent {
 
     // 3. Load job owner balances
     this.ownerBalances = await this.source.getOwnersBalances(this, jobOwnersSet);
-
     this.jobs = newJobs;
 
     await this.startAllJobs();

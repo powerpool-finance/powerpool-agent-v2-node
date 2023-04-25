@@ -11,30 +11,20 @@ import {BigNumber} from "ethers";
  * This class used for fetching data from subgraph
  */
 export class SubgraphSource extends AbstractSource {
-  // config: number;
-  // selector: string;
-  // credits: BigNumber;
-  // maxBaseFeeGwei: number;
-  // rewardPct: number;
-  // fixedReward: number;
-  // calldataSource: number;
-  // intervalSeconds: number;
-  // lastExecutionAt: number;
-
-  private jobsQuery: string;
+  private queries: { [name: string]: string }
   private blockchainSource: BlockchainSource;
-
-  private _meta: string;
 
   constructor(network: Network, contract: ContractWrapper) {
     super(network, contract);
     this.type = 'subgraph'
-    this._meta = `
+
+    this.queries = {};
+    this.queries._meta = `
       block {
         number
       }
     `
-    this.jobsQuery = `
+    this.queries.jobsQuery = `
       id
       active
       jobAddress
@@ -60,6 +50,11 @@ export class SubgraphSource extends AbstractSource {
       withdrawalCount
     `;
 
+    this.queries.jobOwnersQuery = `
+      id
+      credits_hex
+    `;
+
     this.blockchainSource = new BlockchainSource(network, contract);
   }
 
@@ -83,7 +78,7 @@ export class SubgraphSource extends AbstractSource {
         this.network.getLatestBlockNumber(),
         this.query(this.network.graphUrl, `{
           _meta {
-            ${this._meta}
+            ${this.queries._meta}
           }
       }`)
       ])
@@ -115,7 +110,7 @@ export class SubgraphSource extends AbstractSource {
     try {
       const { jobs } = await this.query(this.network.graphUrl, `{
           jobs {
-            ${this.jobsQuery}
+            ${this.queries.jobsQuery}
           }
       }`)
       jobs.forEach(job => {
@@ -131,8 +126,33 @@ export class SubgraphSource extends AbstractSource {
     return newJobs;
   }
 
-  async getOwnersBalances(context): Promise<Map<string, BigNumber>> {
-    const result = new Map<string, BigNumber>();
+  /**
+   * Gets job owner's balances from subgraph
+   * @param context - agent context
+   * @param jobOwnersSet - array of jobOwners addresses
+   */
+  async getOwnersBalances(context, jobOwnersSet: Set<string>): Promise<Map<string, BigNumber>> {
+    let result = new Map<string, BigNumber>();
+    try {
+      const graphIsFine = await this.isGraphOk();
+      if (!graphIsFine) {
+        result = await this.blockchainSource.getOwnersBalances(context, jobOwnersSet);
+        return result;
+      }
+
+      const { jobOwners } = await this.query(this.network.graphUrl, `{
+          jobOwners {
+            ${this.queries.jobOwnersQuery}
+          }
+      }`)
+      jobOwners.forEach(JobOwner => {
+        if (jobOwnersSet.has(JobOwner.id.toLowerCase())) { // we only need job owners which have jobs
+          result.set(JobOwner.id, BigNumber.from(JobOwner.credits_hex));
+        }
+      })
+    } catch (e) {
+      this.err(e);
+    }
     return result;
   }
 }

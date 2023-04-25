@@ -175,7 +175,7 @@ export abstract class AbstractJob {
   public applyJob(job: GetJobResponse): boolean {
     this.resolver = {resolverAddress: job.resolver.resolverAddress, resolverCalldata: job.resolver.resolverCalldata};
     this.details = job.details;
-    this.owner = job.owner;
+    this.owner = job.owner.toLowerCase();
     this.config = parseConfig(BigNumber.from(job.details.config));
     if (Array.isArray(this.details)) {
       throw new Error('details are an array')
