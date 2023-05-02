@@ -124,7 +124,7 @@ export function parseConfig(config: BigNumber): ParsedJobConfig {
 export function parseGraphConfig(job: RandaoJob | LightJob): ParsedJobConfig {
   const config = job.graphFields;
   return {
-    isActive: !!(config.active),
+    isActive: config.active,
     useJobOwnerCredits: config.useJobOwnerCredits,
     assertResolverSelector: config.assertResolverSelector,
     checkKeeperMinCvpDeposit: +config.minKeeperCVP > 0,
