@@ -301,9 +301,15 @@ export abstract class AbstractAgent implements IAgent {
     const jobKeys = Array.from(newJobs.keys());
 
     // 2. Handle resolver updates (should fetch them via lens instead?)
-    const res = await this.network.getExternalLensContract().ethCall('getJobs', [this.address, jobKeys]);
     const jobOwnersSet = new Set<string>();
-    const jobs: Array<GetJobResponse> = res.results;
+    let res;
+    let jobs: Array<GetJobResponse>;
+    if (this.source.type === 'blockchain') {
+      res = await this.network.getExternalLensContract().ethCall('getJobs', [this.address, jobKeys]);
+      jobs = res.results;
+    } else {
+      jobs = Array.from(newJobs.values()) as any;
+    }
     for (let i = 0; i < jobs.length; i++) {
       const job = jobs[i];
       const owner = job.owner;

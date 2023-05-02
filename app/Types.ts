@@ -87,6 +87,17 @@ export interface GraphJob {
   totalProfit: string,
   useJobOwnerCredits: boolean,
   withdrawalCount: string,
+  jobCreatedAt: string,
+  intervalSeconds: string,
+  jobNextKeeperId: string,
+  jobReservedSlasherId: string,
+  jobSlashingPossibleAfter: string,
+  owner: {
+    id: string,
+  } | null,
+  pendingOwner: {
+    id: string,
+  } | null,
   name: string,
   args: { [key: string]: any },
 }

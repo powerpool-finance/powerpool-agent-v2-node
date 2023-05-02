@@ -33,4 +33,18 @@ export abstract class AbstractSource {
   async getRegisteredJobs(context): Promise<Map<string, RandaoJob | LightJob>> {
     return new Map<string, RandaoJob | LightJob>();
   }
+
+  /**
+   * Helps handle null addresses. If value is null it returns a null address
+   * @param value - value to check for null
+   * @param longVersion - If longer version of null address is required: 0x -> 0x0000000000000000000000000000000000000000
+   * @param objectKey - If value is an object that can turn to null. Here you can pass key of that object which should be returned otherwise
+   */
+  _checkNullAddress(value, longVersion = false, objectKey = ''): string {
+    if (typeof value !== 'undefined' && value === null) {
+      return longVersion ? '0x0000000000000000000000000000000000000000' : '0x'
+    } else {
+      return objectKey ? value[objectKey] : value;
+    }
+  }
 }

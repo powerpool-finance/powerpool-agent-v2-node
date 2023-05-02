@@ -40,6 +40,7 @@ export class SubgraphSource extends AbstractSource {
       maxBaseFeeGwei
       minKeeperCVP
       preDefinedCalldata
+      intervalSeconds
       resolverAddress
       resolverCalldata
       rewardPct
@@ -48,6 +49,16 @@ export class SubgraphSource extends AbstractSource {
       totalProfit
       useJobOwnerCredits
       withdrawalCount
+      owner {
+        id
+      }
+      pendingOwner {
+        id
+      }
+      jobCreatedAt
+      jobNextKeeperId
+      jobReservedSlasherId
+      jobSlashingPossibleAfter
     `;
 
     this.queries.jobOwnersQuery = `
@@ -114,16 +125,60 @@ export class SubgraphSource extends AbstractSource {
           }
       }`)
       jobs.forEach(job => {
-        newJobs.set(job.id, context._buildNewJob({
+        const buildAndInitJob = this.addLensFieldsToJob(context._buildNewJob({
           ...job,
           name: 'RegisterJob',
-        }));
+        }))
+        newJobs.set(job.id, buildAndInitJob);
       });
     } catch (e) {
       this.err(e);
     }
 
     return newJobs;
+  }
+
+  /**
+   * When getting data from blockchain we are using lens contract.
+   * When getting data from subgraph we already have all data on "getRegisteredJobs" request.
+   * We just need to format data as if it was from lens contract for data consistency.
+   * @param initJob
+   */
+  addLensFieldsToJob(initJob) {
+    const graphData = initJob.graphFields;
+    // setting an owner
+    initJob.owner = this._checkNullAddress(graphData.owner, true, 'id')
+    // if job is about to get transferred setting future owner address. Otherwise, null address
+    initJob.pendingTransfer = this._checkNullAddress(graphData.pendingOwner, true, 'id')
+    // transfer min cvp into bigNumber as it's returned in big number when getting data from blockchain. Data consistency.
+    initJob.jobLevelMinKeeperCvp = BigNumber.from(graphData.minKeeperCVP);
+    // From graph zero predefinedcalldata is returned as null, but from blockchain its 0x
+    initJob.preDefinedCalldata = this._checkNullAddress(graphData.preDefinedCalldata)
+
+    // setting a resolver field
+    initJob.resolver = {
+      resolverCalldata: this._checkNullAddress(graphData.resolverCalldata),
+      resolverAddress: this._checkNullAddress(graphData.resolverAddress, true),
+    };
+    // setting randao data
+    initJob.randaoData = {
+      jobNextKeeperId: BigNumber.from(graphData.jobNextKeeperId),
+      jobReservedSlasherId: BigNumber.from(graphData.jobReservedSlasherId),
+      jobSlashingPossibleAfter: BigNumber.from(graphData.jobSlashingPossibleAfter),
+      jobCreatedAt: BigNumber.from(graphData.jobCreatedAt),
+    };
+    // setting details
+    initJob.details = {
+      selector: graphData.jobSelector,
+      credits: BigNumber.from(graphData.credits),
+      maxBaseFeeGwei: parseInt(graphData.maxBaseFeeGwei),
+      rewardPct: parseInt(graphData.rewardPct),
+      fixedReward: parseInt(graphData.fixedReward),
+      calldataSource: parseInt(graphData.calldataSource),
+      intervalSeconds: parseInt(graphData.intervalSeconds),
+      lastExecutionAt: parseInt(graphData.lastExecutionAt),
+    };
+    return initJob;
   }
 
   /**

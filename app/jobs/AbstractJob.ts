@@ -12,10 +12,12 @@ import {
   UpdateJobEventArgs
 } from '../Types.js';
 import { BigNumber, ethers, Event } from 'ethers';
-import { encodeExecute, nowS, nowTimeString, parseConfig, parseRawJob, toNumber } from '../Utils.js';
+import {encodeExecute, nowS, nowTimeString, parseConfig, parseGraphConfig, parseRawJob, toNumber} from '../Utils.js';
 import { Network } from '../Network.js';
 import { BN_ZERO } from '../Constants.js';
 import { clearTimeout } from 'timers';
+import {RandaoJob} from "./RandaoJob";
+import {LightJob} from "./LightJob";
 
 /**
  * Starts watching on:
@@ -62,6 +64,7 @@ export abstract class AbstractJob {
   protected config: ParsedJobConfig;
   private jobLevelMinKeeperCvp: BigNumber;
   protected resolver: Resolver;
+  graphFields: GraphJob;
 
   private averageBlockTimeSeconds: number;
   private network: Network;
@@ -115,6 +118,7 @@ export abstract class AbstractJob {
       this.address = jobGraph.jobAddress;
       this.id = parseInt(jobGraph.jobId, 10);
       this.key = jobGraph.id;
+      this.graphFields = jobGraph;
       // NOTICE: this.details object not exist on data that fetched from graph. All details data are in jobGraph itself
     }
   }
@@ -176,7 +180,11 @@ export abstract class AbstractJob {
     this.resolver = {resolverAddress: job.resolver.resolverAddress, resolverCalldata: job.resolver.resolverCalldata};
     this.details = job.details;
     this.owner = job.owner.toLowerCase();
-    this.config = parseConfig(BigNumber.from(job.details.config));
+    if (this.network.source === 'blockchain') {
+      this.config = parseConfig(BigNumber.from(job.details.config));
+    } else {
+      this.config = parseGraphConfig(job as never);
+    }
     if (Array.isArray(this.details)) {
       throw new Error('details are an array')
     }

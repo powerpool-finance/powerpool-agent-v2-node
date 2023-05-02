@@ -7,8 +7,9 @@ import {
   CFG_CHECK_KEEPER_MIN_CVP_DEPOSIT,
   CFG_USE_JOB_OWNER_CREDITS,
 } from './Constants.js';
-import { ParsedJobConfig, ParsedRawJob } from './Types.js';
-import { getIcapAddress } from "@ethersproject/address/src.ts";
+import {GraphJob, ParsedJobConfig, ParsedRawJob} from './Types.js';
+import {RandaoJob} from "./jobs/RandaoJob";
+import {LightJob} from "./jobs/LightJob";
 
 export function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms, []));
@@ -117,6 +118,16 @@ export function parseConfig(config: BigNumber): ParsedJobConfig {
     useJobOwnerCredits: !(config.and(CFG_USE_JOB_OWNER_CREDITS)).eq(BN_ZERO),
     assertResolverSelector: !(config.and(CFG_ASSERT_RESOLVER_SELECTOR)).eq(BN_ZERO),
     checkKeeperMinCvpDeposit: !(config.and(CFG_CHECK_KEEPER_MIN_CVP_DEPOSIT)).eq(BN_ZERO)
+  }
+}
+
+export function parseGraphConfig(job: RandaoJob | LightJob): ParsedJobConfig {
+  const config = job.graphFields;
+  return {
+    isActive: !!(config.active),
+    useJobOwnerCredits: config.useJobOwnerCredits,
+    assertResolverSelector: config.assertResolverSelector,
+    checkKeeperMinCvpDeposit: +config.minKeeperCVP > 0,
   }
 }
 
