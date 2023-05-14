@@ -1,6 +1,7 @@
 import { AbstractJob } from './AbstractJob.js';
 import { nowS, nowTimeString } from '../Utils.js';
 import { GetJobResponse, IRandaoAgent, JobType, TxGasUpdate } from '../Types.js';
+import { BN_ZERO } from "../Constants";
 
 export class RandaoJob extends AbstractJob {
   protected assignedKeeperId: number;
@@ -36,6 +37,9 @@ export class RandaoJob extends AbstractJob {
     if (this.assignedKeeperId === 0) {
       return false;
     }
+    if (this.getCreditsAvailable() <= (this.agent as IRandaoAgent).getJobMinCredits()) {
+      this._selfUnassign();
+    }
     return true;
   }
 
@@ -43,6 +47,15 @@ export class RandaoJob extends AbstractJob {
   }
 
   private _selfUnassign(): void {
+    if (this.selfUnassignPending) {
+      this.clog('Self-Unassign is already pending...');
+      return;
+    }
+    if (this.assignedKeeperId !== this.agent.getKeeperId()) {
+      return;
+    }
+
+    this.clog('Executing Self-Unassign');
     this.selfUnassignPending = true;
     return (this.agent as IRandaoAgent).selfUnassignFromJob(this.key)
   }
@@ -82,13 +95,13 @@ export class RandaoJob extends AbstractJob {
   }
 
   protected _txEstimationFailed(): void {
-    if (!this.selfUnassignPending && this._getCurrentPeriod() === 3) {
+    if (this._getCurrentPeriod() === 3) {
       this._selfUnassign();
     }
   }
 
   protected _txExecutionFailed(): void {
-    if (!this.selfUnassignPending && this._getCurrentPeriod() === 3) {
+    if (this._getCurrentPeriod() === 3) {
       this._selfUnassign();
     }
   }

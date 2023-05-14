@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { ethers, utils } from "ethers";
 import { buildSignature, buildAbiSelector, nowTimeString, sleep } from '../Utils.js';
 import { ContractWrapper, ErrorWrapper, EventWrapper, WrapperListener } from '../Types.js';
 import { Result, Fragment, ErrorFragment, FunctionFragment, EventFragment } from 'ethers/lib/utils.js';
@@ -50,7 +50,7 @@ export class EthersContract implements ContractWrapper {
           break;
         case 'event':
           // @ts-ignore
-          obj.signature = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(`${obj.name}(${obj.inputs.map(input => input.type).join(',')})`));
+          obj.signature = this.contract.interface.getEventTopic(obj.name);
           // @ts-ignore
           this.abiEventByTopic.set(obj.signature, obj);
 
@@ -78,7 +78,7 @@ export class EthersContract implements ContractWrapper {
       const parsedLogs = this.contract.interface.parseLog(log);
       this.eventEmitter.emit(abiEvent.name, Object.assign(log, parsedLogs));
     } else {
-      throw this.err('EthersContract: event missing from abi', log);
+      throw this.err('EthersContract: event missing from abi', JSON.stringify(log));
     }
   }
   public decodeError(response: string): ErrorWrapper {
@@ -186,6 +186,10 @@ ${e.message}: ${Error().stack}`);
       });
     });
     return this;
+  }
+
+  public getAbiEventsByLogs() {
+    return this.abiEventByTopic;
   }
 }
 

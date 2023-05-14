@@ -48,7 +48,13 @@ class App {
       }
     }
     clog('Waiting for all networks to be initialized...');
-    await Promise.all(inits);
+    try {
+      await Promise.all(inits);
+    } catch (e) {
+      console.log(e);
+      clog('Networks initialization failed');
+      process.exit(1);
+    }
     clog('Networks initialization done!');
   }
 }

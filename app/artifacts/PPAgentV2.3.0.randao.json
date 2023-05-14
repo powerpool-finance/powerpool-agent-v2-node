@@ -69,6 +69,11 @@
   },
   {
     "inputs": [],
+    "name": "ExecutionReentrancyLocked",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "FeeTooBig",
     "type": "error"
   },
@@ -220,6 +225,11 @@
   },
   {
     "inputs": [],
+    "name": "InvalidMinKeeperCvp",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "InvalidPeriod1",
     "type": "error"
   },
@@ -244,7 +254,13 @@
     "type": "error"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "returndata",
+        "type": "bytes"
+      }
+    ],
     "name": "JobCheckCanBeExecuted",
     "type": "error"
   },
@@ -257,17 +273,6 @@
       }
     ],
     "name": "JobCheckCanNotBeExecuted",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes",
-        "name": "errReason",
-        "type": "bytes"
-      }
-    ],
-    "name": "JobCheckResolverError",
     "type": "error"
   },
   {
@@ -561,6 +566,11 @@
       }
     ],
     "name": "TooEarlyToRelease",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "UnableToDecodeResolverResponse",
     "type": "error"
   },
   {
@@ -1378,6 +1388,12 @@
         "indexed": false,
         "internalType": "uint256",
         "name": "dynamicSlashAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "slashAmountMissing",
         "type": "uint256"
       }
     ],

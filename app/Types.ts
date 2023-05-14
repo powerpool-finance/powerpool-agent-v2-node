@@ -204,8 +204,8 @@ export interface TxEnvelope {
   txNotMinedInBlock: (blockNumber: number, blockTimestamp: number, baseFee: number) => null | TxGasUpdate;
 
   // TODO: get rid of the fields below
-  creditsAvailable: BigNumber;
-  fixedCompensation: BigNumber;
+  creditsAvailable: bigint;
+  fixedCompensation: bigint;
   ppmCompensation: number;
   minTimestamp?: number;
 }
@@ -222,6 +222,7 @@ export interface IRandaoAgent extends IAgent {
   unregisterIntervalJobSlashing(jobKey: string);
   getPeriod1Duration(): number;
   getPeriod2Duration(): number;
+  getJobMinCredits(): bigint;
   selfUnassignFromJob(jobKey: string): void;
 }
 

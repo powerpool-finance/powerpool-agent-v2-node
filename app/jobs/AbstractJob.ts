@@ -113,8 +113,8 @@ export abstract class AbstractJob {
     return this.initializing;
   }
 
-  private getFixedReward(): BigNumber {
-    return BigNumber.from(this.details.fixedReward).mul('1000000000000000');
+  private getFixedReward(): bigint {
+    return BigInt(this.details.fixedReward) * 1000000000000000n;
   }
 
   private assertEvent(event: Event, eventName: string) {
@@ -291,10 +291,6 @@ export abstract class AbstractJob {
       this.clog('Ignoring a disabled job');
       return;
     }
-    if (this.getCreditsAvailable().eq(BN_ZERO)) {
-      this.clog('Ignoring a job with 0 credits');
-      return;
-    }
 
     if (!this._beforeJobWatch()) {
       return;
@@ -370,12 +366,13 @@ export abstract class AbstractJob {
     }
   }
 
-  private getCreditsAvailable(): BigNumber {
+  // 1 is 1 wei
+  protected getCreditsAvailable(): bigint {
     let balanceAvailable = this.details.credits;
     if (this.config.useJobOwnerCredits) {
       balanceAvailable = this.agent.getJobOwnerBalance(this.owner);
     }
-    return balanceAvailable;
+    return BigInt(balanceAvailable.toString());
   }
 
   protected async executeTx(jobKey: string, tx: ethers.UnsignedTransaction, minTimestamp = 0) {
