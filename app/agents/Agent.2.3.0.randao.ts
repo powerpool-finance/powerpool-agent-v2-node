@@ -1,8 +1,8 @@
 import { AbstractAgent } from './AbstractAgent.js';
 import { getPPAgentV2_3_0_RandaoAbi } from '../services/AbiService.js';
-import { IRandaoAgent, TxGasUpdate } from "../Types";
+import { IRandaoAgent, TxGasUpdate } from '../Types';
 import { RandaoJob } from '../jobs/RandaoJob.js';
-import { BI_10E15 } from "../Constants.js";
+import { BI_10E15 } from '../Constants.js';
 
 export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
   // jobKeys
@@ -86,12 +86,10 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
     await this.populateTxExtraFields(tx);
     const _this = this;
     const txEstimationFailed = (error): void => {
-      throw _this.err('Self-Unassign transaction estimation failed:', error);
-      process.exit(1);
+      _this.clog('Self-Unassign transaction estimation failed:', error);
     };
     const txExecutionFailed = (error): void => {
-      throw _this.err('Self-Unassign reverted (while the estimation was ok):', error);
-      process.exit(1);
+      _this.clog('Self-Unassign reverted (while the estimation was ok):', error);
     };
     const txNotMinedInBlock = (blockNumber: number, blockTimestamp: number, baseFee: number): TxGasUpdate | null => {
       // TODO: implement the required checks
@@ -112,7 +110,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
   }
 
   _afterInitializeListeners() {
-    this.contract.on('JobKeeperChanged', (event) => {
+    this.contract.on('JobKeeperChanged', async (event) => {
       const {keeperFrom, keeperTo, jobKey} = event.args;
 
       this.clog(`'JobKeeperChanged' event 🔈: (block=${event.blockNumber
@@ -121,7 +119,12 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       },keeperTo=${keeperTo})`);
 
       const job = this.jobs.get(jobKey) as RandaoJob;
-      job.applyKeeperAssigned(parseInt(keeperTo));
+      const shouldUpdateBinJob = job.applyKeeperAssigned(parseInt(keeperTo));
+      if (shouldUpdateBinJob) {
+        const binJob = await this.network.getJobRawBytes32(this.address, jobKey);
+        this.clog('Updating binJob to', binJob);
+        job.applyBinJobData(binJob);
+      }
       job.watch();
     });
 

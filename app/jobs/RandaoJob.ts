@@ -1,7 +1,6 @@
 import { AbstractJob } from './AbstractJob.js';
 import { nowS, nowTimeString } from '../Utils.js';
-import { GetJobResponse, IRandaoAgent, JobType, TxGasUpdate } from '../Types.js';
-import { BN_ZERO } from "../Constants";
+import { GetJobResponse, IRandaoAgent } from '../Types.js';
 
 export class RandaoJob extends AbstractJob {
   protected assignedKeeperId: number;
@@ -17,12 +16,19 @@ export class RandaoJob extends AbstractJob {
     return new Error(`RandaoJobError${this.toString()}: ${args.join(' ')}`);
   }
 
-  public applyKeeperAssigned(keeperId: number) {
+  // true if it should update binJob
+  public applyKeeperAssigned(keeperId: number): boolean {
     console.log(this.key, 'keeperID update ✅✅✅✅✅✅✅✅✅✅✅✅✅', this.assignedKeeperId, '->', keeperId);
     if (keeperId === 0) {
       this.selfUnassignPending = false;
     }
+    const prevAssignedKeeperId = this.assignedKeeperId;
     this.assignedKeeperId = keeperId;
+    if (prevAssignedKeeperId === 0) {
+      // When keeper is assigned again for an interval job it should update binJob before watching
+      return this.isIntervalJob();
+    }
+    return false;
   }
 
   private intervalPeriod2StartsAt(): number {
@@ -35,10 +41,13 @@ export class RandaoJob extends AbstractJob {
 
   protected _beforeJobWatch(): boolean {
     if (this.assignedKeeperId === 0) {
+      this.clog('_beforeJobWatch(): assignedKeeper is 0');
       return false;
     }
     if (this.getCreditsAvailable() <= (this.agent as IRandaoAgent).getJobMinCredits()) {
+      this.clog('_beforeJobWatch(): selfUnassign');
       this._selfUnassign();
+      return false;
     }
     return true;
   }
