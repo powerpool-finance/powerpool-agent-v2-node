@@ -13,8 +13,8 @@ export enum CALLDATA_SOURCE {
 }
 
 export interface AgentConfig {
-  rewards_contract: string;
-  rewards_check_interval_minutes: number;
+  rewards_contract?: string;
+  rewards_check_interval_minutes?: number;
   keeper_address: string;
   key_pass: string;
   executor: ExecutorType;
@@ -25,7 +25,7 @@ export interface AgentConfig {
 
 export interface NetworkConfig {
   rpc: string;
-  flashbots: {
+  flashbots?: {
     rpc: string;
     address: string;
     pass: string;
