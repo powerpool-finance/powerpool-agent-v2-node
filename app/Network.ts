@@ -62,7 +62,6 @@ export class Network {
     this.contractWrapperFactory = new EthersContractWrapperFactory([networkConfig.rpc]);
     this.name = name;
     this.rpc = networkConfig.rpc;
-    this.source = networkConfig.source;
     this.graphUrl = networkConfig.graphUrl;
     this.networkConfig = networkConfig;
     this.flashbotsRpc = networkConfig?.flashbots?.rpc;
@@ -70,6 +69,11 @@ export class Network {
     this.flashbotsPass = networkConfig?.flashbots?.pass;
     this.averageBlockTimeSeconds = getAverageBlockTime(name);
     this.newBlockEventEmitter = new EventEmitter();
+    if (networkConfig.source) {
+      this.source = networkConfig.source;
+    } else {
+      this.source = 'blockchain';
+    }
 
     this.newBlockNotifications = new Map();
 
