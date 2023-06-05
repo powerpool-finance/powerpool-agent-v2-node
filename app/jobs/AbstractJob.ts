@@ -127,8 +127,8 @@ export abstract class AbstractJob {
     return this.initializing;
   }
 
-  private getFixedReward(): BigNumber {
-    return BigNumber.from(this.details.fixedReward).mul('1000000000000000');
+  private getFixedReward(): bigint {
+    return BigInt(this.details.fixedReward) * 1000000000000000n;
   }
 
   private assertEvent(event: Event, eventName: string) {
@@ -309,10 +309,6 @@ export abstract class AbstractJob {
       this.clog('Ignoring a disabled job');
       return;
     }
-    if (this.getCreditsAvailable().eq(BN_ZERO)) {
-      this.clog('Ignoring a job with 0 credits');
-      return;
-    }
 
     if (!this._beforeJobWatch()) {
       return;
@@ -388,27 +384,31 @@ export abstract class AbstractJob {
     }
   }
 
-  private getCreditsAvailable(): BigNumber {
+  // 1 is 1 wei
+  protected getCreditsAvailable(): bigint {
     let balanceAvailable = this.details.credits;
     if (this.config.useJobOwnerCredits) {
       balanceAvailable = this.agent.getJobOwnerBalance(this.owner);
     }
-    return balanceAvailable;
+    return BigInt(balanceAvailable.toString());
   }
 
   protected async executeTx(jobKey: string, tx: ethers.UnsignedTransaction, minTimestamp = 0) {
+    const txEstimationFailed = () => {
+      this.watch();
+    };
+    const txExecutionFailed = (error) => {
+      throw this.err('Transaction reverted (while the estimation was ok):', error);
+      process.exit(1);
+    };
+    const txNotMinedInBlock = (blockNumber: number, blockTimestamp: number, baseFee: number): TxGasUpdate | null => {
+      // TODO: implement the required checks
+      return null;
+    };
     return this.agent.sendTxEnvelope({
-      txEstimationFailed: (_): void => {
-        this.watch();
-      },
-      txExecutionFailed: (error): void => {
-        throw this.err('Transaction reverted (while the estimation was ok):', error);
-        process.exit(1);
-      },
-      txNotMinedInBlock(blockNumber: number, blockTimestamp: number, baseFee: number): TxGasUpdate | null {
-        // TODO: implement the required checks
-        return null;
-      },
+      txEstimationFailed,
+      txExecutionFailed,
+      txNotMinedInBlock,
       jobKey,
       tx,
       creditsAvailable: this.getCreditsAvailable(),

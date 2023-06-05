@@ -1,5 +1,6 @@
 import { AbstractJob } from './AbstractJob.js';
 import { nowTimeString } from '../Utils.js';
+import { BN_ZERO } from "../Constants";
 
 export class LightJob extends AbstractJob {
   protected clog(...args) {
@@ -10,6 +11,10 @@ export class LightJob extends AbstractJob {
   }
 
   protected _beforeJobWatch(): boolean {
+    if (this.getCreditsAvailable() === 0n) {
+      this.clog('Ignoring a job with 0 credits');
+      return false;
+    }
     return true;
   }
 

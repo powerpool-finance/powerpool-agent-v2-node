@@ -13,8 +13,8 @@ export enum CALLDATA_SOURCE {
 }
 
 export interface AgentConfig {
-  rewards_contract: string;
-  rewards_check_interval_minutes: number;
+  rewards_contract?: string;
+  rewards_check_interval_minutes?: number;
   keeper_address: string;
   key_pass: string;
   executor: ExecutorType;
@@ -25,7 +25,7 @@ export interface AgentConfig {
 
 export interface NetworkConfig {
   rpc: string;
-  flashbots: {
+  flashbots?: {
     rpc: string;
     address: string;
     pass: string;
@@ -244,8 +244,8 @@ export interface TxEnvelope {
   txNotMinedInBlock: (blockNumber: number, blockTimestamp: number, baseFee: number) => null | TxGasUpdate;
 
   // TODO: get rid of the fields below
-  creditsAvailable: BigNumber;
-  fixedCompensation: BigNumber;
+  creditsAvailable: bigint;
+  fixedCompensation: bigint;
   ppmCompensation: number;
   minTimestamp?: number;
 }
@@ -262,6 +262,7 @@ export interface IRandaoAgent extends IAgent {
   unregisterIntervalJobSlashing(jobKey: string);
   getPeriod1Duration(): number;
   getPeriod2Duration(): number;
+  getJobMinCredits(): bigint;
   selfUnassignFromJob(jobKey: string): void;
 }
 

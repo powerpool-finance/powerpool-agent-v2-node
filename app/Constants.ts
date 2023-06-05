@@ -54,6 +54,11 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: {[agent: string]: Age
       deployedAt: 3311189,
       version: '2.3.0',
       strategy: 'randao',
+    },
+    '0xEEc54451B01963518aFd57ED715E31fcAf2228D2': {
+      deployedAt: 3450952,
+      version: '2.3.0',
+      strategy: 'randao',
     }
   }
 }
@@ -86,6 +91,8 @@ export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {
 // export const FLAG_ACCRUE_REWARD = 0x02;
 
 export const BN_ZERO = BigNumber.from(0x0);
+export const BI_ZERO = BigInt(0);
+export const BI_10E15 = BigInt(10) ** BigInt(15);
 export const CFG_ACTIVE = BigNumber.from(0x01);
 export const CFG_USE_JOB_OWNER_CREDITS = BigNumber.from(0x02);
 export const CFG_ASSERT_RESOLVER_SELECTOR = BigNumber.from(0x04);

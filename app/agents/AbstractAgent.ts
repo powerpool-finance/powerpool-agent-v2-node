@@ -359,7 +359,7 @@ export abstract class AbstractAgent implements IAgent {
     this.ownerBalances.set(owner.toLowerCase(), res.results[0]);
   }
 
-  private async startAllJobs() {
+  protected async startAllJobs() {
     for (const [, job] of this.jobs) {
       await job.watch();
     }

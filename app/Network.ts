@@ -7,7 +7,7 @@ import {
   getMulticall2Address
 } from './ConfigGetters.js';
 import { getExternalLensAbi, getMulticall2Abi } from './services/AbiService.js';
-import { nowMs, nowTimeString, toChecksummedAddress } from './Utils.js';
+import { nowMs, nowS, nowTimeString, toChecksummedAddress } from './Utils.js';
 import { EthersContractWrapperFactory } from './clients/EthersContractWrapperFactory.js';
 import EventEmitter from 'events';
 import { AgentRandao_2_3_0 } from './agents/Agent.2.3.0.randao.js';
@@ -159,7 +159,7 @@ export class Network {
   }
 
   public async getJobRawBytes32(agent: string, jobKey: string): Promise<string> {
-    const res = await this.externalLens.ethCall('getJobRawBytes32', [agent, [jobKey]]);
+    const res = await this.externalLens.ethCall('getJobsRawBytes32', [agent, [jobKey]]);
     return res.results[0];
   }
 
@@ -296,6 +296,7 @@ export class Network {
   public registerTimeout(key: string, triggerCallbackAfter: number, callback: (blockTimestamp: number) => void) {
     this._validateKeyLength(key, 'interval');
     this._validateKeyNotInMap(key, this.timeoutData, 'interval');
+    this.clog('SET Timeout', key, `at: ${triggerCallbackAfter}`, `now: ${nowS()}`);
     this.timeoutData[key] = {
       triggerCallbackAfter,
       callback
@@ -303,6 +304,7 @@ export class Network {
   }
 
   public unregisterTimeout(key: string) {
+    this.clog('UNSET Timeout', key);
     this._validateKeyLength(key, 'interval');
     delete this.timeoutData[key];
   }
