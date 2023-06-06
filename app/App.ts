@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import YAML from 'yamljs';
 
-import { Config, AllNetworksConfig, Storage, AvailableNetworkNames, NetworkConfig, AgentConfig } from "./Types";
+import { Config, AllNetworksConfig, NetworkConfig, AgentConfig } from './Types';
 import { Network } from './Network.js';
 import { nowTimeString } from './Utils.js';
 import { fileURLToPath } from 'url';
@@ -59,10 +59,12 @@ class App {
       };
 
       const netConfig: NetworkConfig = {
+        graphUrl: '',
+        source: '',
         rpc: process.env.NETWORK_RPC,
         agents: {
           [agentAddress]: agentConfig
-        },
+        }
       };
 
       config = {
