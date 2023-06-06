@@ -1,6 +1,5 @@
 import { AbstractJob } from './AbstractJob.js';
 import { nowTimeString } from '../Utils.js';
-import { BN_ZERO } from "../Constants";
 
 export class LightJob extends AbstractJob {
   protected clog(...args) {
@@ -28,5 +27,15 @@ export class LightJob extends AbstractJob {
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   protected intervalJobAvailableCallback(_blockNumber: number) {
+  }
+
+  protected async resolverSuccessCallback(triggeredByBlockNumber, invokeCalldata) {
+    this.agent.unregisterResolver(this.key);
+    return this.executeTx(
+      this.key,
+      await this.buildTx(
+        this.buildResolverCalldata(invokeCalldata)
+      )
+    );
   }
 }

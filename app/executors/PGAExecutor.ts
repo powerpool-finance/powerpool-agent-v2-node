@@ -49,7 +49,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       try {
         const txSimulation = await this.genericProvider.call(tx);
         this.printSolidityCustomError(txSimulation, tx.data as string);
-        envelope.txEstimationFailed(tx.data as string);
+        envelope.executorCallbacks.txEstimationFailed(tx.data as string);
       } catch (e) {
         console.log(e);
         console.log('Exiting at PGAExecutor.process(): .call(tx) reverted');
@@ -70,7 +70,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
     } finally {
       tx.nonce = await this.genericProvider.getTransactionCount(this.workerSigner.address);
     }
-    tx.gasLimit = gasLimitEstimation.mul(20).div(10);
+    tx.gasLimit = gasLimitEstimation.mul(40).div(10);
 
     this.clog(`📝 Signing tx with calldata=${tx.data} ...`);
     const signedTx = await this.workerSigner.signTransaction(tx);
@@ -85,7 +85,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       this.clog(`Tx ${txHash}: ⛓ Successfully mined in block #${res.blockNumber} with nonce ${tx.nonce
       }. The queue length is: ${this.queue.length}.`);
     } catch (e) {
-      envelope.txEstimationFailed(tx.data as string);
+      envelope.executorCallbacks.txEstimationFailed(tx.data as string);
     }
     // TODO: setTimeout with .call(tx), send cancel tx (eth transfer) with a higher gas price
   }

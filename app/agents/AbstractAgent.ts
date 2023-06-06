@@ -9,7 +9,6 @@ import {
   TxEnvelope
 } from '../Types.js';
 import {BigNumber, ethers, Wallet} from 'ethers';
-import {getAgentRewardsAbi} from '../services/AbiService.js';
 import { getEncryptedJson } from '../services/KeyService.js';
 import { DEFAULT_SYNC_FROM_CHAINS, MIN_EXECUTION_GAS } from '../Constants.js';
 import {nowMs, nowTimeString} from '../Utils.js';
@@ -18,6 +17,7 @@ import { PGAExecutor } from '../executors/PGAExecutor.js';
 import { getAgentDefaultSyncFromSafe } from '../ConfigGetters.js';
 import { LightJob } from '../jobs/LightJob.js';
 import { RandaoJob } from '../jobs/RandaoJob.js';
+import { AbstractJob } from '../jobs/AbstractJob';
 
 const FLAG_ACCEPT_MAX_BASE_FEE_LIMIT = 1;
 const FLAG_ACCRUE_REWARD = 2;
@@ -64,6 +64,8 @@ export abstract class AbstractAgent implements IAgent {
   protected _beforeInit(): void {}
   protected _afterInit(): void {}
   protected async _beforeResyncAllJobs() {}
+
+  protected _afterExecuteEvent(job: AbstractJob) {}
 
   constructor(address: string, agentConfig: AgentConfig, network: Network) {
     this.jobs = new Map();
@@ -235,21 +237,6 @@ export abstract class AbstractAgent implements IAgent {
   private newBlockEventHandler(blockTimestamp) {
   }
 
-  public async verifyLastExecutionAtLoop() {
-    this.clog('verifyLastExecutionAtLoop')
-    const jobKeys = Array.from(this.jobs.keys()).filter(jobKey => this.jobs.get(jobKey).isIntervalJob());
-
-    const res = await this.network.getExternalLensContract().ethCall('getJobRawBytes32', [this.address, jobKeys]);
-
-    for (let i = 0; i < res.results.length; i++) {
-      const rawJob = res.results[i].toString();
-      const job = this.jobs.get(jobKeys[i]);
-      job.rewatchIfRequired(rawJob);
-    }
-
-    setTimeout(this.verifyLastExecutionAtLoop.bind(this), 3 * 60 * 1000);
-  }
-
   public getJobOwnerBalance(address: string): BigNumber {
     if (!this.ownerBalances.has(address)) {
       throw this.err(`getJobOwnerBalance(): Address ${address} not tracked`);
@@ -282,11 +269,11 @@ export abstract class AbstractAgent implements IAgent {
    * @private
    */
   private async resyncAllJobs(): Promise<number> {
-    const latestBock = await this.network.getLatestBlockNumber();
+    const latestBock = this.network.getLatestBlockNumber();
 
     // 1. Handle registers
     // const newJobs = {};
-    const registerLogs = await this.contract.getPastEvents('RegisterJob', this.fullSyncFrom, latestBock)
+    const registerLogs = await this.contract.getPastEvents('RegisterJob', this.fullSyncFrom, Number(latestBock))
     const newJobs = new Map<string, RandaoJob | LightJob>();
 
     for (const event of registerLogs) {
@@ -323,7 +310,7 @@ export abstract class AbstractAgent implements IAgent {
 
     await this.startAllJobs();
 
-    return latestBock;
+    return Number(latestBock);
   }
   abstract _buildNewJob(event): LightJob | RandaoJob;
 
@@ -598,6 +585,9 @@ export abstract class AbstractAgent implements IAgent {
 
       const job = this.jobs.get(jobKey);
       job.applyBinJobData(binJobAfter);
+
+      this._afterExecuteEvent(job);
+
       job.watch();
     });
 

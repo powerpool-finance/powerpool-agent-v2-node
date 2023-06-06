@@ -62,6 +62,11 @@ export interface GetJobResponse {
   };
 }
 
+export interface LensGetJobBytes32AndNextBlockSlasherIdResponse {
+  binJob: string;
+  nextBlockSlasherId: number;
+}
+
 export interface JobDetails {
   config: number;
   selector: string;
@@ -198,16 +203,25 @@ export interface TxEnvelope {
   jobKey: string;
   tx: ethers.UnsignedTransaction;
 
-  // callbacks
-  txEstimationFailed: (error) => void;
-  txExecutionFailed: (error) => void;
-  txNotMinedInBlock: (blockNumber: number, blockTimestamp: number, baseFee: number) => null | TxGasUpdate;
+  executorCallbacks: ExecutorCallbacks;
 
   // TODO: get rid of the fields below
   creditsAvailable: bigint;
   fixedCompensation: bigint;
   ppmCompensation: number;
   minTimestamp?: number;
+}
+
+export interface ExecutorCallbacks {
+  txEstimationFailed: (error) => void;
+  txExecutionFailed: (error) => void;
+  txNotMinedInBlock: TxNotMinedInBlockCallback;
+}
+
+export type TxNotMinedInBlockCallback = (blockNumber: number, blockTimestamp: number, baseFee: number) => null | TxGasUpdate;
+
+export function EmptyTxNotMinedInBlockCallback(blockNumber: number, blockTimestamp: number, baseFee: number): null | TxGasUpdate {
+  return null;
 }
 
 export interface AgentHardcodedConfig {
@@ -218,12 +232,15 @@ export interface AgentHardcodedConfig {
 }
 
 export interface IRandaoAgent extends IAgent {
-  registerIntervalJobSlashing(jobKey: string, timestamp: number, callback: (calldata) => void);
-  unregisterIntervalJobSlashing(jobKey: string);
+  registerJobSlashingTimeout(jobKey: string, timestamp: number, callback: (calldata) => void);
+  unregisterJobSlashingTimeout(jobKey: string);
+  amINextSlasher(jobKey: string): Promise<boolean>;
+  getJobBytes32AndNextBlockSlasherId(jobKey: string): Promise<LensGetJobBytes32AndNextBlockSlasherIdResponse>;
   getPeriod1Duration(): number;
   getPeriod2Duration(): number;
   getJobMinCredits(): bigint;
   selfUnassignFromJob(jobKey: string): void;
+  initiateSlashing(jobAddress: string, jobId: number, jobKey: string, executorCallbacks: ExecutorCallbacks): void;
 }
 
 export interface IAgent {

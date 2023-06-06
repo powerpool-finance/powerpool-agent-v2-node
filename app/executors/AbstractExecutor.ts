@@ -43,11 +43,11 @@ export abstract class AbstractExecutor {
             decoded.args[key] = value.toNumber();
           }
         }
-        this.clog(`⛔️ Ignoring tx reverted with '${decoded.name}' error and the following arguments:`, decoded.args,
+        this.clog(`⛔️ Ignoring tx estimation reverted with '${decoded.name}' error and the following arguments:`, decoded.args,
           `(calldata=${txCalldata})`);
 
       } catch(_) {
-        this.clog(`⛔️ Ignoring a tx with a failed estimation: (call=${txCalldata},response=${bytes})`);
+        this.clog(`⛔️ Ignoring tx estimation failed with unknown error: (call=${txCalldata},response=${bytes})`);
       }
     }
   }

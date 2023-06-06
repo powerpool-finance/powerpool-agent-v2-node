@@ -1,5 +1,5 @@
 import {
-  CALLDATA_SOURCE,
+  CALLDATA_SOURCE, EmptyTxNotMinedInBlockCallback,
   EventWrapper,
   GetJobResponse, IAgent,
   JobDetails,
@@ -12,8 +12,6 @@ import {
 import { BigNumber, ethers, Event } from 'ethers';
 import { encodeExecute, nowS, nowTimeString, parseConfig, parseRawJob, toNumber } from '../Utils.js';
 import { Network } from '../Network.js';
-import { BN_ZERO } from '../Constants.js';
-import { clearTimeout } from 'timers';
 
 /**
  * Starts watching on:
@@ -63,7 +61,6 @@ export abstract class AbstractJob {
 
   private averageBlockTimeSeconds: number;
   private network: Network;
-  private intervalTimeout: NodeJS.Timeout;
 
   private initializing = true;
 
@@ -81,15 +78,24 @@ export abstract class AbstractJob {
       this.key, this.nextExecutionTimestamp(), this.intervalJobAvailableCallback.bind(this));
   }
 
+  protected _watchResolverJob(): void {
+    this.agent.registerResolver(this.key, this.resolver, this.resolverSuccessCallback.bind(this));
+  }
+
   protected _unwatchIntervalJob(): void {
     this.agent.unregisterIntervalJobExecution(this.key);
   }
+
+  protected _unwatchResolverJob(): void {
+    this.agent.unregisterResolver(this.key);
+  }
+
   protected _beforeJobWatch(): boolean { return true }
   protected _afterJobWatch(): void {}
   protected abstract _afterApplyJob(job: GetJobResponse): void;
   protected abstract intervalJobAvailableCallback(blockNumber: number);
-  protected _txEstimationFailed(): void {}
-  protected _txExecutionFailed(): void {}
+  protected _executeTxEstimationFailed(error: any): void {}
+  protected _executeTxExecutionFailed(error: any): void {}
 
   constructor(creationEvent: EventWrapper, agent: IAgent) {
     const args: RegisterJobEventArgs = creationEvent.args as never;
@@ -209,18 +215,6 @@ export abstract class AbstractJob {
     return requiresRestart;
   }
 
-  public rewatchIfRequired(rawJob: string) {
-    if (typeof rawJob !== 'string') {
-      throw this.err('rawJob is not a string:', typeof rawJob, rawJob);
-    }
-    const parsedJobData = parseRawJob(rawJob);
-    const secondsToCall = this.secondsToCall(parsedJobData.lastExecutionAt);
-    if (secondsToCall < this.averageBlockTimeSeconds) {
-      this.clog('Rewatch required')
-      this.watch();
-    }
-  }
-
   public applyJobCreditsDeposit(credits: BigNumber) {
     this.details.credits = this.details.credits.add(credits);
   }
@@ -265,7 +259,7 @@ export abstract class AbstractJob {
         this.clog('Deprecated job type: IntervalResolver');
         break;
       case JobType.Resolver:
-        this.agent.unregisterResolver(this.key);
+        this._unwatchResolverJob();
         break;
       case JobType.SelectorOrPDCalldata:
         this._unwatchIntervalJob();
@@ -301,7 +295,7 @@ export abstract class AbstractJob {
         this.clog('Deprecated job type: IntervalResolver');
         break;
       case JobType.Resolver:
-        this.agent.registerResolver(this.key, this.resolver, this.resolverSuccessCallback.bind(this));
+        this._watchResolverJob();
         break;
       case JobType.SelectorOrPDCalldata:
         this._watchIntervalJob();
@@ -313,23 +307,13 @@ export abstract class AbstractJob {
     this._afterJobWatch();
   }
 
-  private async resolverSuccessCallback(invokeCalldata) {
-    if (this.getJobType() === JobType.IntervalResolver) {
-      this.agent.unregisterResolver(this.key);
-    }
-    return this.executeTx(
-      this.key,
-      await this.buildTx(
-        this.buildResolverCalldata(invokeCalldata)
-      )
-    );
-  }
+  protected async resolverSuccessCallback(triggeredByBlockNumber, invokeCalldata) {}
 
   protected buildIntervalCalldata(): string {
     return encodeExecute(this.address, this.id, this.agent.getCfg(), this.agent.getKeeperId());
   }
 
-  private buildResolverCalldata(jobCalldata): string {
+  protected buildResolverCalldata(jobCalldata): string {
     return encodeExecute(this.address, this.id, this.agent.getCfg(), this.agent.getKeeperId(), jobCalldata);
   }
 
@@ -376,21 +360,12 @@ export abstract class AbstractJob {
   }
 
   protected async executeTx(jobKey: string, tx: ethers.UnsignedTransaction, minTimestamp = 0) {
-    const txEstimationFailed = () => {
-      this.watch();
-    };
-    const txExecutionFailed = (error) => {
-      throw this.err('Transaction reverted (while the estimation was ok):', error);
-      process.exit(1);
-    };
-    const txNotMinedInBlock = (blockNumber: number, blockTimestamp: number, baseFee: number): TxGasUpdate | null => {
-      // TODO: implement the required checks
-      return null;
-    };
     return this.agent.sendTxEnvelope({
-      txEstimationFailed,
-      txExecutionFailed,
-      txNotMinedInBlock,
+      executorCallbacks: {
+        txEstimationFailed: this._executeTxEstimationFailed.bind(this),
+        txExecutionFailed: this._executeTxExecutionFailed.bind(this),
+        txNotMinedInBlock: EmptyTxNotMinedInBlockCallback,
+      },
       jobKey,
       tx,
       creditsAvailable: this.getCreditsAvailable(),
@@ -400,26 +375,12 @@ export abstract class AbstractJob {
     });
   }
 
-  private async tryExecuteIntervalJob() {
-    return this.executeTx(this.key, await this.buildTx(this.buildIntervalCalldata()), this.nextExecutionTimestamp());
-  }
-
   private nextExecutionTimestamp(): number {
     if (this.details.intervalSeconds === 0) {
       throw this.err(`Unexpected nextExecutionTimestamp() callback for job ${this.key}`);
     }
 
     return this.details.lastExecutionAt + this.details.intervalSeconds;
-  }
-
-  private secondsToCall(lastExecutionAt): number {
-    const now = nowS();
-    const nextExecutionAt = lastExecutionAt + this.details.intervalSeconds;
-    if (nextExecutionAt < now) {
-      return 0;
-    } else {
-      return nextExecutionAt - now;
-    }
   }
 
   public getJobType(): JobType {

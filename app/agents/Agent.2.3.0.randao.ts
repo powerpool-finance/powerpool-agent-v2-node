@@ -1,12 +1,16 @@
 import { AbstractAgent } from './AbstractAgent.js';
 import { getPPAgentV2_3_0_RandaoAbi } from '../services/AbiService.js';
-import { IRandaoAgent, TxGasUpdate } from '../Types';
+import {
+  EmptyTxNotMinedInBlockCallback,
+  ExecutorCallbacks,
+  IRandaoAgent,
+  LensGetJobBytes32AndNextBlockSlasherIdResponse,
+} from '../Types.js';
 import { RandaoJob } from '../jobs/RandaoJob.js';
 import { BI_10E15 } from '../Constants.js';
+import { AbstractJob } from '../jobs/AbstractJob.js';
 
 export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
-  // jobKeys
-  private myJobs: Set<string>
   private slashingEpochBlocks: number;
   private period1: number;
   private period2: number;
@@ -33,15 +37,29 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
     this.jobMinCreditsFinney = BigInt(rdConfig.jobMinCreditsFinney);
   }
 
+  protected _afterExecuteEvent(job: AbstractJob) {
+    (job as RandaoJob).applyClearResolverTimeouts();
+  }
+
   _buildNewJob(event): RandaoJob {
     return new RandaoJob(event, this);
   }
 
-  public registerIntervalJobSlashing(jobKey: string, timestamp: number, callback: (calldata) => void) {
+  public registerJobSlashingTimeout(jobKey: string, timestamp: number, callback: (calldata) => void) {
     this.network.registerTimeout(`${this.address}/${jobKey}/slashing`, timestamp, callback);
   }
 
-  public unregisterIntervalJobSlashing(jobKey: string) {
+  public async amINextSlasher(jobKey: string): Promise<boolean> {
+    const {nextBlockSlasherId} = await this.getNetwork().getJobBytes32AndNextBlockSlasherId(this.address, jobKey)
+
+    return nextBlockSlasherId === this.getKeeperId();
+  }
+
+  public async getJobBytes32AndNextBlockSlasherId(jobKey: string): Promise<LensGetJobBytes32AndNextBlockSlasherIdResponse> {
+    return this.getNetwork().getJobBytes32AndNextBlockSlasherId(this.address, jobKey)
+  }
+
+  public unregisterJobSlashingTimeout(jobKey: string) {
     this.network.unregisterTimeout(`${this.address}/${jobKey}/slashing`);
   }
 
@@ -71,6 +89,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
   }
 
   async selfUnassignFromJob(jobKey: string) {
+    this.clog('Executing Self-Unassign');
     const calldata = this.contract.encodeABI('releaseJob', [jobKey]);
     const tx = {
       to: this.getAddress(),
@@ -84,21 +103,47 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       maxFeePerGas: (this.network.getBaseFee() * 2n).toString()
     };
     await this.populateTxExtraFields(tx);
-    const _this = this;
     const txEstimationFailed = (error): void => {
-      _this.clog('Self-Unassign transaction estimation failed:', error);
+      this.clog('Self-Unassign transaction estimation failed:', error);
     };
     const txExecutionFailed = (error): void => {
-      _this.clog('Self-Unassign reverted (while the estimation was ok):', error);
-    };
-    const txNotMinedInBlock = (blockNumber: number, blockTimestamp: number, baseFee: number): TxGasUpdate | null => {
-      // TODO: implement the required checks
-      return null;
+      this.clog('Self-Unassign reverted (while the estimation was ok):', error);
     };
     const envelope = {
-      txEstimationFailed,
-      txExecutionFailed,
-      txNotMinedInBlock,
+      executorCallbacks: {
+        txEstimationFailed,
+        txExecutionFailed,
+        txNotMinedInBlock: EmptyTxNotMinedInBlockCallback,
+      },
+      jobKey,
+      tx,
+      creditsAvailable: BigInt(0),
+      fixedCompensation: BigInt(0),
+      ppmCompensation: 0,
+      minTimestamp: 0
+    };
+    await this._sendNonExecuteTransaction(envelope);
+  }
+
+  async initiateSlashing(jobAddress: string, jobId: number, jobKey: string, executorCallbacks: ExecutorCallbacks) {
+    // jobAddress, jobId, myKeeperId, useResolver, jobCalldata
+    const calldata = this.contract.encodeABI('initiateSlashing',
+      [jobAddress, jobId, this.getKeeperId(), true, '0x']
+    );
+    const tx = {
+      to: this.getAddress(),
+
+      data: calldata,
+
+      // Typed-Transaction features
+      type: 2,
+
+      // EIP-1559; Type 2
+      maxFeePerGas: (this.network.getBaseFee() * 2n).toString()
+    };
+    await this.populateTxExtraFields(tx);
+    const envelope = {
+      executorCallbacks,
       jobKey,
       tx,
       creditsAvailable: BigInt(0),
@@ -132,6 +177,36 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       this.clog(`'SetRdConfig' event 🔈: (block=${event.blockNumber}. Restarting all the jobs...`);
 
       this.startAllJobs();
+    });
+
+    this.contract.on('InitiateSlashing', (event) => {
+      const {jobKey, jobSlashingPossibleAfter, slasherKeeperId, useResolver} = event.args;
+
+      this.clog(`'InitiateSlashing' event 🔈: (block=${event.blockNumber
+      },jobKey=${jobKey
+      },jobSlashingPossibleAfter=${jobSlashingPossibleAfter
+      },slasherKeeperId=${slasherKeeperId
+      },useResolver=${useResolver})`);
+
+      const job = this.jobs.get(jobKey) as RandaoJob;
+      job.applyInitiateSlashing(jobSlashingPossibleAfter, slasherKeeperId);
+    });
+
+    this.contract.on('SlashIntervalJob', (event) => {
+      const {jobKey, expectedKeeperId, actualKeeperId, fixedSlashAmount, dynamicSlashAmount,
+        slashAmountMissing} = event.args;
+
+      this.clog(`'SlashIntervalJob' event 🔈: (block=${event.blockNumber
+      },jobKey=${jobKey
+      },expectedKeeperId=${expectedKeeperId
+      },actualKeeperId=${actualKeeperId
+      },fixedSlashAmount=${fixedSlashAmount
+      },dynamicSlashAmount=${dynamicSlashAmount
+      },slashAmountMissing=${slashAmountMissing})`);
+
+      const job = this.jobs.get(jobKey) as RandaoJob;
+      // WARNING: incorrect name
+      job.applySlashIntervalJob();
     });
   }
 }
