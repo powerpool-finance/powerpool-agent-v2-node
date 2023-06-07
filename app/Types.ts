@@ -114,6 +114,13 @@ export interface JobDetails {
   lastExecutionAt: number;
 }
 
+export interface GraphJobConfigInterface {
+  active: boolean,
+  useJobOwnerCredits: boolean,
+  assertResolverSelector: boolean,
+  minKeeperCVP: string,
+}
+
 export interface RegisterJobEventParams {
   jobSelector: string;
   useJobOwnerCredits: boolean;

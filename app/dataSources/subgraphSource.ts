@@ -5,7 +5,7 @@ import { RandaoJob } from '../jobs/RandaoJob';
 import { LightJob } from '../jobs/LightJob';
 import { Network } from '../Network';
 import { ContractWrapper } from '../Types';
-import {BigNumber} from "ethers";
+import { BigNumber } from 'ethers';
 
 /**
  * This class used for fetching data from subgraph
@@ -63,7 +63,7 @@ export class SubgraphSource extends AbstractSource {
 
     this.queries.jobOwnersQuery = `
       id
-      credits_hex
+      credits
     `;
 
     this.blockchainSource = new BlockchainSource(network, contract);
@@ -126,9 +126,11 @@ export class SubgraphSource extends AbstractSource {
       }`)
       jobs.forEach(job => {
         const buildAndInitJob = this.addLensFieldsToJob(context._buildNewJob({
-          ...job,
           name: 'RegisterJob',
-        }))
+          jobAddress: job.jobAddress,
+          jobId: job.jobId,
+          id: job.id,
+        }), job)
         newJobs.set(job.id, buildAndInitJob);
       });
     } catch (e) {
@@ -142,10 +144,10 @@ export class SubgraphSource extends AbstractSource {
    * When getting data from blockchain we are using lens contract.
    * When getting data from subgraph we already have all data on "getRegisteredJobs" request.
    * We just need to format data as if it was from lens contract for data consistency.
-   * @param initJob
+   * @param initJob - job initial fields
+   * @param graphData - data fetched from graph
    */
-  addLensFieldsToJob(initJob) {
-    const graphData = initJob.graphFields;
+  addLensFieldsToJob(initJob, graphData) {
     // setting an owner
     initJob.owner = this._checkNullAddress(graphData.owner, true, 'id')
     // if job is about to get transferred setting future owner address. Otherwise, null address
@@ -177,6 +179,12 @@ export class SubgraphSource extends AbstractSource {
       calldataSource: parseInt(graphData.calldataSource),
       intervalSeconds: parseInt(graphData.intervalSeconds),
       lastExecutionAt: parseInt(graphData.lastExecutionAt),
+      config: {
+        active: graphData.active,
+        useJobOwnerCredits: graphData.useJobOwnerCredits,
+        assertResolverSelector: graphData.assertResolverSelector,
+        minKeeperCVP: graphData.minKeeperCVP,
+      }
     };
     return initJob;
   }
@@ -202,7 +210,7 @@ export class SubgraphSource extends AbstractSource {
       }`)
       jobOwners.forEach(JobOwner => {
         if (jobOwnersSet.has(JobOwner.id.toLowerCase())) { // we only need job owners which have jobs
-          result.set(JobOwner.id, BigNumber.from(JobOwner.credits_hex));
+          result.set(JobOwner.id, BigNumber.from(JobOwner.credits));
         }
       })
     } catch (e) {

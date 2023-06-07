@@ -7,9 +7,7 @@ import {
   CFG_CHECK_KEEPER_MIN_CVP_DEPOSIT,
   CFG_USE_JOB_OWNER_CREDITS,
 } from './Constants.js';
-import {GraphJob, ParsedJobConfig, ParsedRawJob} from './Types.js';
-import {RandaoJob} from "./jobs/RandaoJob";
-import {LightJob} from "./jobs/LightJob";
+import {GraphJobConfigInterface, ParsedJobConfig, ParsedRawJob} from './Types.js';
 
 export function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms, []));
@@ -112,6 +110,11 @@ export function parseRawJob(rawJob: string): ParsedRawJob {
     config,
   }
 }
+
+/**
+ * Parsing job config fetched from blockchain
+ * @param config
+ */
 export function parseConfig(config: BigNumber): ParsedJobConfig {
   return {
     isActive: !(config.and(CFG_ACTIVE)).eq(BN_ZERO),
@@ -121,8 +124,11 @@ export function parseConfig(config: BigNumber): ParsedJobConfig {
   }
 }
 
-export function parseGraphConfig(job: RandaoJob | LightJob): ParsedJobConfig {
-  const config = job.graphFields;
+/**
+ * Parsing job config fetched from graph
+ * @param config
+ */
+export function parseGraphConfig(config: GraphJobConfigInterface): ParsedJobConfig {
   return {
     isActive: !!(config.active),
     useJobOwnerCredits: config.useJobOwnerCredits,
