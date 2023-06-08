@@ -92,6 +92,7 @@ export interface GraphJob {
   jobNextKeeperId: string,
   jobReservedSlasherId: string,
   jobSlashingPossibleAfter: string,
+  preDefinedCalldata: string,
   owner: {
     id: string,
   } | null,

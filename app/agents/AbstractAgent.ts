@@ -308,7 +308,12 @@ export abstract class AbstractAgent implements IAgent {
       res = await this.network.getExternalLensContract().ethCall('getJobs', [this.address, jobKeys]);
       jobs = res.results;
     } else {
-      jobs = Array.from(newJobs.values()) as any;
+      const arrayFromNewJobs = Array.from(newJobs.values()) as RandaoJob[] | LightJob[];
+      jobs = arrayFromNewJobs.map(job => {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore typescript is delusssional here. This source can only be a subgraphInstance
+        return this.source.addLensFieldsToJob(job);
+      })
     }
     for (let i = 0; i < jobs.length; i++) {
       const job = jobs[i];
