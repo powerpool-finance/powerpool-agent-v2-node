@@ -175,13 +175,15 @@ export abstract class AbstractJob {
 
   public applyJob(job: GetJobResponse): boolean {
     this.resolver = {resolverAddress: job.resolver.resolverAddress, resolverCalldata: job.resolver.resolverCalldata};
-    this.details = job.details;
     this.owner = job.owner.toLowerCase();
     if (this.network.source === 'blockchain') {
       this.config = parseConfig(BigNumber.from(job.details.config));
     } else {
       this.config = parseGraphConfig(job.details.config as unknown as GraphJobConfigInterface);
+      delete job.details.config;
     }
+    this.details = job.details;
+
     if (Array.isArray(this.details)) {
       throw new Error('details are an array')
     }
