@@ -560,7 +560,7 @@ export abstract class AbstractAgent implements IAgent {
       job.watch();
     });
 
-    this.contract.on('RegisterJob', (event) => {
+    this.contract.on('RegisterJob', async (event) => {
       const {jobKey, jobAddress, jobId, owner, params} = event.args;
 
       this.clog(`'RegisterJob' event: (block=${event.blockNumber
@@ -570,7 +570,7 @@ export abstract class AbstractAgent implements IAgent {
       },owner=${owner
       },params=${JSON.stringify(params)})`);
 
-      this.addJob(event);
+      await this.addJob(event);
     });
 
     this.contract.on('Execute', (event) => {

@@ -1,8 +1,9 @@
-import { ethers, utils } from "ethers";
+import { ethers, utils } from 'ethers';
 import { buildSignature, buildAbiSelector, nowTimeString, sleep } from '../Utils.js';
 import { ContractWrapper, ErrorWrapper, EventWrapper, WrapperListener } from '../Types.js';
 import { Result, Fragment, ErrorFragment, FunctionFragment, EventFragment } from 'ethers/lib/utils.js';
 import EventEmitter from 'events';
+import { QueueEmitter } from '../services/QueueEmitter.js';
 
 // DANGER: DOES NOT support method override
 export class EthersContract implements ContractWrapper {
@@ -39,7 +40,7 @@ export class EthersContract implements ContractWrapper {
     this.abiEvents = new Map();
     this.abiEventByTopic = new Map();
     this.abiErrorFragments = new Map();
-    this.eventEmitter = new EventEmitter();
+    this.eventEmitter = new QueueEmitter();
 
     for (const obj of contractInterface) {
       switch (obj.type) {
@@ -66,12 +67,12 @@ export class EthersContract implements ContractWrapper {
       address: this.address,
       // @ts-ignore
       fromBlock: 'latest'
-    }, (log) => {
-      this.processLog(log);
+    }, async (log) => {
+      await this.processLog(log);
     });
   }
 
-  private processLog(log) {
+  private async processLog(log) {
     const topic0 = log.topics[0];
     if (this.abiEventByTopic.has(topic0)) {
       const abiEvent = this.abiEventByTopic.get(topic0);
@@ -172,11 +173,12 @@ ${e.message}: ${Error().stack}`);
   }
 
   public on(eventName: string, eventEmittedCallback: WrapperListener): ContractWrapper {
-    this.eventEmitter.on(eventName, (...args) => {
+    this.eventEmitter.on(eventName, async (...args) => {
+      const done = args.pop();
       const event = args[args.length - 1];
       console.log('😁😁😁😁😁😁😁😁😁😁😁', event.transactionHash, event.logIndex, eventName);
       const onlyFields = filterFunctionResultObject(event.args);
-      eventEmittedCallback({
+      await eventEmittedCallback({
         name: eventName,
         args: onlyFields,
         logIndex: event.logIndex,
@@ -184,6 +186,7 @@ ${e.message}: ${Error().stack}`);
         blockHash: event.blockHash,
         nativeEvent: {}
       });
+      done();
     });
     return this;
   }
