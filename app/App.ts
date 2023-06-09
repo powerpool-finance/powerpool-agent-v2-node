@@ -96,6 +96,9 @@ class App {
         const network = new Network(netName, netConfig);
         inits.push(network.init());
         this.networks[netName] = network;
+        if (netConfig.source === 'subgraph' && !netConfig.graphUrl) {
+          throw new Error('Please set graphUrl if you want to proceed with subgraph source');
+        }
       } else {
         clog('Skipping', netName, 'network...');
       }
