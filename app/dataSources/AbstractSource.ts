@@ -26,8 +26,8 @@ export abstract class AbstractSource {
    * @param args
    * @protected
    */
-  protected err(...args: any[]): void {
-    console.error(`SourceError${this.toString()}: ${args.join(' ')}`);
+  protected err(...args: any[]): Error {
+    return new Error(`SourceError${this.toString()}: ${args.join(' ')}`);
   }
 
   async getRegisteredJobs(context): Promise<Map<string, RandaoJob | LightJob>> {

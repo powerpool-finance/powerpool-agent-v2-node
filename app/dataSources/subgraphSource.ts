@@ -85,7 +85,6 @@ export class SubgraphSource extends AbstractSource {
    * Checking if our graph is existing and synced
    */
   async isGraphOk(): Promise<boolean> {
-    if (!this.network.graphUrl) this.err('"GraphUrl" is required for "subgraph" source type. Check your network config.');
     try {
       const [latestBock, { _meta }] = await Promise.all([
         this.network.getLatestBlockNumber(),
@@ -97,11 +96,10 @@ export class SubgraphSource extends AbstractSource {
       ])
 
       const isSynced = latestBock - _meta.block.number <= 10; // Our graph is desynced if its behind for more than 10 blocks
-      if (!isSynced) this.err('Graph is not synced. Please sync it manually or try another graph.');
+      if (!isSynced) throw this.err('Graph is not synced. Please sync it manually or try another graph.');
       return isSynced;
     } catch (e) {
-      this.err('Graph is not responding. ', e);
-      return false;
+      throw this.err('Graph is not responding. ', e);
     }
   }
 
@@ -142,7 +140,7 @@ export class SubgraphSource extends AbstractSource {
       });
       this.jobs = jobs;
     } catch (e) {
-      this.err(e);
+      throw this.err(e);
     }
     return newJobs;
   }
@@ -221,7 +219,7 @@ export class SubgraphSource extends AbstractSource {
         }
       })
     } catch (e) {
-      this.err(e);
+      throw this.err(e);
     }
     return result;
   }
