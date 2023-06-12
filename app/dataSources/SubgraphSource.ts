@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { AbstractSource } from './AbstractSource.js';
-import { BlockchainSource } from './BlockchainSource';
+import { BlockchainSource } from './BlockchainSource.js';
 import { RandaoJob } from '../jobs/RandaoJob';
 import { LightJob } from '../jobs/LightJob';
 import { Network } from '../Network';
@@ -134,7 +134,7 @@ export class SubgraphSource extends AbstractSource {
         const lensJob = this.addLensFieldsToJob(job);
         newJob.applyJob({
           ...lensJob,
-          owner: lensJob.owner.toLowerCase(),
+          owner: lensJob.owner,
           config: lensJob.config,
         });
         newJobs.set(job.id, newJob);
@@ -214,8 +214,8 @@ export class SubgraphSource extends AbstractSource {
           }
       }`)
       jobOwners.forEach(JobOwner => {
-        if (jobOwnersSet.has(JobOwner.id.toLowerCase())) { // we only need job owners which have jobs
-          result.set(JobOwner.id.toLowerCase(), BigNumber.from(JobOwner.credits));
+        if (jobOwnersSet.has(JobOwner.id)) { // we only need job owners which have jobs
+          result.set(JobOwner.id, BigNumber.from(JobOwner.credits));
         }
       })
     } catch (e) {

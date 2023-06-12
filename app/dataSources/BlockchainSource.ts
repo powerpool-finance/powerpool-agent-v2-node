@@ -66,7 +66,7 @@ export class BlockchainSource extends AbstractSource {
       const lensJob = results[index];
       newJob.applyJob({
         ...lensJob,
-        owner: lensJob.owner.toLowerCase(),
+        owner: lensJob.owner,
         config: parseConfig(BigNumber.from(lensJob.details.config)),
       });
     })

@@ -17,8 +17,8 @@ import { PGAExecutor } from '../executors/PGAExecutor.js';
 import { getAgentDefaultSyncFromSafe } from '../ConfigGetters.js';
 import { LightJob } from '../jobs/LightJob.js';
 import { RandaoJob } from '../jobs/RandaoJob.js';
-import { BlockchainSource } from '../dataSources/BlockchainSource';
-import { SubgraphSource } from '../dataSources/SubgraphSource';
+import { BlockchainSource } from '../dataSources/BlockchainSource.js';
+import { SubgraphSource } from '../dataSources/SubgraphSource.js';
 
 const FLAG_ACCEPT_MAX_BASE_FEE_LIMIT = 1;
 const FLAG_ACCRUE_REWARD = 2;

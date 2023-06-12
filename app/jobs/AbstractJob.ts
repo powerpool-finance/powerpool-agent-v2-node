@@ -98,11 +98,11 @@ export abstract class AbstractJob {
 
     this.agent = agent;
     this.networkName = agent.getNetwork().getName();
-    this.agentAddress = agent.getAddress().toLowerCase();
+    this.agentAddress = agent.getAddress();
     this.averageBlockTimeSeconds = agent.getNetwork().getAverageBlockTimeSeconds();
     this.network = agent.getNetwork();
 
-    this.address = args.jobAddress.toLowerCase();
+    this.address = args.jobAddress;
     this.id = args.jobId.toNumber();
     this.key = args.jobKey;
     // NOTICE: this.details object remains uninitialized
@@ -240,7 +240,7 @@ export abstract class AbstractJob {
   }
 
   public applyOwner(owner: string) {
-    this.owner = owner.toLowerCase();
+    this.owner = owner;
   }
 
   private assertType(title: string, type: string, value: any) {
