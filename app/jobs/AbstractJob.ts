@@ -1,7 +1,8 @@
 import {
   CALLDATA_SOURCE,
   EventWrapper,
-  GetJobResponse, IAgent,
+  GetJobResponse,
+  IAgent,
   JobDetails,
   JobType,
   ParsedJobConfig,
@@ -10,10 +11,8 @@ import {
   UpdateJobEventArgs
 } from '../Types.js';
 import { BigNumber, ethers, Event } from 'ethers';
-import { encodeExecute, nowS, nowTimeString, parseConfig, parseRawJob, toNumber } from '../Utils.js';
+import {encodeExecute, nowS, parseConfig, parseRawJob, toNumber} from '../Utils.js';
 import { Network } from '../Network.js';
-import { BN_ZERO } from '../Constants.js';
-import { clearTimeout } from 'timers';
 
 /**
  * Starts watching on:
@@ -57,9 +56,9 @@ export abstract class AbstractJob {
 
   protected owner: string;
   protected details: JobDetails;
-  private config: ParsedJobConfig;
+  protected config: ParsedJobConfig;
   private jobLevelMinKeeperCvp: BigNumber;
-  private resolver: Resolver;
+  protected resolver: Resolver;
 
   private averageBlockTimeSeconds: number;
   private network: Network;
@@ -164,9 +163,10 @@ export abstract class AbstractJob {
 
   public applyJob(job: GetJobResponse): boolean {
     this.resolver = {resolverAddress: job.resolver.resolverAddress, resolverCalldata: job.resolver.resolverCalldata};
-    this.details = job.details;
     this.owner = job.owner;
-    this.config = parseConfig(BigNumber.from(job.details.config));
+    this.details = job.details;
+    this.config = job.config;
+
     if (Array.isArray(this.details)) {
       throw new Error('details are an array')
     }
