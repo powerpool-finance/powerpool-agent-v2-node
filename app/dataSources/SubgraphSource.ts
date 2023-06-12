@@ -5,7 +5,7 @@ import { RandaoJob } from '../jobs/RandaoJob';
 import { LightJob } from '../jobs/LightJob';
 import { Network } from '../Network';
 import { ContractWrapper, GraphJob } from '../Types';
-import { BigNumber } from 'ethers';
+import { BigNumber, utils } from 'ethers';
 
 /**
  * This class used for fetching data from subgraph
@@ -153,13 +153,13 @@ export class SubgraphSource extends AbstractSource {
   addLensFieldsToJob(graphData) {
     const lensFields: any = {};
     // setting an owner
-    lensFields.owner = this._checkNullAddress(graphData.owner, true, 'id')
+    lensFields.owner = utils.getAddress(this._checkNullAddress(graphData.owner, true, 'id'));
     // if job is about to get transferred setting future owner address. Otherwise, null address
-    lensFields.pendingTransfer = this._checkNullAddress(graphData.pendingOwner, true, 'id')
+    lensFields.pendingTransfer = this._checkNullAddress(graphData.pendingOwner, true, 'id');
     // transfer min cvp into bigNumber as it's returned in big number when getting data from blockchain. Data consistency.
     lensFields.jobLevelMinKeeperCvp = BigNumber.from(graphData.minKeeperCVP);
     // From graph zero predefinedcalldata is returned as null, but from blockchain its 0x
-    lensFields.preDefinedCalldata = this._checkNullAddress(graphData.preDefinedCalldata)
+    lensFields.preDefinedCalldata = this._checkNullAddress(graphData.preDefinedCalldata);
 
     // setting a resolver field
     lensFields.resolver = {
@@ -212,12 +212,12 @@ export class SubgraphSource extends AbstractSource {
           jobOwners {
             ${this.queries.jobOwnersQuery}
           }
-      }`)
+      }`);
       jobOwners.forEach(JobOwner => {
         if (jobOwnersSet.has(JobOwner.id)) { // we only need job owners which have jobs
           result.set(JobOwner.id, BigNumber.from(JobOwner.credits));
         }
-      })
+      });
     } catch (e) {
       throw this.err(e);
     }
