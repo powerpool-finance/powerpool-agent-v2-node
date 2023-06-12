@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { AbstractSource } from './AbstractSource.js';
-import { BlockchainSource } from './blockchainSource.js';
+import { BlockchainSource } from './BlockchainSource';
 import { RandaoJob } from '../jobs/RandaoJob';
 import { LightJob } from '../jobs/LightJob';
 import { Network } from '../Network';
