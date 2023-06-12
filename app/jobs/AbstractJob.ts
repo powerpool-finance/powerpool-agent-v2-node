@@ -2,8 +2,6 @@ import {
   CALLDATA_SOURCE,
   EventWrapper,
   GetJobResponse,
-  GraphJob,
-  GraphJobConfigInterface,
   IAgent,
   JobDetails,
   JobType,
@@ -15,8 +13,6 @@ import {
 import { BigNumber, ethers, Event } from 'ethers';
 import {encodeExecute, nowS, parseConfig, parseRawJob, toNumber} from '../Utils.js';
 import { Network } from '../Network.js';
-import { BN_ZERO } from '../Constants.js';
-import { clearTimeout } from 'timers';
 
 /**
  * Starts watching on:
@@ -96,7 +92,6 @@ export abstract class AbstractJob {
 
   constructor(creationEvent: EventWrapper, agent: IAgent) {
     const args: RegisterJobEventArgs = creationEvent.args as never;
-    const jobGraph: GraphJob = creationEvent as unknown as GraphJob;
     if (creationEvent.name !== 'RegisterJob') {
       throw new Error(`Job->constructor(): Not RegisterJob event in constructor: ${creationEvent}`);
     }
