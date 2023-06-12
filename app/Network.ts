@@ -32,6 +32,8 @@ interface TimeoutWithCallback {
 }
 
 export class Network {
+  source: string;
+  graphUrl: string;
   private name: string;
   private networkConfig: NetworkConfig;
   private rpc: string;
@@ -71,6 +73,7 @@ export class Network {
     this.contractWrapperFactory = new EthersContractWrapperFactory([networkConfig.rpc]);
     this.name = name;
     this.rpc = networkConfig.rpc;
+    this.graphUrl = networkConfig.graphUrl;
     this.networkConfig = networkConfig;
 
     this.flashbotsRpc = networkConfig?.flashbots?.rpc;
@@ -79,6 +82,13 @@ export class Network {
 
     this.averageBlockTimeSeconds = getAverageBlockTime(name);
     this.newBlockEventEmitter = new EventEmitter();
+
+    if (networkConfig.source) {
+      this.source = networkConfig.source;
+    } else {
+      this.source = 'blockchain';
+    }
+
     this.newBlockNotifications = new Map();
 
     if (!this.rpc && !this.rpc.startsWith('ws')) {
@@ -229,7 +239,6 @@ export class Network {
         this.newBlockNotifications.set(blockNumber, new Set([block.hash]));
         this.walkThroughTheJobs(blockNumber, block.timestamp);
       }
-
       this.clog(`🧱 New block: (number=${blockNumber},timestamp=${block.timestamp},hash=${block.hash
       },txCount=${block.transactions.length},baseFee=${block.baseFeePerGas},fetchDelayMs=${fetchBlockDelay})`);
     });

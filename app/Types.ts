@@ -30,6 +30,8 @@ export interface NetworkConfig {
     address: string;
     pass: string;
   }
+  source: string,
+  graphUrl: string,
   max_priority_fee_per_gas?: number;
   agents: { [key: string]: AgentConfig };
 }
@@ -60,6 +62,46 @@ export interface GetJobResponse {
     jobSlashingPossibleAfter: number,
     jobCreatedAt: number
   };
+  config: ParsedJobConfig,
+}
+
+export interface GraphJob {
+  id: string,
+  active: boolean,
+  jobAddress: string,
+  jobId: string,
+  assertResolverSelector: boolean,
+  credits: string,
+  depositCount: string,
+  calldataSource: string,
+  fixedReward: string,
+  executionCount: string,
+  jobSelector: string,
+  lastExecutionAt: string,
+  maxBaseFeeGwei: string,
+  minKeeperCVP: string,
+  resolverAddress: string | null,
+  resolverCalldata: string | null,
+  rewardPct: string,
+  totalCompensations: string,
+  totalExpenses: string,
+  totalProfit: string,
+  useJobOwnerCredits: boolean,
+  withdrawalCount: string,
+  jobCreatedAt: string,
+  intervalSeconds: string,
+  jobNextKeeperId: string,
+  jobReservedSlasherId: string,
+  jobSlashingPossibleAfter: string,
+  preDefinedCalldata: string,
+  owner: {
+    id: string,
+  } | null,
+  pendingOwner: {
+    id: string,
+  } | null,
+  name: string,
+  args: { [key: string]: any },
 }
 
 export interface LensGetJobBytes32AndNextBlockSlasherIdResponse {
@@ -77,6 +119,13 @@ export interface JobDetails {
   calldataSource: number;
   intervalSeconds: number;
   lastExecutionAt: number;
+}
+
+export interface GraphJobConfigInterface {
+  active: boolean,
+  useJobOwnerCredits: boolean,
+  assertResolverSelector: boolean,
+  minKeeperCVP: string,
 }
 
 export interface RegisterJobEventParams {

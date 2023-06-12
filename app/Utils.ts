@@ -7,8 +7,7 @@ import {
   CFG_CHECK_KEEPER_MIN_CVP_DEPOSIT,
   CFG_USE_JOB_OWNER_CREDITS,
 } from './Constants.js';
-import { ParsedJobConfig, ParsedRawJob } from './Types.js';
-import { getIcapAddress } from "@ethersproject/address/src.ts";
+import {GraphJobConfigInterface, ParsedJobConfig, ParsedRawJob} from './Types.js';
 
 export function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms, []));
@@ -111,6 +110,11 @@ export function parseRawJob(rawJob: string): ParsedRawJob {
     config,
   }
 }
+
+/**
+ * Parsing job config fetched from blockchain
+ * @param config
+ */
 export function parseConfig(config: BigNumber): ParsedJobConfig {
   return {
     isActive: !(config.and(CFG_ACTIVE)).eq(BN_ZERO),

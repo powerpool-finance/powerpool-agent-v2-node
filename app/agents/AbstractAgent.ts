@@ -4,7 +4,7 @@ import {
   ContractWrapper, EventWrapper,
   Executor,
   ExecutorType,
-  GetJobResponse, IAgent,
+  IAgent,
   Resolver,
   TxEnvelope
 } from '../Types.js';
@@ -18,6 +18,8 @@ import { getAgentDefaultSyncFromSafe } from '../ConfigGetters.js';
 import { LightJob } from '../jobs/LightJob.js';
 import { RandaoJob } from '../jobs/RandaoJob.js';
 import { AbstractJob } from '../jobs/AbstractJob';
+import { BlockchainSource } from '../dataSources/BlockchainSource.js';
+import { SubgraphSource } from '../dataSources/SubgraphSource.js';
 
 const FLAG_ACCEPT_MAX_BASE_FEE_LIMIT = 1;
 const FLAG_ACCRUE_REWARD = 2;
@@ -29,6 +31,7 @@ export abstract class AbstractAgent implements IAgent {
   protected address: string;
   protected keeperId: number;
   protected contract: ContractWrapper;
+  private source: BlockchainSource | SubgraphSource;
   private rewardsContract: ContractWrapper;
   private workerSigner: ethers.Wallet;
   private executor: Executor;
@@ -126,6 +129,13 @@ export abstract class AbstractAgent implements IAgent {
 
     if (!this.contract) {
       throw this.err('Constructor not initialized');
+    }
+
+    // setting data source
+    if (this.network.source === 'subgraph' && this.network.graphUrl) {
+      this.source = new SubgraphSource(this.network, this.contract);
+    } else {
+      this.source = new BlockchainSource(this.network, this.contract);
     }
 
     // Ensure version matches
@@ -269,27 +279,18 @@ export abstract class AbstractAgent implements IAgent {
    * @private
    */
   private async resyncAllJobs(): Promise<number> {
-    const latestBock = this.network.getLatestBlockNumber();
+    const latestBock = await this.network.getLatestBlockNumber();
+    // 1. init jobs
+    let newJobs = new Map<string, RandaoJob | LightJob>();
+    newJobs = await this.source.getRegisteredJobs(this);
 
-    // 1. Handle registers
-    // const newJobs = {};
-    const registerLogs = await this.contract.getPastEvents('RegisterJob', this.fullSyncFrom, Number(latestBock))
-    const newJobs = new Map<string, RandaoJob | LightJob>();
-
-    for (const event of registerLogs) {
-      newJobs.set(event.args.jobKey, this._buildNewJob(event));
-    }
-
-    // Config can change rawJob w/o events
-    const jobKeys = Array.from(newJobs.keys());
-
-    // 2. Handle resolver updates (should fetch them via lens instead?)
-    let res = await this.network.getExternalLensContract().ethCall('getJobs', [this.address, jobKeys]);
+    // 2. set owners
     const jobOwnersSet = new Set<string>();
-    const jobs: Array<GetJobResponse> = res.results;
-    for (let i = 0; i < jobs.length; i++) {
-      const owner = jobs[i].owner;
-      newJobs.get(jobKeys[i]).applyJob(jobs[i]);
+    const jobKeys = Array.from(newJobs.keys());
+    for (let i = 0; i < jobKeys.length; i++) {
+      const job = newJobs.get(jobKeys[i]);
+      // @ts-ignore without ignore it will yell that you can't read protected field (you actually can)
+      const owner = job.owner;
       jobOwnersSet.add(owner);
       if (!this.ownerJobs.has(owner)) {
         this.ownerJobs.set(owner, new Set());
@@ -299,13 +300,7 @@ export abstract class AbstractAgent implements IAgent {
     }
 
     // 3. Load job owner balances
-    const jobOwnersArray = Array.from(jobOwnersSet);
-    res = await this.network.getExternalLensContract().ethCall('getOwnerBalances', [this.address, jobOwnersArray]);
-    const jobOwnerBalances: Array<BigNumber> = res.results;
-    for (let i = 0; i < jobs.length; i++) {
-      this.ownerBalances.set(jobOwnersArray[i], jobOwnerBalances[i]);
-    }
-
+    this.ownerBalances = await this.source.getOwnersBalances(this, jobOwnersSet);
     this.jobs = newJobs;
 
     await this.startAllJobs();
