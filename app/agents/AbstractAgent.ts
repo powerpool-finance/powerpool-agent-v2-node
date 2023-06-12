@@ -4,12 +4,11 @@ import {
   ContractWrapper, EventWrapper,
   Executor,
   ExecutorType,
-  GetJobResponse, IAgent,
+  IAgent,
   Resolver,
   TxEnvelope
 } from '../Types.js';
 import {BigNumber, ethers, Wallet} from 'ethers';
-import {getAgentRewardsAbi} from '../services/AbiService.js';
 import { getEncryptedJson } from '../services/KeyService.js';
 import { DEFAULT_SYNC_FROM_CHAINS, MIN_EXECUTION_GAS } from '../Constants.js';
 import {nowMs, nowTimeString} from '../Utils.js';
@@ -261,10 +260,10 @@ export abstract class AbstractAgent implements IAgent {
   }
 
   public getJobOwnerBalance(address: string): BigNumber {
-    if (!this.ownerBalances.has(address.toLowerCase())) {
+    if (!this.ownerBalances.has(address)) {
       throw this.err(`getJobOwnerBalance(): Address ${address} not tracked`);
     }
-    return this.ownerBalances.get(address.toLowerCase());
+    return this.ownerBalances.get(address);
   }
 
   public getNetwork(): Network {
@@ -293,37 +292,22 @@ export abstract class AbstractAgent implements IAgent {
    */
   private async resyncAllJobs(): Promise<number> {
     const latestBock = await this.network.getLatestBlockNumber();
-    // 1. Handle registers
+    // 1. init jobs
     let newJobs = new Map<string, RandaoJob | LightJob>();
     newJobs = await this.source.getRegisteredJobs(this);
 
-    // Config can change rawJob w/o events
-    const jobKeys = Array.from(newJobs.keys());
-
-    // 2. Handle resolver updates (should fetch them via lens instead?)
+    // 2. set owners
     const jobOwnersSet = new Set<string>();
-    let res;
-    let jobs: Array<GetJobResponse>;
-    if (this.source.type === 'blockchain') {
-      res = await this.network.getExternalLensContract().ethCall('getJobs', [this.address, jobKeys]);
-      jobs = res.results;
-    } else {
-      const arrayFromNewJobs = Array.from(newJobs.values()) as RandaoJob[] | LightJob[];
-      jobs = arrayFromNewJobs.map(job => {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore typescript is delusssional here. This source can only be a subgraphInstance
-        return this.source.addLensFieldsToJob(job);
-      })
-    }
-    for (let i = 0; i < jobs.length; i++) {
-      const job = jobs[i];
+    const jobKeys = Array.from(newJobs.keys());
+    for (let i = 0; i < jobKeys.length; i++) {
+      const job = newJobs.get(jobKeys[i]);
+      // @ts-ignore without ignore it will yell that you can't read protected field (you actually can)
       const owner = job.owner;
-      newJobs.get(jobKeys[i]).applyJob(job);
-      jobOwnersSet.add(owner.toLowerCase());
-      if (!this.ownerJobs.has(owner.toLowerCase())) {
-        this.ownerJobs.set(owner.toLowerCase(), new Set());
+      jobOwnersSet.add(owner);
+      if (!this.ownerJobs.has(owner)) {
+        this.ownerJobs.set(owner, new Set());
       }
-      const set = this.ownerJobs.get(owner.toLowerCase());
+      const set = this.ownerJobs.get(owner);
       set.add(jobKeys[i]);
     }
 
@@ -350,10 +334,10 @@ export abstract class AbstractAgent implements IAgent {
     }
     job.applyJob(res.results[0]);
 
-    if (!this.ownerJobs.has(owner.toLowerCase())) {
-      this.ownerJobs.set(owner.toLowerCase(), new Set());
+    if (!this.ownerJobs.has(owner)) {
+      this.ownerJobs.set(owner, new Set());
     }
-    const set = this.ownerJobs.get(owner.toLowerCase());
+    const set = this.ownerJobs.get(owner);
     set.add(jobKey);
 
     res = await this.network.getExternalLensContract().ethCall('getOwnerBalances', [this.address, [owner]]);
@@ -361,7 +345,7 @@ export abstract class AbstractAgent implements IAgent {
       throw this.err(`addJob(): invalid getOwnerBalances() response length: ${res.results.length}`);
     }
 
-    this.ownerBalances.set(owner.toLowerCase(), res.results[0]);
+    this.ownerBalances.set(owner, res.results[0]);
   }
 
   protected async startAllJobs() {
@@ -481,15 +465,15 @@ export abstract class AbstractAgent implements IAgent {
       },amount=${amount
       },fee=${fee})`);
 
-      if (this.ownerBalances.has(jobOwner.toLowerCase())) {
-        const newBalance = this.ownerBalances.get(jobOwner.toLowerCase()).add(BigNumber.from(amount));
-        this.ownerBalances.set(jobOwner.toLowerCase(), newBalance);
+      if (this.ownerBalances.has(jobOwner)) {
+        const newBalance = this.ownerBalances.get(jobOwner).add(BigNumber.from(amount));
+        this.ownerBalances.set(jobOwner, newBalance);
       } else {
-        this.ownerBalances.set(jobOwner.toLowerCase(), BigNumber.from(amount));
+        this.ownerBalances.set(jobOwner, BigNumber.from(amount));
       }
 
-      if (this.ownerJobs.has(jobOwner.toLowerCase())) {
-        for (const jobKey of this.ownerJobs.get(jobOwner.toLowerCase())) {
+      if (this.ownerJobs.has(jobOwner)) {
+        for (const jobKey of this.ownerJobs.get(jobOwner)) {
           const job = this.jobs.get(jobKey);
           if (!job.isInitializing()) {
             this.jobs.get(jobKey).watch();
@@ -505,15 +489,15 @@ export abstract class AbstractAgent implements IAgent {
       },jobOwner=${jobOwner
       },amount=${amount})`);
 
-      if (this.ownerBalances.has(jobOwner.toLowerCase())) {
-        const newBalance = this.ownerBalances.get(jobOwner.toLowerCase()).sub(BigNumber.from(amount));
-        this.ownerBalances.set(jobOwner.toLowerCase(), newBalance);
+      if (this.ownerBalances.has(jobOwner)) {
+        const newBalance = this.ownerBalances.get(jobOwner).sub(BigNumber.from(amount));
+        this.ownerBalances.set(jobOwner, newBalance);
       } else {
         throw this.err(`On 'WithdrawJobOwnerCredits' event: The owner is not initialized: ${jobOwner}`);
       }
 
-      if (this.ownerJobs.has(jobOwner.toLowerCase())) {
-        for (const jobKey of this.ownerJobs.get(jobOwner.toLowerCase())) {
+      if (this.ownerJobs.has(jobOwner)) {
+        for (const jobKey of this.ownerJobs.get(jobOwner)) {
           this.jobs.get(jobKey).watch();
         }
       }
@@ -528,14 +512,14 @@ export abstract class AbstractAgent implements IAgent {
 
       const job = this.jobs.get(jobKey_);
       const ownerBefore = job.getOwner();
-      this.ownerJobs.get(ownerBefore.toLowerCase()).delete(jobKey_);
+      this.ownerJobs.get(ownerBefore).delete(jobKey_);
 
-      if (!this.ownerJobs.has(ownerAfter.toLowerCase())) {
-        this.ownerJobs.set(ownerAfter.toLowerCase(), new Set());
+      if (!this.ownerJobs.has(ownerAfter)) {
+        this.ownerJobs.set(ownerAfter, new Set());
       }
-      this.ownerJobs.get(ownerAfter.toLowerCase()).add(jobKey_);
+      this.ownerJobs.get(ownerAfter).add(jobKey_);
 
-      job.applyOwner(ownerAfter.toLowerCase());
+      job.applyOwner(ownerAfter);
       job.watch();
     });
 

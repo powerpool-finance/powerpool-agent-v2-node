@@ -124,19 +124,6 @@ export function parseConfig(config: BigNumber): ParsedJobConfig {
   }
 }
 
-/**
- * Parsing job config fetched from graph
- * @param config
- */
-export function parseGraphConfig(config: GraphJobConfigInterface): ParsedJobConfig {
-  return {
-    isActive: config.active,
-    useJobOwnerCredits: config.useJobOwnerCredits,
-    assertResolverSelector: config.assertResolverSelector,
-    checkKeeperMinCvpDeposit: +config.minKeeperCVP > 0,
-  }
-}
-
 export function fbReasonStringToHexString(reason: string): string {
   const  buff = Uint8Array.from(reason, e => e.charCodeAt(0) )
   return '0x' + [...new Uint8Array(buff)]

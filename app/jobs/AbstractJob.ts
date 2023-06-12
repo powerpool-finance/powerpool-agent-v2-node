@@ -13,7 +13,7 @@ import {
   UpdateJobEventArgs
 } from '../Types.js';
 import { BigNumber, ethers, Event } from 'ethers';
-import {encodeExecute, nowS, parseConfig, parseGraphConfig, parseRawJob, toNumber} from '../Utils.js';
+import {encodeExecute, nowS, parseConfig, parseRawJob, toNumber} from '../Utils.js';
 import { Network } from '../Network.js';
 import { BN_ZERO } from '../Constants.js';
 import { clearTimeout } from 'timers';
@@ -103,21 +103,14 @@ export abstract class AbstractJob {
 
     this.agent = agent;
     this.networkName = agent.getNetwork().getName();
-    this.agentAddress = agent.getAddress();
+    this.agentAddress = agent.getAddress().toLowerCase();
     this.averageBlockTimeSeconds = agent.getNetwork().getAverageBlockTimeSeconds();
     this.network = agent.getNetwork();
 
-    if (this.network.source === 'blockchain') {
-      this.address = args.jobAddress;
-      this.id = args.jobId.toNumber();
-      this.key = args.jobKey;
-      // NOTICE: this.details object remains uninitialized
-    } else {
-      this.address = jobGraph.jobAddress;
-      this.id = parseInt(jobGraph.jobId, 10);
-      this.key = jobGraph.id;
-      // NOTICE: this.details object not exist on data that fetched from graph. All details data are in jobGraph itself
-    }
+    this.address = args.jobAddress.toLowerCase();
+    this.id = args.jobId.toNumber();
+    this.key = args.jobKey;
+    // NOTICE: this.details object remains uninitialized
   }
 
   public isInitializing(): boolean {
@@ -175,14 +168,9 @@ export abstract class AbstractJob {
 
   public applyJob(job: GetJobResponse): boolean {
     this.resolver = {resolverAddress: job.resolver.resolverAddress, resolverCalldata: job.resolver.resolverCalldata};
-    this.owner = job.owner.toLowerCase();
-    if (this.network.source === 'blockchain') {
-      this.config = parseConfig(BigNumber.from(job.details.config));
-    } else {
-      this.config = parseGraphConfig(job.details.config as unknown as GraphJobConfigInterface);
-      delete job.details.config;
-    }
+    this.owner = job.owner;
     this.details = job.details;
+    this.config = job.config;
 
     if (Array.isArray(this.details)) {
       throw new Error('details are an array')

@@ -62,7 +62,7 @@ export interface GetJobResponse {
     jobSlashingPossibleAfter: number,
     jobCreatedAt: number
   };
-  config?: GraphJobConfigInterface,
+  config: ParsedJobConfig,
 }
 
 export interface GraphJob {

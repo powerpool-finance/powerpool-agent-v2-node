@@ -4,6 +4,7 @@ import { LightJob } from '../jobs/LightJob';
 import { Network } from '../Network';
 import { ContractWrapper } from '../Types';
 import { BigNumber } from 'ethers';
+import { parseConfig } from '../Utils.js';
 
 /**
  * This class used for fetching data directly from blockchain
@@ -25,10 +26,13 @@ export class BlockchainSource extends AbstractSource {
   async getRegisteredJobs(context): Promise<Map<string, RandaoJob | LightJob>> {
     const latestBock = await this.network.getLatestBlockNumber();
     const registerLogs = await this.contract.getPastEvents('RegisterJob', context.fullSyncFrom, latestBock)
-    const newJobs = new Map<string, RandaoJob | LightJob>();
+    let newJobs = new Map<string, RandaoJob | LightJob>();
     for (const event of registerLogs) {
       newJobs.set(event.args.jobKey, context._buildNewJob(event));
     }
+
+    // fetching additional fields from lens
+    newJobs = await this.addLensFieldsToJob(newJobs, context.address);
     return newJobs;
   }
 
@@ -46,5 +50,26 @@ export class BlockchainSource extends AbstractSource {
       result.set(jobOwnersArray[i], jobOwnerBalances[i]);
     }
     return result;
+  }
+
+  /**
+   * Fetch additional fields from lens contract and call apply job
+   *
+   * @param newJobs - jobs fetched from createJob event. Instance of RandaoJob | LightJob. Is Map structure.
+   * @param address - lens contract adress
+   */
+  async addLensFieldsToJob(newJobs, address) {
+    const jobKeys = Array.from(newJobs.keys());
+    const { results } = await this.network.getExternalLensContract().ethCall('getJobs', [address, jobKeys]);
+    jobKeys.forEach((jobKey, index) => {
+      const newJob = newJobs.get(jobKeys[index]);
+      const lensJob = results[index];
+      newJob.applyJob({
+        ...lensJob,
+        owner: lensJob.owner.toLowerCase(),
+        config: parseConfig(BigNumber.from(lensJob.details.config)),
+      });
+    })
+    return newJobs;
   }
 }

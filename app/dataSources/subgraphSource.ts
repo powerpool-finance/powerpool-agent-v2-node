@@ -3,7 +3,6 @@ import { AbstractSource } from './AbstractSource.js';
 import { BlockchainSource } from './blockchainSource.js';
 import { RandaoJob } from '../jobs/RandaoJob';
 import { LightJob } from '../jobs/LightJob';
-import { AbstractJob } from '../jobs/AbstractJob';
 import { Network } from '../Network';
 import { ContractWrapper, GraphJob } from '../Types';
 import { BigNumber } from 'ethers';
@@ -14,7 +13,6 @@ import { BigNumber } from 'ethers';
 export class SubgraphSource extends AbstractSource {
   private queries: { [name: string]: string }
   private blockchainSource: BlockchainSource;
-  private jobs: GraphJob[]; // for data consistency a whole data collection from graph should not pollute job instances so here we store graph data
 
   constructor(network: Network, contract: ContractWrapper) {
     super(network, contract);
@@ -96,7 +94,7 @@ export class SubgraphSource extends AbstractSource {
       ])
 
       const isSynced = latestBock - _meta.block.number <= 10; // Our graph is desynced if its behind for more than 10 blocks
-      if (!isSynced) throw this.err('Graph is not synced. Please sync it manually or try another graph.');
+      if (!isSynced) throw this.err(`Subgraph is out-of-sync with blockchain. it's url: ${this.network.graphUrl}`);
       return isSynced;
     } catch (e) {
       throw this.err('Graph is not responding. ', e);
@@ -125,20 +123,22 @@ export class SubgraphSource extends AbstractSource {
           }
       }`)
       jobs.forEach(job => {
-        // const buildAndInitJob = this.addLensFieldsToJob(context._buildNewJob({
-        //   name: 'RegisterJob',
-        //   jobAddress: job.jobAddress,
-        //   jobId: job.jobId,
-        //   id: job.id,
-        // }), job)
-        newJobs.set(job.id, context._buildNewJob({
+        const newJob = context._buildNewJob({
           name: 'RegisterJob',
-          jobAddress: job.jobAddress,
-          jobId: job.jobId,
-          id: job.id,
-        }));
-      });
-      this.jobs = jobs;
+          args: {
+            jobAddress: job.jobAddress,
+            jobId: BigNumber.from(job.jobId),
+            jobKey: job.id,
+          }
+        });
+        const lensJob = this.addLensFieldsToJob(job);
+        newJob.applyJob({
+          ...lensJob,
+          owner: lensJob.owner.toLowerCase(),
+          config: lensJob.config,
+        });
+        newJobs.set(job.id, newJob);
+      })
     } catch (e) {
       throw this.err(e);
     }
@@ -148,10 +148,9 @@ export class SubgraphSource extends AbstractSource {
   /**
    * here we can populate job with full graph data, as if we made a request to getJobs lens method.
    * But we already hale all the data
-   * @param initJob - job initial fields
+   * @param graphData -
    */
-  addLensFieldsToJob(initJob) {
-    const graphData = this.jobs.find(job => job.id === initJob.key) as GraphJob;
+  addLensFieldsToJob(graphData) {
     const lensFields: any = {};
     // setting an owner
     lensFields.owner = this._checkNullAddress(graphData.owner, true, 'id')
@@ -184,12 +183,13 @@ export class SubgraphSource extends AbstractSource {
       calldataSource: parseInt(graphData.calldataSource),
       intervalSeconds: parseInt(graphData.intervalSeconds),
       lastExecutionAt: parseInt(graphData.lastExecutionAt),
-      config: {
-        active: graphData.active,
-        useJobOwnerCredits: graphData.useJobOwnerCredits,
-        assertResolverSelector: graphData.assertResolverSelector,
-        minKeeperCVP: graphData.minKeeperCVP,
-      }
+    };
+    // with subgraphSource you don't need to use parseConfig. You can create config field right here.
+    lensFields.config = {
+      isActive: graphData.active,
+      useJobOwnerCredits: graphData.useJobOwnerCredits,
+      assertResolverSelector: graphData.assertResolverSelector,
+      checkKeeperMinCvpDeposit: +graphData.minKeeperCVP > 0,
     };
     return lensFields;
   }
@@ -215,7 +215,7 @@ export class SubgraphSource extends AbstractSource {
       }`)
       jobOwners.forEach(JobOwner => {
         if (jobOwnersSet.has(JobOwner.id.toLowerCase())) { // we only need job owners which have jobs
-          result.set(JobOwner.id, BigNumber.from(JobOwner.credits));
+          result.set(JobOwner.id.toLowerCase(), BigNumber.from(JobOwner.credits));
         }
       })
     } catch (e) {
