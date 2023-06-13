@@ -5,14 +5,14 @@ import {
   IAgent,
   LensGetJobBytes32AndNextBlockSlasherIdResponse,
   NetworkConfig,
-  Resolver
-} from "./Types.js";
-import {ethers} from 'ethers';
+  Resolver,
+} from './Types.js';
+import { ethers } from 'ethers';
 import {
   getAgentVersionAndType,
   getAverageBlockTime,
   getExternalLensAddress,
-  getMulticall2Address
+  getMulticall2Address,
 } from './ConfigGetters.js';
 import { getExternalLensAbi, getMulticall2Abi } from './services/AbiService.js';
 import { nowMs, nowS, nowTimeString, toChecksummedAddress } from './Utils.js';
@@ -43,8 +43,8 @@ export class Network {
   private agents: IAgent[];
   private resolverJobData: { [key: string]: ResolverJobWithCallback };
   private timeoutData: { [key: string]: TimeoutWithCallback };
-  private multicall: ContractWrapper| undefined;
-  private externalLens: ContractWrapper| undefined;
+  private multicall: ContractWrapper | undefined;
+  private externalLens: ContractWrapper | undefined;
   private averageBlockTimeSeconds: number;
   private flashbotsAddress: string;
   private flashbotsPass: string;
@@ -93,8 +93,8 @@ export class Network {
 
     if (!this.rpc && !this.rpc.startsWith('ws')) {
       throw this.err(
-        `Only WebSockets RPC endpoints are supported. The current value for '${this.getName()}' is '${this.rpc}'.`
-      )
+        `Only WebSockets RPC endpoints are supported. The current value for '${this.getName()}' is '${this.rpc}'.`,
+      );
     }
 
     this.resolverJobData = {};
@@ -181,9 +181,12 @@ export class Network {
     return res.results[0];
   }
 
-  public async getJobBytes32AndNextBlockSlasherId(agent: string, jobKey: string): Promise<LensGetJobBytes32AndNextBlockSlasherIdResponse> {
+  public async getJobBytes32AndNextBlockSlasherId(
+    agent: string,
+    jobKey: string,
+  ): Promise<LensGetJobBytes32AndNextBlockSlasherIdResponse> {
     const res = await this.externalLens.ethCall('getJobBytes32AndNextBlockSlasherId', [agent, jobKey]);
-    return {binJob: res.binJob, nextBlockSlasherId: res.nextBlockSlasherId.toNumber()};
+    return { binJob: res.binJob, nextBlockSlasherId: res.nextBlockSlasherId.toNumber() };
   }
 
   public async init() {
@@ -197,7 +200,7 @@ export class Network {
     // TODO: initialize this after we know agent version and strategy
     this.externalLens = this.contractWrapperFactory.build(
       getExternalLensAddress(this.name, null, null),
-      getExternalLensAbi()
+      getExternalLensAbi(),
     );
 
     try {
@@ -239,10 +242,11 @@ export class Network {
         this.newBlockNotifications.set(blockNumber, new Set([block.hash]));
         this.walkThroughTheJobs(blockNumber, block.timestamp);
       }
-      this.clog(`🧱 New block: (number=${blockNumber},timestamp=${block.timestamp},hash=${block.hash
-      },txCount=${block.transactions.length},baseFee=${block.baseFeePerGas},fetchDelayMs=${fetchBlockDelay})`);
+      this.clog(
+        `🧱 New block: (number=${blockNumber},timestamp=${block.timestamp},hash=${block.hash},txCount=${block.transactions.length},baseFee=${block.baseFeePerGas},fetchDelayMs=${fetchBlockDelay})`,
+      );
     });
-    this.clog('✅ Network initialization done!')
+    this.clog('✅ Network initialization done!');
   }
 
   public getNewBlockEventEmitter(): EventEmitter {
@@ -277,7 +281,7 @@ export class Network {
       callbacks.push(jobData.callback);
       resolversToCall.push({
         target: jobData.resolver.resolverAddress,
-        callData: jobData.resolver.resolverCalldata
+        callData: jobData.resolver.resolverCalldata,
       });
       // TODO: let this.provider to be executed when making chunk requests;
     }
@@ -300,8 +304,9 @@ export class Network {
       }
     }
 
-    this.clog(`Block ${blockNumber} resolver estimation results: (resolversToCall=${resolversToCall.length
-      },jobsToExecute=${jobsToExecute})`);
+    this.clog(
+      `Block ${blockNumber} resolver estimation results: (resolversToCall=${resolversToCall.length},jobsToExecute=${jobsToExecute})`,
+    );
   }
 
   private _validateKeyLength(key: string, type: string): void {
@@ -310,13 +315,13 @@ export class Network {
     }
   }
 
-  private _validateKeyNotInMap(key: string, map: {[key: string]: object}, type: string): void {
+  private _validateKeyNotInMap(key: string, map: { [key: string]: object }, type: string): void {
     if (map[key]) {
       throw this.err(`Callback key already exists: type=${type},key=${key}`);
     }
   }
 
-  private _validateKeyInMap(key: string, map: {[key: string]: object}, type: string): void {
+  private _validateKeyInMap(key: string, map: { [key: string]: object }, type: string): void {
     if (!map[key]) {
       throw this.err(`Callback key already exists: type=${type},key=${key}`);
     }
@@ -328,7 +333,7 @@ export class Network {
     this.clog('SET Timeout', key, `at: ${triggerCallbackAfter}`, `now: ${nowS()}`);
     this.timeoutData[key] = {
       triggerCallbackAfter,
-      callback
+      callback,
     };
   }
 
@@ -343,7 +348,7 @@ export class Network {
     this._validateKeyNotInMap(key, this.resolverJobData, 'resolver');
     this.resolverJobData[key] = {
       resolver,
-      callback
+      callback,
     };
   }
 

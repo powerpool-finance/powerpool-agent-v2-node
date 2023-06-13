@@ -1,7 +1,7 @@
 import EventEmitter from 'events';
 
 export class QueueEmitter extends EventEmitter {
-  protected queue: any[];
+  protected queue: [string, unknown[]][];
   constructor() {
     super();
     this.queue = [];

@@ -1,12 +1,13 @@
 import { ContractWrapper, Executor, TxEnvelope } from '../Types.js';
-import {fbReasonStringToHexString, nowTimeString} from '../Utils.js';
+import { fbReasonStringToHexString, nowTimeString } from '../Utils.js';
 import { ethers, utils } from 'ethers';
-import { FlashbotsBundleProvider,
+import {
+  FlashbotsBundleProvider,
   FlashbotsBundleResolution,
   FlashbotsTransactionResponse,
   RelayResponseError,
 } from '@flashbots/ethers-provider-bundle';
-import {AbstractExecutor} from './AbstractExecutor.js';
+import { AbstractExecutor } from './AbstractExecutor.js';
 
 export class FlashbotsExecutor extends AbstractExecutor implements Executor {
   private fbRpc: string;
@@ -31,7 +32,7 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
     genericProvider: ethers.providers.BaseProvider,
     workerSigner: ethers.Wallet,
     fbSigner: ethers.Wallet,
-    agentContract: ContractWrapper
+    agentContract: ContractWrapper,
   ) {
     super(agentContract);
 
@@ -48,7 +49,7 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
       this.genericProvider,
       this.fbSigner,
       this.fbRpc,
-      this.networkName
+      this.networkName,
       // {chainId: 5, name: goerli}
     );
   }
@@ -89,24 +90,28 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
         transaction: tx,
       },
     ]);
-    console.log({tx});
+    console.log({ tx });
     const txHash = utils.parseTransaction(signedBundle[0]).hash;
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
       const targetBlock = (await this.genericProvider.getBlockNumber()) + 1;
-      const simulation = await this.fbProvider.simulate(signedBundle, targetBlock)
-      this.clog(`Tx ${txHash}: The tx target block is ${targetBlock}...`)
+      const simulation = await this.fbProvider.simulate(signedBundle, targetBlock);
+      this.clog(`Tx ${txHash}: The tx target block is ${targetBlock}...`);
       if ('error' in simulation) {
         console.log('parsed errorred tx', utils.parseTransaction(signedBundle[0]));
         const err = simulation as RelayResponseError;
-        this.clog(`Tx ${txHash}: Ignoring the tx due to the Flashbots simulation error: ${JSON.stringify(err.error)}`)
+        this.clog(`Tx ${txHash}: Ignoring the tx due to the Flashbots simulation error: ${JSON.stringify(err.error)}`);
         return;
       } else if (simulation.firstRevert !== undefined) {
-        console.log({simulation});
-        console.log({results: simulation.results[0]});
+        console.log({ simulation });
+        console.log({ results: simulation.results[0] });
         console.log('parsed reason', fbReasonStringToHexString(simulation.firstRevert['revert']));
-        this.clog(`Tx ${txHash}: Ignoring the tx due to the Flashbots simulation revert: ${JSON.stringify(simulation.firstRevert)}`)
+        this.clog(
+          `Tx ${txHash}: Ignoring the tx due to the Flashbots simulation revert: ${JSON.stringify(
+            simulation.firstRevert,
+          )}`,
+        );
         return;
       }
 
@@ -116,11 +121,11 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
         targetBlock,
         // TODO: minTime?
         // TODO: maxTime?
-        { revertingTxHashes: []}
+        { revertingTxHashes: [] },
       );
       if ('error' in execution) {
         const err = execution as RelayResponseError;
-        this.clog(`Tx ${txHash}: Ignoring the tx due to execution error: ${err.error}`)
+        this.clog(`Tx ${txHash}: Ignoring the tx due to execution error: ${err.error}`);
         return;
       }
       // TODO: how to check if gas price (priority fee) is too low???
@@ -129,7 +134,9 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
         this.clog(`Tx ${txHash}: The bundle was included into the block ${targetBlock}`);
         break;
       } else if (waitRes === FlashbotsBundleResolution.BlockPassedWithoutInclusion) {
-        this.clog(`Tx ${txHash} was not included into the block ${targetBlock}. Will try to include it into the next block...`);
+        this.clog(
+          `Tx ${txHash} was not included into the block ${targetBlock}. Will try to include it into the next block...`,
+        );
       } else if (waitRes === FlashbotsBundleResolution.AccountNonceTooHigh) {
         throw this.err(`Tx ${txHash}: Error: FlashbotsBundleResolution.AccountNonceTooHigh`);
       } else {

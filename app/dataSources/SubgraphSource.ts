@@ -4,26 +4,26 @@ import { BlockchainSource } from './BlockchainSource.js';
 import { RandaoJob } from '../jobs/RandaoJob';
 import { LightJob } from '../jobs/LightJob';
 import { Network } from '../Network';
-import { ContractWrapper, GraphJob } from '../Types';
+import { ContractWrapper } from '../Types';
 import { BigNumber, utils } from 'ethers';
 
 /**
  * This class used for fetching data from subgraph
  */
 export class SubgraphSource extends AbstractSource {
-  private queries: { [name: string]: string }
+  private queries: { [name: string]: string };
   private blockchainSource: BlockchainSource;
 
   constructor(network: Network, contract: ContractWrapper) {
     super(network, contract);
-    this.type = 'subgraph'
+    this.type = 'subgraph';
 
     this.queries = {};
     this.queries._meta = `
       block {
         number
       }
-    `
+    `;
     this.queries.jobsQuery = `
       id
       active
@@ -86,12 +86,15 @@ export class SubgraphSource extends AbstractSource {
     try {
       const [latestBock, { _meta }] = await Promise.all([
         this.network.getLatestBlockNumber(),
-        this.query(this.network.graphUrl, `{
+        this.query(
+          this.network.graphUrl,
+          `{
           _meta {
             ${this.queries._meta}
           }
-      }`)
-      ])
+      }`,
+        ),
+      ]);
 
       const isSynced = latestBock - _meta.block.number <= 10; // Our graph is desynced if its behind for more than 10 blocks
       if (!isSynced) throw this.err(`Subgraph is out-of-sync with blockchain. it's url: ${this.network.graphUrl}`);
@@ -117,11 +120,14 @@ export class SubgraphSource extends AbstractSource {
       return newJobs;
     }
     try {
-      const { jobs } = await this.query(this.network.graphUrl, `{
+      const { jobs } = await this.query(
+        this.network.graphUrl,
+        `{
           jobs {
             ${this.queries.jobsQuery}
           }
-      }`)
+      }`,
+      );
       jobs.forEach(job => {
         const newJob = context._buildNewJob({
           name: 'RegisterJob',
@@ -129,7 +135,7 @@ export class SubgraphSource extends AbstractSource {
             jobAddress: job.jobAddress,
             jobId: BigNumber.from(job.jobId),
             jobKey: job.id,
-          }
+          },
         });
         const lensJob = this.addLensFieldsToJob(job);
         newJob.applyJob({
@@ -138,7 +144,7 @@ export class SubgraphSource extends AbstractSource {
           config: lensJob.config,
         });
         newJobs.set(job.id, newJob);
-      })
+      });
     } catch (e) {
       throw this.err(e);
     }
@@ -208,13 +214,17 @@ export class SubgraphSource extends AbstractSource {
         return result;
       }
 
-      const { jobOwners } = await this.query(this.network.graphUrl, `{
+      const { jobOwners } = await this.query(
+        this.network.graphUrl,
+        `{
           jobOwners {
             ${this.queries.jobOwnersQuery}
           }
-      }`);
+      }`,
+      );
       jobOwners.forEach(JobOwner => {
-        if (jobOwnersSet.has(JobOwner.id)) { // we only need job owners which have jobs
+        if (jobOwnersSet.has(JobOwner.id)) {
+          // we only need job owners which have jobs
           result.set(JobOwner.id, BigNumber.from(JobOwner.credits));
         }
       });

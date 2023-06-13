@@ -10,7 +10,6 @@ import { parseConfig } from '../Utils.js';
  * This class used for fetching data directly from blockchain
  */
 export class BlockchainSource extends AbstractSource {
-
   constructor(network: Network, contract: ContractWrapper) {
     super(network, contract);
     this.type = 'blockchain';
@@ -25,7 +24,7 @@ export class BlockchainSource extends AbstractSource {
    */
   async getRegisteredJobs(context): Promise<Map<string, RandaoJob | LightJob>> {
     const latestBock = await this.network.getLatestBlockNumber();
-    const registerLogs = await this.contract.getPastEvents('RegisterJob', context.fullSyncFrom, Number(latestBock))
+    const registerLogs = await this.contract.getPastEvents('RegisterJob', context.fullSyncFrom, Number(latestBock));
     let newJobs = new Map<string, RandaoJob | LightJob>();
     for (const event of registerLogs) {
       newJobs.set(event.args.jobKey, context._buildNewJob(event));
@@ -43,9 +42,11 @@ export class BlockchainSource extends AbstractSource {
    */
   async getOwnersBalances(context, jobOwnersSet: Set<string>): Promise<Map<string, BigNumber>> {
     const jobOwnersArray = Array.from(jobOwnersSet);
-    const res = await this.network.getExternalLensContract().ethCall('getOwnerBalances', [context.address, jobOwnersArray]);
+    const res = await this.network
+      .getExternalLensContract()
+      .ethCall('getOwnerBalances', [context.address, jobOwnersArray]);
     const jobOwnerBalances: Array<BigNumber> = res.results;
-    const result = new Map<string, BigNumber>()
+    const result = new Map<string, BigNumber>();
     for (let i = 0; i < jobOwnersArray.length; i++) {
       result.set(jobOwnersArray[i], jobOwnerBalances[i]);
     }
@@ -69,7 +70,7 @@ export class BlockchainSource extends AbstractSource {
         owner: lensJob.owner,
         config: parseConfig(BigNumber.from(lensJob.details.config)),
       });
-    })
+    });
     return newJobs;
   }
 }

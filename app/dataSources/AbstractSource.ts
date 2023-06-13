@@ -26,11 +26,11 @@ export abstract class AbstractSource {
    * @param args
    * @protected
    */
-  protected err(...args: any[]): Error {
+  protected err(...args: unknown[]): Error {
     return new Error(`SourceError${this.toString()}: ${args.join(' ')}`);
   }
 
-  async getRegisteredJobs(context): Promise<Map<string, RandaoJob | LightJob>> {
+  async getRegisteredJobs(_context): Promise<Map<string, RandaoJob | LightJob>> {
     return new Map<string, RandaoJob | LightJob>();
   }
 
@@ -42,7 +42,7 @@ export abstract class AbstractSource {
    */
   _checkNullAddress(value, longVersion = false, objectKey = ''): string {
     if (typeof value !== 'undefined' && value === null) {
-      return longVersion ? '0x0000000000000000000000000000000000000000' : '0x'
+      return longVersion ? '0x0000000000000000000000000000000000000000' : '0x';
     } else {
       return objectKey ? value[objectKey] : value;
     }

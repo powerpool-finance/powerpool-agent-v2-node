@@ -27,12 +27,14 @@ export function getPPAgentV2_3_0_RandaoAbi(): ethers.ContractInterface {
 }
 
 export function getAgentRewardsAbi(): ethers.ContractInterface {
-  return getAbi('AgentRewards')
+  return getAbi('AgentRewards');
 }
 
 export function getAbi(name): ethers.ContractInterface {
   if (!(name in abis)) {
-    abis[name] = JSON.parse(fs.readFileSync(path.resolve(__dirname, `../artifacts/${name}.json`)).toString()) as ethers.ContractInterface;
+    abis[name] = JSON.parse(
+      fs.readFileSync(path.resolve(__dirname, `../artifacts/${name}.json`)).toString(),
+    ) as ethers.ContractInterface;
   }
   return abis[name];
 }

@@ -1,5 +1,6 @@
 import {
-  CALLDATA_SOURCE, EmptyTxNotMinedInBlockCallback,
+  CALLDATA_SOURCE,
+  EmptyTxNotMinedInBlockCallback,
   EventWrapper,
   GetJobResponse,
   IAgent,
@@ -7,11 +8,11 @@ import {
   JobType,
   ParsedJobConfig,
   RegisterJobEventArgs,
-  Resolver, TxGasUpdate,
-  UpdateJobEventArgs
+  Resolver,
+  UpdateJobEventArgs,
 } from '../Types.js';
 import { BigNumber, ethers, Event } from 'ethers';
-import {encodeExecute, nowS, parseConfig, parseRawJob, toNumber} from '../Utils.js';
+import { encodeExecute, parseConfig, parseRawJob, toNumber } from '../Utils.js';
 import { Network } from '../Network.js';
 
 /**
@@ -69,14 +70,17 @@ export abstract class AbstractJob {
   protected abstract err(...args): Error;
 
   protected toString(): string {
-    return `(network: ${this.networkName}, agent: ${this.agentAddress}, job: ${
-      this.address
-    }, id: ${this.id}, key: ${this.key}, type: ${this.getJobTypeString()})`;
+    return `(network: ${this.networkName}, agent: ${this.agentAddress}, job: ${this.address}, id: ${this.id}, key: ${
+      this.key
+    }, type: ${this.getJobTypeString()})`;
   }
 
   protected _watchIntervalJob(): void {
     this.agent.registerIntervalJobExecution(
-      this.key, this.nextExecutionTimestamp(), this.intervalJobAvailableCallback.bind(this));
+      this.key,
+      this.nextExecutionTimestamp(),
+      this.intervalJobAvailableCallback.bind(this),
+    );
   }
 
   protected _watchResolverJob(): void {
@@ -91,12 +95,14 @@ export abstract class AbstractJob {
     this.agent.unregisterResolver(this.key);
   }
 
-  protected _beforeJobWatch(): boolean { return true }
+  protected _beforeJobWatch(): boolean {
+    return true;
+  }
   protected _afterJobWatch(): void {}
   protected abstract _afterApplyJob(job: GetJobResponse): void;
   protected abstract intervalJobAvailableCallback(blockNumber: number);
-  protected _executeTxEstimationFailed(error: any): void {}
-  protected _executeTxExecutionFailed(error: any): void {}
+  protected _executeTxEstimationFailed(_txData: string): void {}
+  protected _executeTxExecutionFailed(_txData: string): void {}
 
   constructor(creationEvent: EventWrapper, agent: IAgent) {
     const args: RegisterJobEventArgs = creationEvent.args as never;
@@ -170,13 +176,13 @@ export abstract class AbstractJob {
   //assignFields
 
   public applyJob(job: GetJobResponse): boolean {
-    this.resolver = {resolverAddress: job.resolver.resolverAddress, resolverCalldata: job.resolver.resolverCalldata};
+    this.resolver = { resolverAddress: job.resolver.resolverAddress, resolverCalldata: job.resolver.resolverCalldata };
     this.owner = job.owner;
     this.details = job.details;
     this.config = job.config;
 
     if (Array.isArray(this.details)) {
-      throw new Error('details are an array')
+      throw new Error('details are an array');
     }
     this._afterApplyJob(job);
     return true;
@@ -245,7 +251,13 @@ export abstract class AbstractJob {
     }
   }
 
-  public applyUpdate(maxBaseFeeGwei: number, rewardPct: number, fixedReward: number, jobMinCvp: BigNumber, intervalSeconds: number) {
+  public applyUpdate(
+    maxBaseFeeGwei: number,
+    rewardPct: number,
+    fixedReward: number,
+    jobMinCvp: BigNumber,
+    intervalSeconds: number,
+  ) {
     this.details.maxBaseFeeGwei = toNumber(maxBaseFeeGwei);
     this.details.rewardPct = toNumber(rewardPct);
     this.details.fixedReward = toNumber(fixedReward);
@@ -309,7 +321,7 @@ export abstract class AbstractJob {
     this._afterJobWatch();
   }
 
-  protected async resolverSuccessCallback(triggeredByBlockNumber, invokeCalldata) {}
+  protected async resolverSuccessCallback(_triggeredByBlockNumber, _invokeCalldata) {}
 
   protected buildIntervalCalldata(): string {
     return encodeExecute(this.address, this.id, this.agent.getCfg(), this.agent.getKeeperId());
@@ -330,15 +342,15 @@ export abstract class AbstractJob {
       type: 2,
 
       // EIP-1559; Type 2
-      maxFeePerGas
-    }
+      maxFeePerGas,
+    };
   }
 
   private calculateMaxFeePerGas(): bigint {
     const gasPrice = this.agent.getNetwork().getBaseFee();
     const max = BigInt(this.details.maxBaseFeeGwei) * BigInt(1e9);
 
-    console.log({gasPrice, max});
+    console.log({ gasPrice, max });
 
     if (max < gasPrice) {
       return 0n;
@@ -373,7 +385,7 @@ export abstract class AbstractJob {
       creditsAvailable: this.getCreditsAvailable(),
       fixedCompensation: this.getFixedReward(),
       ppmCompensation: this.details.rewardPct,
-      minTimestamp
+      minTimestamp,
     });
   }
 
@@ -390,7 +402,10 @@ export abstract class AbstractJob {
       return JobType.IntervalResolver;
     } else if (this.details.calldataSource === CALLDATA_SOURCE.RESOLVER) {
       return JobType.Resolver;
-    } else if (this.details.calldataSource === CALLDATA_SOURCE.PRE_DEFINED_CALLDATA || this.details.calldataSource === CALLDATA_SOURCE.SELECTOR) {
+    } else if (
+      this.details.calldataSource === CALLDATA_SOURCE.PRE_DEFINED_CALLDATA ||
+      this.details.calldataSource === CALLDATA_SOURCE.SELECTOR
+    ) {
       return JobType.SelectorOrPDCalldata;
     } else {
       throw this.err('Invalid job type');
@@ -411,7 +426,7 @@ export abstract class AbstractJob {
   }
 
   public getOwner(): string {
-    return this.owner
+    return this.owner;
   }
 
   public getKey(): string {

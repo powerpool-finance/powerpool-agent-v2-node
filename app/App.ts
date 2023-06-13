@@ -11,23 +11,24 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-function clog(...args: any) {
+function clog(...args: any[]) {
   console.log(`>>> ${nowTimeString()} >>> App:`, ...args);
 }
 
 class App {
-  private networks: { [key: string]: object };
-  private config: any;
+  private readonly networks: { [key: string]: object };
+  private config: Config;
 
   constructor() {
-
     this.networks = {};
     let config: Config;
 
     if (!process.env.NETWORK_NAME) {
       const configName = process.argv[2] ? process.argv[2].trim() : 'main';
       console.log(`Reading configuration from ./config/${configName}.yaml ...`);
-      config = YAML.parse(fs.readFileSync(path.resolve(__dirname, `../config/${configName}.yaml`)).toString()) as Config;
+      config = YAML.parse(
+        fs.readFileSync(path.resolve(__dirname, `../config/${configName}.yaml`)).toString(),
+      ) as Config;
     } else {
       console.log('NETWORK_NAME is found. Assuming configuration is don with ENV vars...');
       const networkName = process.env.NETWORK_NAME;
@@ -63,19 +64,19 @@ class App {
         source: '',
         rpc: process.env.NETWORK_RPC,
         agents: {
-          [agentAddress]: agentConfig
-        }
+          [agentAddress]: agentConfig,
+        },
       };
 
       config = {
         networks: {
           enabled: [networkName],
           details: {
-            [networkName]: netConfig
-          }
+            [networkName]: netConfig,
+          },
         },
-        observe: false
-      }
+        observe: false,
+      };
     }
 
     console.log(config.networks);
@@ -115,15 +116,15 @@ class App {
   }
 }
 
-(async function() {
+(async function () {
   console.log(`PowerPool Agent Node version: ${process.env.npm_package_version}`);
   const app = new App();
   await app.start();
 })().catch(error => {
   console.error(error);
-  process.exit(1)
+  process.exit(1);
 });
 
-process.on('unhandledRejection', function(reason, promise){
+process.on('unhandledRejection', function (reason, _promise) {
   console.log('Unhandled Rejection, reason:', reason);
 });

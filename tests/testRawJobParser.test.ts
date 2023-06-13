@@ -19,10 +19,9 @@ describe('Utils.parseRawJob()', () => {
 
   it('should throw with a job with an invalid length', async () => {
     assert.throw(() => {
-      parseRawJob('0x0200000000006e000a0000000000000000000000770da85207')
-    }, 'Utils.parseRawJob(): rawJob has length 52, but expecting the length of 66')
+      parseRawJob('0x0200000000006e000a0000000000000000000000770da85207');
+    }, 'Utils.parseRawJob(): rawJob has length 52, but expecting the length of 66');
   });
-})
-
+});
 
 export default null;

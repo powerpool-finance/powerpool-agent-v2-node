@@ -18,22 +18,22 @@ export class RandaoJob extends AbstractJob {
   }
 
   private _lockSelfUnassign() {
-    this.clog('_lockSelfUnassign()')
+    this.clog('_lockSelfUnassign()');
     this._selfUnassignPending = true;
   }
 
   private _unlockSelfUnassign() {
-    this.clog('_releaseSelfUnassign()')
+    this.clog('_releaseSelfUnassign()');
     this._selfUnassignPending = false;
   }
 
   private _lockInitiateSlashing() {
-    this.clog('_lockInitiateSlashing()')
+    this.clog('_lockInitiateSlashing()');
     this._initiateSlashingPending = true;
   }
 
   private _unlockInitiateSlashing() {
-    this.clog('_unlockInitiateSlashing()')
+    this.clog('_unlockInitiateSlashing()');
     this._initiateSlashingPending = false;
   }
 
@@ -75,7 +75,9 @@ export class RandaoJob extends AbstractJob {
       throw this.err(`Unexpected slashingAvailableTimestamp() callback for job ${this.key}`);
     }
 
-    return this.details.lastExecutionAt + this.details.intervalSeconds + (this.agent as IRandaoAgent).getPeriod1Duration();
+    return (
+      this.details.lastExecutionAt + this.details.intervalSeconds + (this.agent as IRandaoAgent).getPeriod1Duration()
+    );
   }
 
   protected _beforeJobWatch(): boolean {
@@ -91,8 +93,7 @@ export class RandaoJob extends AbstractJob {
     return true;
   }
 
-  protected _afterJobWatch(): void {
-  }
+  protected _afterJobWatch(): void {}
 
   private _selfUnassign(): void {
     if (this._selfUnassignPending) {
@@ -104,14 +105,14 @@ export class RandaoJob extends AbstractJob {
     }
 
     this._lockSelfUnassign();
-    return (this.agent as IRandaoAgent).selfUnassignFromJob(this.key)
+    return (this.agent as IRandaoAgent).selfUnassignFromJob(this.key);
   }
 
   private async initiateSlashing() {
-    const txEstimationFailed = (error) => {
+    const txEstimationFailed = error => {
       console.log('InitiateSlashing() estimation failed', error);
     };
-    const txExecutionFailed = (error) => {
+    const txExecutionFailed = error => {
       console.log('InitiateSlashing() execution failed', error);
     };
     if (this._initiateSlashingPending) {
@@ -142,10 +143,18 @@ export class RandaoJob extends AbstractJob {
 
     if (now < this.details.lastExecutionAt + this.details.intervalSeconds) {
       return 0;
-    } else if (now < this.details.lastExecutionAt + this.details.intervalSeconds + (this.agent as IRandaoAgent).getPeriod1Duration()) {
+    } else if (
+      now <
+      this.details.lastExecutionAt + this.details.intervalSeconds + (this.agent as IRandaoAgent).getPeriod1Duration()
+    ) {
       return 1;
-    } else if (now < this.details.lastExecutionAt + this.details.intervalSeconds + (this.agent as IRandaoAgent).getPeriod1Duration()
-      + (this.agent as IRandaoAgent).getPeriod2Duration()) {
+    } else if (
+      now <
+      this.details.lastExecutionAt +
+        this.details.intervalSeconds +
+        (this.agent as IRandaoAgent).getPeriod1Duration() +
+        (this.agent as IRandaoAgent).getPeriod2Duration()
+    ) {
       return 2;
     }
 
@@ -157,10 +166,18 @@ export class RandaoJob extends AbstractJob {
 
     if (now < this.details.lastExecutionAt + this.details.intervalSeconds) {
       return 0;
-    } else if (now < this.details.lastExecutionAt + this.details.intervalSeconds + (this.agent as IRandaoAgent).getPeriod1Duration()) {
+    } else if (
+      now <
+      this.details.lastExecutionAt + this.details.intervalSeconds + (this.agent as IRandaoAgent).getPeriod1Duration()
+    ) {
       return 1;
-    } else if (now < this.details.lastExecutionAt + this.details.intervalSeconds + (this.agent as IRandaoAgent).getPeriod1Duration()
-      + (this.agent as IRandaoAgent).getPeriod2Duration()) {
+    } else if (
+      now <
+      this.details.lastExecutionAt +
+        this.details.intervalSeconds +
+        (this.agent as IRandaoAgent).getPeriod1Duration() +
+        (this.agent as IRandaoAgent).getPeriod2Duration()
+    ) {
       return 2;
     }
 
@@ -182,21 +199,24 @@ export class RandaoJob extends AbstractJob {
   protected _watchIntervalJob(): void {
     super._watchIntervalJob();
     (this.agent as IRandaoAgent).registerJobSlashingTimeout(
-      this.key, this.intervalPeriod2StartsAt(), this.intervalJobSlashingAvailableCallback.bind(this));
+      this.key,
+      this.intervalPeriod2StartsAt(),
+      this.intervalJobSlashingAvailableCallback.bind(this),
+    );
   }
 
   protected _watchResolverJob(): void {
     super._watchResolverJob();
   }
 
-  protected _executeTxEstimationFailed(error: any): void {
+  protected _executeTxEstimationFailed(_txData: string): void {
     if (this._getCurrentPeriod() === 3 || this.getJobType() === JobType.Resolver) {
       this._selfUnassign();
     }
     this.watch();
   }
 
-  protected _executeTxExecutionFailed(error: any): void {
+  protected _executeTxExecutionFailed(_txData: string): void {
     if (this._getCurrentPeriod() === 3 || this.getJobType() === JobType.Resolver) {
       this._selfUnassign();
     }
@@ -210,24 +230,22 @@ export class RandaoJob extends AbstractJob {
 
   private async executeResolverJob(invokeCalldata) {
     this.agent.unregisterResolver(this.key);
-    return this.executeTx(
-      this.key,
-      await this.buildTx(
-        this.buildResolverCalldata(invokeCalldata)
-      )
-    );
+    return this.executeTx(this.key, await this.buildTx(this.buildResolverCalldata(invokeCalldata)));
   }
 
   protected async resolverSuccessCallback(triggeredByBlockNumber, invokeCalldata) {
     // execute
     if (this.agent.getKeeperId() === this.assignedKeeperId) {
       await this.executeResolverJob(invokeCalldata);
-    // executeSlashing
-    } else if (this.slashingPossibleAfter > 0 && nowS() > this.slashingPossibleAfter
-      && this.reservedSlasherId == this.agent.getKeeperId()) {
+      // executeSlashing
+    } else if (
+      this.slashingPossibleAfter > 0 &&
+      nowS() > this.slashingPossibleAfter &&
+      this.reservedSlasherId == this.agent.getKeeperId()
+    ) {
       console.log(`Need execute slashing bn=${triggeredByBlockNumber}`);
       await this.executeResolverJob(invokeCalldata);
-    // initiateSlashing
+      // initiateSlashing
     } else {
       const now = nowS();
       const latestBlock = this.agent.getNetwork().getLatestBlockNumber();
@@ -245,7 +263,7 @@ export class RandaoJob extends AbstractJob {
 
       if (this.t1) {
         const left = this.t1 + period1 - now;
-        console.log('Can initiate slashing after', left, {t1: this.t1, period1, now}, `bn=${triggeredByBlockNumber}`);
+        console.log('Can initiate slashing after', left, { t1: this.t1, period1, now }, `bn=${triggeredByBlockNumber}`);
       }
 
       // if can slash
@@ -266,24 +284,36 @@ export class RandaoJob extends AbstractJob {
   }
 
   protected async intervalJobAvailableCallback(blockNumber: number) {
-    console.log('@@@ available, assigned/me/matches', this.key, this.assignedKeeperId, this.agent.getKeeperId(), this.assignedKeeperId === this.agent.getKeeperId());
+    console.log(
+      '@@@ available, assigned/me/matches',
+      this.key,
+      this.assignedKeeperId,
+      this.agent.getKeeperId(),
+      this.assignedKeeperId === this.agent.getKeeperId(),
+    );
     if (this.assignedKeeperId === this.agent.getKeeperId()) {
-      console.log('job callback', this.key, blockNumber, {assigned: this.assignedKeeperId, me: this.agent.getKeeperId()});
+      console.log('job callback', this.key, blockNumber, {
+        assigned: this.assignedKeeperId,
+        me: this.agent.getKeeperId(),
+      });
       this.agent.unregisterIntervalJobExecution(this.key);
-      return this.executeTx(
-        this.key,
-        await this.buildTx(
-          this.buildIntervalCalldata()
-        )
-      );
+      return this.executeTx(this.key, await this.buildTx(this.buildIntervalCalldata()));
     }
   }
 
-  private async intervalJobSlashingAvailableCallback(blockNumber: number) {
-    console.log('@@@ slashing, assigned/me/matches', this.key, this.assignedKeeperId, this.agent.getKeeperId(), this.assignedKeeperId === this.agent.getKeeperId());
+  private async intervalJobSlashingAvailableCallback(_blockNumber: number) {
+    console.log(
+      '@@@ slashing, assigned/me/matches',
+      this.key,
+      this.assignedKeeperId,
+      this.agent.getKeeperId(),
+      this.assignedKeeperId === this.agent.getKeeperId(),
+    );
     // WARNING: Either `rdConfig.slashingEpochBlocks` or `totalActiveKeepers` can affect the actual keeper id
     // that will be in the previous block
-    const {binJob, nextBlockSlasherId} = await (this.agent as IRandaoAgent).getJobBytes32AndNextBlockSlasherId(this.key);
+    const { binJob, nextBlockSlasherId } = await (this.agent as IRandaoAgent).getJobBytes32AndNextBlockSlasherId(
+      this.key,
+    );
 
     console.log('@@@ slashing, next slasher', this.key, nextBlockSlasherId);
 
@@ -292,12 +322,7 @@ export class RandaoJob extends AbstractJob {
       this.clog('Wont slash mine job', { nextBlockSlasherId, me: this.agent.getKeeperId() });
     } else if (this.agent.getKeeperId() === nextBlockSlasherId) {
       this.unwatch();
-      return this.executeTx(
-        this.key,
-        await this.buildTx(
-          this.buildIntervalCalldata()
-        )
-      );
+      return this.executeTx(this.key, await this.buildTx(this.buildIntervalCalldata()));
     } else {
       this.clog('Slasher is not me', { nextBlockSlasherId, me: this.agent.getKeeperId() });
     }

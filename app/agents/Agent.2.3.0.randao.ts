@@ -50,13 +50,15 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
   }
 
   public async amINextSlasher(jobKey: string): Promise<boolean> {
-    const {nextBlockSlasherId} = await this.getNetwork().getJobBytes32AndNextBlockSlasherId(this.address, jobKey)
+    const { nextBlockSlasherId } = await this.getNetwork().getJobBytes32AndNextBlockSlasherId(this.address, jobKey);
 
     return nextBlockSlasherId === this.getKeeperId();
   }
 
-  public async getJobBytes32AndNextBlockSlasherId(jobKey: string): Promise<LensGetJobBytes32AndNextBlockSlasherIdResponse> {
-    return this.getNetwork().getJobBytes32AndNextBlockSlasherId(this.address, jobKey)
+  public async getJobBytes32AndNextBlockSlasherId(
+    jobKey: string,
+  ): Promise<LensGetJobBytes32AndNextBlockSlasherIdResponse> {
+    return this.getNetwork().getJobBytes32AndNextBlockSlasherId(this.address, jobKey);
   }
 
   public unregisterJobSlashingTimeout(jobKey: string) {
@@ -65,8 +67,8 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
 
   public getPeriod1Duration(): number {
     if (typeof this.period1 !== 'number') {
-      console.log({period1: this.period1});
-      throw this.err('period1 is not a number')
+      console.log({ period1: this.period1 });
+      throw this.err('period1 is not a number');
     }
 
     return this.period1;
@@ -74,7 +76,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
 
   public getPeriod2Duration(): number {
     if (typeof this.period2 !== 'number') {
-      throw this.err('period2 is not a number')
+      throw this.err('period2 is not a number');
     }
 
     return this.period2;
@@ -82,7 +84,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
 
   public getJobMinCredits(): bigint {
     if (typeof this.jobMinCreditsFinney !== 'bigint') {
-      throw this.err('period2 is not a bigint')
+      throw this.err('period2 is not a bigint');
     }
 
     return this.jobMinCreditsFinney * BI_10E15;
@@ -100,7 +102,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       type: 2,
 
       // EIP-1559; Type 2
-      maxFeePerGas: (this.network.getBaseFee() * 2n).toString()
+      maxFeePerGas: (this.network.getBaseFee() * 2n).toString(),
     };
     await this.populateTxExtraFields(tx);
     const txEstimationFailed = (error): void => {
@@ -120,16 +122,14 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       creditsAvailable: BigInt(0),
       fixedCompensation: BigInt(0),
       ppmCompensation: 0,
-      minTimestamp: 0
+      minTimestamp: 0,
     };
     await this._sendNonExecuteTransaction(envelope);
   }
 
   async initiateSlashing(jobAddress: string, jobId: number, jobKey: string, executorCallbacks: ExecutorCallbacks) {
     // jobAddress, jobId, myKeeperId, useResolver, jobCalldata
-    const calldata = this.contract.encodeABI('initiateSlashing',
-      [jobAddress, jobId, this.getKeeperId(), true, '0x']
-    );
+    const calldata = this.contract.encodeABI('initiateSlashing', [jobAddress, jobId, this.getKeeperId(), true, '0x']);
     const tx = {
       to: this.getAddress(),
 
@@ -139,7 +139,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       type: 2,
 
       // EIP-1559; Type 2
-      maxFeePerGas: (this.network.getBaseFee() * 2n).toString()
+      maxFeePerGas: (this.network.getBaseFee() * 2n).toString(),
     };
     await this.populateTxExtraFields(tx);
     const envelope = {
@@ -149,19 +149,18 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       creditsAvailable: BigInt(0),
       fixedCompensation: BigInt(0),
       ppmCompensation: 0,
-      minTimestamp: 0
+      minTimestamp: 0,
     };
     await this._sendNonExecuteTransaction(envelope);
   }
 
   _afterInitializeListeners() {
-    this.contract.on('JobKeeperChanged', async (event) => {
-      const {keeperFrom, keeperTo, jobKey} = event.args;
+    this.contract.on('JobKeeperChanged', async event => {
+      const { keeperFrom, keeperTo, jobKey } = event.args;
 
-      this.clog(`'JobKeeperChanged' event 🔈: (block=${event.blockNumber
-      },jobKey=${jobKey
-      },keeperFrom=${keeperFrom
-      },keeperTo=${keeperTo})`);
+      this.clog(
+        `'JobKeeperChanged' event 🔈: (block=${event.blockNumber},jobKey=${jobKey},keeperFrom=${keeperFrom},keeperTo=${keeperTo})`,
+      );
 
       const job = this.jobs.get(jobKey) as RandaoJob;
       const shouldUpdateBinJob = job.applyKeeperAssigned(parseInt(keeperTo));
@@ -173,36 +172,30 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       job.watch();
     });
 
-    this.contract.on('SetRdConfig', (event) => {
+    this.contract.on('SetRdConfig', event => {
       this.clog(`'SetRdConfig' event 🔈: (block=${event.blockNumber}. Restarting all the jobs...`);
 
       this.startAllJobs();
     });
 
-    this.contract.on('InitiateSlashing', (event) => {
-      const {jobKey, jobSlashingPossibleAfter, slasherKeeperId, useResolver} = event.args;
+    this.contract.on('InitiateSlashing', event => {
+      const { jobKey, jobSlashingPossibleAfter, slasherKeeperId, useResolver } = event.args;
 
-      this.clog(`'InitiateSlashing' event 🔈: (block=${event.blockNumber
-      },jobKey=${jobKey
-      },jobSlashingPossibleAfter=${jobSlashingPossibleAfter
-      },slasherKeeperId=${slasherKeeperId
-      },useResolver=${useResolver})`);
+      this.clog(
+        `'InitiateSlashing' event 🔈: (block=${event.blockNumber},jobKey=${jobKey},jobSlashingPossibleAfter=${jobSlashingPossibleAfter},slasherKeeperId=${slasherKeeperId},useResolver=${useResolver})`,
+      );
 
       const job = this.jobs.get(jobKey) as RandaoJob;
       job.applyInitiateSlashing(jobSlashingPossibleAfter, slasherKeeperId);
     });
 
-    this.contract.on('SlashIntervalJob', (event) => {
-      const {jobKey, expectedKeeperId, actualKeeperId, fixedSlashAmount, dynamicSlashAmount,
-        slashAmountMissing} = event.args;
+    this.contract.on('SlashIntervalJob', event => {
+      const { jobKey, expectedKeeperId, actualKeeperId, fixedSlashAmount, dynamicSlashAmount, slashAmountMissing } =
+        event.args;
 
-      this.clog(`'SlashIntervalJob' event 🔈: (block=${event.blockNumber
-      },jobKey=${jobKey
-      },expectedKeeperId=${expectedKeeperId
-      },actualKeeperId=${actualKeeperId
-      },fixedSlashAmount=${fixedSlashAmount
-      },dynamicSlashAmount=${dynamicSlashAmount
-      },slashAmountMissing=${slashAmountMissing})`);
+      this.clog(
+        `'SlashIntervalJob' event 🔈: (block=${event.blockNumber},jobKey=${jobKey},expectedKeeperId=${expectedKeeperId},actualKeeperId=${actualKeeperId},fixedSlashAmount=${fixedSlashAmount},dynamicSlashAmount=${dynamicSlashAmount},slashAmountMissing=${slashAmountMissing})`,
+      );
 
       const job = this.jobs.get(jobKey) as RandaoJob;
       // WARNING: incorrect name

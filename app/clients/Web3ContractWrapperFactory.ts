@@ -4,8 +4,6 @@ import { nowTimeString } from '../Utils.js';
 import { Fragment } from '@ethersproject/abi/src.ts/fragments';
 import Web3 from 'web3';
 import { WebsocketProvider } from 'web3-core';
-import { ethers } from "ethers";
-import { EthersContract } from "./EthersContract";
 
 export class Web3ContractWrapperFactory implements ContractWrapperFactory {
   private readonly primaryEndpoint: string;
@@ -16,7 +14,7 @@ export class Web3ContractWrapperFactory implements ContractWrapperFactory {
     if (wsRpcEndpoints.length === 0) {
       throw new Error('EthersClient: missing endpoint list');
     }
-    const [primaryEndpoint,] = wsRpcEndpoints;
+    const [primaryEndpoint] = wsRpcEndpoints;
     this.primaryEndpoint = primaryEndpoint;
     this.provider = new Web3.providers.WebsocketProvider(this.primaryEndpoint);
     this.web3 = new Web3(this.provider);
@@ -52,10 +50,7 @@ export class Web3ContractWrapperFactory implements ContractWrapperFactory {
     return this.web3;
   }
 
-  build(
-    addressOrName: string,
-    contractInterface: ReadonlyArray<Fragment>,
-  ): ContractWrapper {
+  build(addressOrName: string, contractInterface: ReadonlyArray<Fragment>): ContractWrapper {
     return new Web3Contract(addressOrName, contractInterface, this.getWeb3());
   }
 }
