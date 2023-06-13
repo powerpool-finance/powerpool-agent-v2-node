@@ -60,6 +60,16 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
       version: '2.3.0',
       strategy: 'randao',
     },
+    '0x69F32100FDca93fc0760D9d375579a41E7955eFF': {
+      deployedAt: 3680463,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
+    '0x910C4874260384eB0F068211d6EB04ff5C29441d': {
+      deployedAt: 3680575,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
   },
 };
 
