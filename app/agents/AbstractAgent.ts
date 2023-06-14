@@ -317,11 +317,9 @@ export abstract class AbstractAgent implements IAgent {
     const job = this._buildNewJob(creationEvent);
     this.jobs.set(jobKey, job);
 
-    let res = await this.network.getExternalLensContract().ethCall('getJobs', [this.address, [jobKey]]);
-    if (res.results.length !== 1) {
-      throw this.err(`addJob(): invalid getJobs() response length: ${res.results.length}`);
-    }
-    job.applyJob(res.results[0]);
+    const tmpMap = new Map();
+    tmpMap.set(jobKey, job);
+    await this.source.addLensFieldsToJob(tmpMap, this.address);
 
     if (!this.ownerJobs.has(owner)) {
       this.ownerJobs.set(owner, new Set());
@@ -329,12 +327,9 @@ export abstract class AbstractAgent implements IAgent {
     const set = this.ownerJobs.get(owner);
     set.add(jobKey);
 
-    res = await this.network.getExternalLensContract().ethCall('getOwnerBalances', [this.address, [owner]]);
-    if (res.results.length !== 1) {
-      throw this.err(`addJob(): invalid getOwnerBalances() response length: ${res.results.length}`);
-    }
+    const ownerBalances = await this.source.getOwnersBalances({ address: this.address }, new Set([owner]));
 
-    this.ownerBalances.set(owner, res.results[0]);
+    this.ownerBalances.set(owner, ownerBalances.get(owner));
   }
 
   protected async startAllJobs() {

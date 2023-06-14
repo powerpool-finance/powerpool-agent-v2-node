@@ -177,13 +177,21 @@ export abstract class AbstractJob {
 
   public applyJob(job: GetJobResponse): boolean {
     this.resolver = { resolverAddress: job.resolver.resolverAddress, resolverCalldata: job.resolver.resolverCalldata };
+
+    if (typeof job.details !== 'object') {
+      throw this.err(`applyJob(): job.details is not an object: ${job.details}`);
+    }
+    if (Array.isArray(job.details)) {
+      throw this.err(`applyJob(): job.details are an array: ${job.details}`);
+    }
+    if (!job.config) {
+      throw this.err(`applyJob(): job.config not defined: ${job.config}`);
+    }
+
     this.owner = job.owner;
     this.details = job.details;
     this.config = job.config;
 
-    if (Array.isArray(this.details)) {
-      throw new Error('details are an array');
-    }
     this._afterApplyJob(job);
     return true;
   }

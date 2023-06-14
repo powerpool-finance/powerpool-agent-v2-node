@@ -53,7 +53,7 @@ export interface GetJobResponse {
   details: JobDetails;
   preDefinedCalldata: string;
   resolver: Resolver;
-  randaoData: {
+  randaoData?: {
     jobNextKeeperId: number;
     jobReservedSlasherId: number;
     jobSlashingPossibleAfter: number;
