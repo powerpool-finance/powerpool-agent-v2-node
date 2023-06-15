@@ -12,9 +12,9 @@ export class EthersContractWrapperFactory implements ContractWrapperFactory {
     if (wsRpcEndpoints.length === 0) {
       throw new Error('EthersClient: missing endpoint list');
     }
-    const [primaryEndpoint,] = wsRpcEndpoints;
+    const [primaryEndpoint] = wsRpcEndpoints;
     this.primaryEndpoint = primaryEndpoint;
-    console.log({primaryEndpoint});
+    console.log({ primaryEndpoint });
     this.provider = new ethers.providers.WebSocketProvider(primaryEndpoint);
   }
 
@@ -41,10 +41,7 @@ export class EthersContractWrapperFactory implements ContractWrapperFactory {
     return this.provider;
   }
 
-  build(
-    addressOrName: string,
-    contractInterface: ReadonlyArray<Fragment>,
-  ): ContractWrapper {
+  build(addressOrName: string, contractInterface: ReadonlyArray<Fragment>): ContractWrapper {
     const providers = new Map<string, ethers.providers.BaseProvider>();
     providers.set(this.primaryEndpoint, this.getDefaultProvider());
     return new EthersContract(addressOrName, contractInterface, this.primaryEndpoint, providers);

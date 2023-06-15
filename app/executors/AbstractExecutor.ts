@@ -27,12 +27,12 @@ export abstract class AbstractExecutor {
 
   protected printSolidityCustomError(bytes: string, txCalldata: string): void {
     if (bytes === '0x4e2c6c26') {
-      this.clog(`⛔️ Ignoring a tx with a failed estimation, calldata=${txCalldata
-      }. The reason is "Panic(uint256)", returned value is "0x4e2c6c26". This error can happen in the following cases:
+      this
+        .clog(`⛔️ Ignoring a tx with a failed estimation, calldata=${txCalldata}. The reason is "Panic(uint256)", returned value is "0x4e2c6c26". This error can happen in the following cases:
 - Can't perform native token transfer within one of internal txs due insufficient funds;
 - The calling method doesn't exist;
 `);
-    } else if (bytes.startsWith('0x08c379a0')){
+    } else if (bytes.startsWith('0x08c379a0')) {
       const msg = ethers.utils.defaultAbiCoder.decode(['string'], `0x${bytes.substring(10)}`);
       this.clog(`⛔️ Ignoring a tx with a failed estimation: (message="${msg}",calldata=${txCalldata})`);
     } else {
@@ -43,11 +43,13 @@ export abstract class AbstractExecutor {
             decoded.args[key] = value.toNumber();
           }
         }
-        this.clog(`⛔️ Ignoring tx reverted with '${decoded.name}' error and the following arguments:`, decoded.args,
-          `(calldata=${txCalldata})`);
-
-      } catch(_) {
-        this.clog(`⛔️ Ignoring a tx with a failed estimation: (call=${txCalldata},response=${bytes})`);
+        this.clog(
+          `⛔️ Ignoring tx estimation reverted with '${decoded.name}' error and the following arguments:`,
+          decoded.args,
+          `(calldata=${txCalldata})`,
+        );
+      } catch (_) {
+        this.clog(`⛔️ Ignoring tx estimation failed with unknown error: (call=${txCalldata},response=${bytes})`);
       }
     }
   }

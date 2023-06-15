@@ -2,7 +2,7 @@ import {
   AGENT_HARDCODED_CONFIGS,
   AVERAGE_BLOCK_TIME_SECONDS,
   EXTERNAL_LENS_CONTRACTS_2_3_0,
-  MULTICALL_CONTRACTS
+  MULTICALL_CONTRACTS,
 } from './Constants.js';
 import { AgentHardcodedConfig } from './Types';
 
@@ -10,16 +10,16 @@ export function getMulticall2Address(networkName: string) {
   if (networkName in MULTICALL_CONTRACTS) {
     return MULTICALL_CONTRACTS[networkName];
   } else {
-    throw new Error(`ConfigGetters.getMulticall2Address(): Network ${networkName} not configured.`)
+    throw new Error(`ConfigGetters.getMulticall2Address(): Network ${networkName} not configured.`);
   }
 }
 
 // TODO: support version and strategy, define it in configs
-export function getExternalLensAddress(networkName: string, version: string, strategy: string) {
+export function getExternalLensAddress(networkName: string, _version: string, _strategy: string) {
   if (networkName in EXTERNAL_LENS_CONTRACTS_2_3_0) {
     return EXTERNAL_LENS_CONTRACTS_2_3_0[networkName];
   } else {
-    throw new Error(`ConfigGetters.getExternalLensAddress(): Network ${networkName} not configured.`)
+    throw new Error(`ConfigGetters.getExternalLensAddress(): Network ${networkName} not configured.`);
   }
 }
 
@@ -48,10 +48,12 @@ export function getAgentConfig(agentAddress: string, networkName: string): Agent
     if (agentAddress in network) {
       return network[agentAddress];
     } else {
-      throw new Error(`ConfigGetters.getAgentConfig(): Agent ${agentAddress} is not configured in the network ${networkName}.`)
+      throw new Error(
+        `ConfigGetters.getAgentConfig(): Agent ${agentAddress} is not configured in the network ${networkName}.`,
+      );
     }
   } else {
-    throw new Error(`ConfigGetters.getAgentConfig(): Network ${networkName} not configured.`)
+    throw new Error(`ConfigGetters.getAgentConfig(): Network ${networkName} not configured.`);
   }
 }
 
@@ -59,6 +61,6 @@ export function getAverageBlockTime(networkName: string) {
   if (networkName in AVERAGE_BLOCK_TIME_SECONDS) {
     return AVERAGE_BLOCK_TIME_SECONDS[networkName];
   } else {
-    throw new Error(`ConfigGetters.getAverageBlockTime(): Network ${networkName} not configured.`)
+    throw new Error(`ConfigGetters.getAverageBlockTime(): Network ${networkName} not configured.`);
   }
 }

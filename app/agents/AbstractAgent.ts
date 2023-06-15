@@ -1,23 +1,26 @@
 import { Network } from '../Network';
 import {
   AgentConfig,
-  ContractWrapper, EventWrapper,
+  ContractWrapper,
+  EventWrapper,
   Executor,
   ExecutorType,
-  GetJobResponse, IAgent,
+  IAgent,
   Resolver,
-  TxEnvelope
+  TxEnvelope,
 } from '../Types.js';
-import {BigNumber, ethers, Wallet} from 'ethers';
-import {getAgentRewardsAbi} from '../services/AbiService.js';
+import { BigNumber, ethers, Wallet } from 'ethers';
 import { getEncryptedJson } from '../services/KeyService.js';
-import { DEFAULT_SYNC_FROM_CHAINS, MIN_EXECUTION_GAS } from '../Constants.js';
-import {nowMs, nowTimeString} from '../Utils.js';
+import { DEFAULT_SYNC_FROM_CHAINS } from '../Constants.js';
+import { nowMs, nowTimeString } from '../Utils.js';
 import { FlashbotsExecutor } from '../executors/FlashbotsExecutor.js';
 import { PGAExecutor } from '../executors/PGAExecutor.js';
 import { getAgentDefaultSyncFromSafe } from '../ConfigGetters.js';
 import { LightJob } from '../jobs/LightJob.js';
 import { RandaoJob } from '../jobs/RandaoJob.js';
+import { AbstractJob } from '../jobs/AbstractJob';
+import { BlockchainSource } from '../dataSources/BlockchainSource.js';
+import { SubgraphSource } from '../dataSources/SubgraphSource.js';
 
 const FLAG_ACCEPT_MAX_BASE_FEE_LIMIT = 1;
 const FLAG_ACCRUE_REWARD = 2;
@@ -29,6 +32,7 @@ export abstract class AbstractAgent implements IAgent {
   protected address: string;
   protected keeperId: number;
   protected contract: ContractWrapper;
+  private source: BlockchainSource | SubgraphSource;
   private rewardsContract: ContractWrapper;
   private workerSigner: ethers.Wallet;
   private executor: Executor;
@@ -53,17 +57,19 @@ export abstract class AbstractAgent implements IAgent {
     return `(network: ${this.network.getName()}, address: ${this.address})`;
   }
 
-  protected clog(...args: any[]) {
+  protected clog(...args: unknown[]) {
     console.log(`>>> ${nowTimeString()} >>> Agent${this.toString()}:`, ...args);
   }
 
-  protected err(...args: any[]): Error {
+  protected err(...args: unknown[]): Error {
     return new Error(`AgentError${this.toString()}: ${args.join(' ')}`);
   }
 
   protected _beforeInit(): void {}
   protected _afterInit(): void {}
   protected async _beforeResyncAllJobs() {}
+
+  protected _afterExecuteEvent(_job: AbstractJob) {}
 
   constructor(address: string, agentConfig: AgentConfig, network: Network) {
     this.jobs = new Map();
@@ -77,15 +83,19 @@ export abstract class AbstractAgent implements IAgent {
     this.cfg = 0;
 
     if (!('keeper_address' in agentConfig) || !agentConfig.keeper_address || agentConfig.keeper_address.length === 0) {
-      throw this.err(`Missing keeper_address for agent: (network=${this.network.getName()
-      },address=${this.address
-      },keeper_address_value=${agentConfig.keeper_address})`);
+      throw this.err(
+        `Missing keeper_address for agent: (network=${this.network.getName()},address=${
+          this.address
+        },keeper_address_value=${agentConfig.keeper_address})`,
+      );
     }
 
     if (!('key_pass' in agentConfig) || !agentConfig.key_pass || agentConfig.key_pass.length === 0) {
-      throw this.err(`Missing key_pass for agent: (network=${this.network.getName()
-      },address=${this.address
-      },key_pass_value=${agentConfig.key_pass})`);
+      throw this.err(
+        `Missing key_pass for agent: (network=${this.network.getName()},address=${this.address},key_pass_value=${
+          agentConfig.key_pass
+        })`,
+      );
     }
 
     this.keyAddress = ethers.utils.getAddress(agentConfig.keeper_address);
@@ -107,15 +117,13 @@ export abstract class AbstractAgent implements IAgent {
       this.cfg = this.cfg | FLAG_ACCRUE_REWARD;
     }
 
-    this.network.getNewBlockEventEmitter().on(
-      'newBlock',
-      this.newBlockEventHandler.bind(this)
-    );
+    this.network.getNewBlockEventEmitter().on('newBlock', this.newBlockEventHandler.bind(this));
 
-    this.fullSyncFrom = agentConfig.deployed_at
-      || getAgentDefaultSyncFromSafe(this.address, this.network.getName())
-      || DEFAULT_SYNC_FROM_CHAINS[this.network.getName()]
-      || 0
+    this.fullSyncFrom =
+      agentConfig.deployed_at ||
+      getAgentDefaultSyncFromSafe(this.address, this.network.getName()) ||
+      DEFAULT_SYNC_FROM_CHAINS[this.network.getName()] ||
+      0;
     this.clog('Sync from', this.fullSyncFrom);
   }
 
@@ -124,6 +132,13 @@ export abstract class AbstractAgent implements IAgent {
 
     if (!this.contract) {
       throw this.err('Constructor not initialized');
+    }
+
+    // setting data source
+    if (this.network.source === 'subgraph' && this.network.graphUrl) {
+      this.source = new SubgraphSource(this.network, this.contract);
+    } else {
+      this.source = new BlockchainSource(this.network, this.contract);
     }
 
     // Ensure version matches
@@ -153,7 +168,7 @@ export abstract class AbstractAgent implements IAgent {
     console.timeLog(label);
     this.workerSigner.connect(this.getNetwork().getProvider());
 
-    this.clog('Worker address:', this.workerSigner.address)
+    this.clog('Worker address:', this.workerSigner.address);
 
     switch (this.executorType) {
       case 'flashbots':
@@ -162,9 +177,9 @@ export abstract class AbstractAgent implements IAgent {
         try {
           wallet = await Wallet.fromEncryptedJson(
             getEncryptedJson(this.network.getFlashbotsAddress()),
-            this.network.getFlashbotsPass()
+            this.network.getFlashbotsPass(),
           );
-        } catch(e) {
+        } catch (e) {
           this.clog('Flashbots wallet decryption error for the address:', this.network.getFlashbotsAddress(), e);
           process.exit(0);
         }
@@ -179,7 +194,7 @@ export abstract class AbstractAgent implements IAgent {
           this.network.getProvider(),
           this.workerSigner,
           wallet,
-          this.contract
+          this.contract,
         );
         break;
       case 'pga':
@@ -187,30 +202,30 @@ export abstract class AbstractAgent implements IAgent {
           this.network.getName(),
           this.network.getProvider(),
           this.workerSigner,
-          this.contract
+          this.contract,
         );
         break;
       default:
-        throw this.err(`Invalid executor type: '${this.executorType}'. Only 'flashbots' and 'pga' are supported.`)
+        throw this.err(`Invalid executor type: '${this.executorType}'. Only 'flashbots' and 'pga' are supported.`);
     }
 
     const keeperConfig = await this.contract.ethCall('getKeeper', [this.keeperId]);
 
     if (this.workerSigner.address != keeperConfig.worker) {
       throw this.err(
-        `The worker address for the keeper #${this.keeperId} stored on chain (${
-          keeperConfig.worker
-        }) doesn't match the one specified in config (${this.workerSigner.address}).`
-      )
+        `The worker address for the keeper #${this.keeperId} stored on chain (${keeperConfig.worker}) doesn't match the one specified in config (${this.workerSigner.address}).`,
+      );
     }
 
     // Task #1
     const agentConfig = await this.contract.ethCall('getConfig');
     this.minKeeperCvp = agentConfig.minKeeperCvp_;
     if (keeperConfig.currentStake.lt(agentConfig.minKeeperCvp_)) {
-      throw this.err(`The keeper's stake for agent '${this.address
-      }' is insufficient: ${keeperConfig.currentStake.div(BIG_NUMBER_1E18)
-      } CVP (actual) < ${this.minKeeperCvp.div(BIG_NUMBER_1E18)} CVP (required).`)
+      throw this.err(
+        `The keeper's stake for agent '${this.address}' is insufficient: ${keeperConfig.currentStake.div(
+          BIG_NUMBER_1E18,
+        )} CVP (actual) < ${this.minKeeperCvp.div(BIG_NUMBER_1E18)} CVP (required).`,
+      );
     }
     this.clog(`Keeper deposit: (current=${keeperConfig.currentStake},min=${this.minKeeperCvp})`);
     // TODO: track agent SetAgentParams
@@ -228,27 +243,11 @@ export abstract class AbstractAgent implements IAgent {
     // setTimeout(this.verifyLastExecutionAtLoop.bind(this), 3 * 60 * 1000);
 
     await this._afterInit();
-    this.clog('✅ Agent initialization done!')
+    this.clog('✅ Agent initialization done!');
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private newBlockEventHandler(blockTimestamp) {
-  }
-
-  public async verifyLastExecutionAtLoop() {
-    this.clog('verifyLastExecutionAtLoop')
-    const jobKeys = Array.from(this.jobs.keys()).filter(jobKey => this.jobs.get(jobKey).isIntervalJob());
-
-    const res = await this.network.getExternalLensContract().ethCall('getJobRawBytes32', [this.address, jobKeys]);
-
-    for (let i = 0; i < res.results.length; i++) {
-      const rawJob = res.results[i].toString();
-      const job = this.jobs.get(jobKeys[i]);
-      job.rewatchIfRequired(rawJob);
-    }
-
-    setTimeout(this.verifyLastExecutionAtLoop.bind(this), 3 * 60 * 1000);
-  }
+  private newBlockEventHandler(blockTimestamp) {}
 
   public getJobOwnerBalance(address: string): BigNumber {
     if (!this.ownerBalances.has(address)) {
@@ -283,26 +282,16 @@ export abstract class AbstractAgent implements IAgent {
    */
   private async resyncAllJobs(): Promise<number> {
     const latestBock = await this.network.getLatestBlockNumber();
+    // 1. init jobs
+    let newJobs = new Map<string, RandaoJob | LightJob>();
+    newJobs = await this.source.getRegisteredJobs(this);
 
-    // 1. Handle registers
-    // const newJobs = {};
-    const registerLogs = await this.contract.getPastEvents('RegisterJob', this.fullSyncFrom, latestBock)
-    const newJobs = new Map<string, RandaoJob | LightJob>();
-
-    for (const event of registerLogs) {
-      newJobs.set(event.args.jobKey, this._buildNewJob(event));
-    }
-
-    // Config can change rawJob w/o events
-    const jobKeys = Array.from(newJobs.keys());
-
-    // 2. Handle resolver updates (should fetch them via lens instead?)
-    let res = await this.network.getExternalLensContract().ethCall('getJobs', [this.address, jobKeys]);
+    // 2. set owners
     const jobOwnersSet = new Set<string>();
-    const jobs: Array<GetJobResponse> = res.results;
-    for (let i = 0; i < jobs.length; i++) {
-      const owner = jobs[i].owner;
-      newJobs.get(jobKeys[i]).applyJob(jobs[i]);
+    const jobKeys = Array.from(newJobs.keys());
+    for (let i = 0; i < jobKeys.length; i++) {
+      const job = newJobs.get(jobKeys[i]);
+      const owner = job.getOwner();
       jobOwnersSet.add(owner);
       if (!this.ownerJobs.has(owner)) {
         this.ownerJobs.set(owner, new Set());
@@ -312,18 +301,12 @@ export abstract class AbstractAgent implements IAgent {
     }
 
     // 3. Load job owner balances
-    const jobOwnersArray = Array.from(jobOwnersSet);
-    res = await this.network.getExternalLensContract().ethCall('getOwnerBalances', [this.address, jobOwnersArray]);
-    const jobOwnerBalances: Array<BigNumber> = res.results;
-    for (let i = 0; i < jobs.length; i++) {
-      this.ownerBalances.set(jobOwnersArray[i], jobOwnerBalances[i]);
-    }
-
+    this.ownerBalances = await this.source.getOwnersBalances(this, jobOwnersSet);
     this.jobs = newJobs;
 
     await this.startAllJobs();
 
-    return latestBock;
+    return Number(latestBock);
   }
   abstract _buildNewJob(event): LightJob | RandaoJob;
 
@@ -334,11 +317,9 @@ export abstract class AbstractAgent implements IAgent {
     const job = this._buildNewJob(creationEvent);
     this.jobs.set(jobKey, job);
 
-    let res = await this.network.getExternalLensContract().ethCall('getJobs', [this.address, [jobKey]]);
-    if (res.results.length !== 1) {
-      throw this.err(`addJob(): invalid getJobs() response length: ${res.results.length}`);
-    }
-    job.applyJob(res.results[0]);
+    const tmpMap = new Map();
+    tmpMap.set(jobKey, job);
+    await this.source.addLensFieldsToJob(tmpMap, this.address);
 
     if (!this.ownerJobs.has(owner)) {
       this.ownerJobs.set(owner, new Set());
@@ -346,15 +327,12 @@ export abstract class AbstractAgent implements IAgent {
     const set = this.ownerJobs.get(owner);
     set.add(jobKey);
 
-    res = await this.network.getExternalLensContract().ethCall('getOwnerBalances', [this.address, [owner]]);
-    if (res.results.length !== 1) {
-      throw this.err(`addJob(): invalid getOwnerBalances() response length: ${res.results.length}`);
-    }
+    const ownerBalances = await this.source.getOwnersBalances({ address: this.address }, new Set([owner]));
 
-    this.ownerBalances.set(owner, res.results[0]);
+    this.ownerBalances.set(owner, ownerBalances.get(owner));
   }
 
-  private async startAllJobs() {
+  protected async startAllJobs() {
     for (const [, job] of this.jobs) {
       await job.watch();
     }
@@ -377,46 +355,47 @@ export abstract class AbstractAgent implements IAgent {
   }
 
   public async sendTxEnvelope(envelope: TxEnvelope) {
-    await this.trySendExecuteEnvelope(envelope)
+    await this.trySendExecuteEnvelope(envelope);
   }
 
   // Here only the `maxPriorityFeePerGas` is assigned.
   // The `maxFeePerGas` is assigned earlier during job.buildTx().
   protected async populateTxExtraFields(tx: ethers.UnsignedTransaction) {
     tx.chainId = this.network.getChainId();
-    // @ts-ignore (estimations will fail w/o this `from` assignment
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore (estimations will fail w/o this `from` assignment)
     tx.from = this.workerSigner.address;
-    const maxPriorityFeePerGas = await this.network.getMaxPriorityFeePerGas()
-    console.log({maxPriorityFeePerGas, maxFeePerGas: tx.maxFeePerGas});
+    const maxPriorityFeePerGas = await this.network.getMaxPriorityFeePerGas();
+    console.log({ maxPriorityFeePerGas, maxFeePerGas: tx.maxFeePerGas });
     tx.maxPriorityFeePerGas = String(BigInt(maxPriorityFeePerGas) * 2n);
 
     const maxPriorityFeePerGasBigInt = BigInt(tx.maxPriorityFeePerGas);
     const maxFeePerGasBigInt = BigInt(String(tx.maxFeePerGas));
-    console.log({maxPriorityFeePerGasBigInt, maxFeePerGasBigInt});
+    console.log({ maxPriorityFeePerGasBigInt, maxFeePerGasBigInt });
     if (maxPriorityFeePerGasBigInt > maxFeePerGasBigInt) {
       tx.maxPriorityFeePerGas = maxFeePerGasBigInt.toString(10);
     }
   }
 
   private async trySendExecuteEnvelope(envelope: TxEnvelope) {
-    const { tx, jobKey, ppmCompensation, fixedCompensation, creditsAvailable } = envelope;
+    const { tx, jobKey /*, _ppmCompensation, _fixedCompensation, _creditsAvailable*/ } = envelope;
     if (tx.maxFeePerGas === 0) {
       this.clog(`Dropping tx due job gasPrice limit: (data=${tx.data})`);
       return;
     }
     await this.populateTxExtraFields(tx);
-    const minTxFee = BigNumber.from(tx.maxFeePerGas)
-      .add(tx.maxPriorityFeePerGas)
-      .mul(MIN_EXECUTION_GAS)
-      .mul(ppmCompensation)
-      .div(100)
-      .add(fixedCompensation);
+    // const minTxFee = BigNumber.from(tx.maxFeePerGas)
+    //   .add(tx.maxPriorityFeePerGas)
+    //   .mul(MIN_EXECUTION_GAS)
+    //   .mul(ppmCompensation)
+    //   .div(100)
+    //   .add(fixedCompensation);
 
     // TODO: rewrite this estimation with a new randao formula
     // if (minTxFee.gt(creditsAvailable)) {
     //   this.clog(`⛔️ Ignoring a tx with insufficient credits: (data=${tx.data},required=${minTxFee},available=${creditsAvailable})`);
     // } else {
-      this.executor.push(`${this.address}/${jobKey}`, envelope);
+    this.executor.push(`${this.address}/${jobKey}`, envelope);
     // }
   }
 
@@ -428,13 +407,10 @@ export abstract class AbstractAgent implements IAgent {
   abstract _afterInitializeListeners(blockNumber: number);
 
   protected initializeListeners(blockNumber: number) {
-    this.contract.on('DepositJobCredits', (event) => {
-      const {jobKey, amount, fee} = event.args;
+    this.contract.on('DepositJobCredits', event => {
+      const { jobKey, amount, fee } = event.args;
 
-      this.clog(`'DepositJobCredits' event: (block=${event.blockNumber
-      },jobKey=${jobKey
-      },amount=${amount
-      },fee=${fee})`);
+      this.clog(`'DepositJobCredits' event: (block=${event.blockNumber},jobKey=${jobKey},amount=${amount},fee=${fee})`);
 
       if (!this.jobs.has(jobKey)) {
         this.clog(`Ignoring DepositJobCredits event due the job missing: (jobKey=${jobKey})`);
@@ -451,25 +427,22 @@ export abstract class AbstractAgent implements IAgent {
       job.watch();
     });
 
-    this.contract.on('WithdrawJobCredits', (event) => {
-      const {jobKey, amount} = event.args;
+    this.contract.on('WithdrawJobCredits', event => {
+      const { jobKey, amount } = event.args;
 
-      this.clog(`'WithdrawJobCredits' event: (block=${event.blockNumber
-      },jobKey=${jobKey
-      },amount=${amount})`);
+      this.clog(`'WithdrawJobCredits' event: (block=${event.blockNumber},jobKey=${jobKey},amount=${amount})`);
 
       const job = this.jobs.get(jobKey);
       job.applyJobCreditWithdrawal(BigNumber.from(amount));
       job.watch();
     });
 
-    this.contract.on('DepositJobOwnerCredits', (event) => {
-      const {jobOwner, amount, fee} = event.args;
+    this.contract.on('DepositJobOwnerCredits', event => {
+      const { jobOwner, amount, fee } = event.args;
 
-      this.clog(`'DepositJobOwnerCredits' event: (block=${event.blockNumber
-      },jobOwner=${jobOwner
-      },amount=${amount
-      },fee=${fee})`);
+      this.clog(
+        `'DepositJobOwnerCredits' event: (block=${event.blockNumber},jobOwner=${jobOwner},amount=${amount},fee=${fee})`,
+      );
 
       if (this.ownerBalances.has(jobOwner)) {
         const newBalance = this.ownerBalances.get(jobOwner).add(BigNumber.from(amount));
@@ -488,12 +461,10 @@ export abstract class AbstractAgent implements IAgent {
       }
     });
 
-    this.contract.on('WithdrawJobOwnerCredits', (event) => {
-      const {jobOwner, amount} = event.args;
+    this.contract.on('WithdrawJobOwnerCredits', event => {
+      const { jobOwner, amount } = event.args;
 
-      this.clog(`'WithdrawJobOwnerCredits' event: (block=${event.blockNumber
-      },jobOwner=${jobOwner
-      },amount=${amount})`);
+      this.clog(`'WithdrawJobOwnerCredits' event: (block=${event.blockNumber},jobOwner=${jobOwner},amount=${amount})`);
 
       if (this.ownerBalances.has(jobOwner)) {
         const newBalance = this.ownerBalances.get(jobOwner).sub(BigNumber.from(amount));
@@ -509,12 +480,10 @@ export abstract class AbstractAgent implements IAgent {
       }
     });
 
-    this.contract.on('AcceptJobTransfer', (event) => {
-      const {jobKey_, to_: ownerAfter} = event.args;
+    this.contract.on('AcceptJobTransfer', event => {
+      const { jobKey_, to_: ownerAfter } = event.args;
 
-      this.clog(`'AcceptJobTransfer' event: (block=${event.blockNumber
-      },jobKey_=${jobKey_
-      },to_=${ownerAfter})`);
+      this.clog(`'AcceptJobTransfer' event: (block=${event.blockNumber},jobKey_=${jobKey_},to_=${ownerAfter})`);
 
       const job = this.jobs.get(jobKey_);
       const ownerBefore = job.getOwner();
@@ -529,43 +498,36 @@ export abstract class AbstractAgent implements IAgent {
       job.watch();
     });
 
-    this.contract.on('JobUpdate', (event) => {
-      const {jobKey, maxBaseFeeGwei, rewardPct, fixedReward, jobMinCvp, intervalSeconds} = event.args;
+    this.contract.on('JobUpdate', event => {
+      const { jobKey, maxBaseFeeGwei, rewardPct, fixedReward, jobMinCvp, intervalSeconds } = event.args;
 
-      this.clog(`'JobUpdate' event: (block=${event.blockNumber
-      },jobKey=${jobKey
-      },maxBaseFeeGwei=${maxBaseFeeGwei
-      },reardPct=${rewardPct
-      },fixedReward=${fixedReward
-      },jobMinCvp=${jobMinCvp
-      },intervalSeconds=${intervalSeconds})`);
+      this.clog(
+        `'JobUpdate' event: (block=${event.blockNumber},jobKey=${jobKey},maxBaseFeeGwei=${maxBaseFeeGwei},reardPct=${rewardPct},fixedReward=${fixedReward},jobMinCvp=${jobMinCvp},intervalSeconds=${intervalSeconds})`,
+      );
 
       const job = this.jobs.get(jobKey);
       job.applyUpdate(maxBaseFeeGwei, rewardPct, fixedReward, jobMinCvp, intervalSeconds);
       job.watch();
     });
 
-    this.contract.on('SetJobResolver', (event) => {
-      const {jobKey, resolverAddress, resolverCalldata} = event.args;
+    this.contract.on('SetJobResolver', event => {
+      const { jobKey, resolverAddress, resolverCalldata } = event.args;
 
-      this.clog(`'SetJobResolver' event: (block=${event.blockNumber
-      },jobKey=${jobKey
-      },resolverAddress=${resolverAddress
-      },useJobOwnerCredits_=${resolverCalldata})`);
+      this.clog(
+        `'SetJobResolver' event: (block=${event.blockNumber},jobKey=${jobKey},resolverAddress=${resolverAddress},useJobOwnerCredits_=${resolverCalldata})`,
+      );
 
       const job = this.jobs.get(jobKey);
       job.applyResolver(resolverAddress, resolverCalldata);
       job.watch();
     });
 
-    this.contract.on('SetJobConfig', async (event) => {
-      const {jobKey, isActive_, useJobOwnerCredits_, assertResolverSelector_} = event.args;
+    this.contract.on('SetJobConfig', async event => {
+      const { jobKey, isActive_, useJobOwnerCredits_, assertResolverSelector_ } = event.args;
 
-      this.clog(`'SetJobConfig' event: (block=${event.blockNumber
-      },jobKey=${jobKey
-      },isActive=${isActive_
-      },useJobOwnerCredits_=${useJobOwnerCredits_
-      },assertResolverSelector_=${assertResolverSelector_})`);
+      this.clog(
+        `'SetJobConfig' event: (block=${event.blockNumber},jobKey=${jobKey},isActive=${isActive_},useJobOwnerCredits_=${useJobOwnerCredits_},assertResolverSelector_=${assertResolverSelector_})`,
+      );
 
       const job = this.jobs.get(jobKey);
       const binJob = await this.network.getJobRawBytes32(this.address, jobKey);
@@ -573,41 +535,43 @@ export abstract class AbstractAgent implements IAgent {
       job.watch();
     });
 
-    this.contract.on('RegisterJob', (event) => {
-      const {jobKey, jobAddress, jobId, owner, params} = event.args;
+    this.contract.on('RegisterJob', async event => {
+      const { jobKey, jobAddress, jobId, owner, params } = event.args;
 
-      this.clog(`'RegisterJob' event: (block=${event.blockNumber
-      },jobKey=${jobKey
-      },jobAddress=${jobAddress
-      },jobId=${jobId
-      },owner=${owner
-      },params=${JSON.stringify(params)})`);
+      this.clog(
+        `'RegisterJob' event: (block=${
+          event.blockNumber
+        },jobKey=${jobKey},jobAddress=${jobAddress},jobId=${jobId},owner=${owner},params=${JSON.stringify(params)})`,
+      );
 
-      this.addJob(event);
+      await this.addJob(event);
     });
 
-    this.contract.on('Execute', (event) => {
-      const {jobKey, job: jobAddress, keeperId, gasUsed, baseFee, gasPrice, compensation, binJobAfter} = event.args;
+    this.contract.on('Execute', event => {
+      const { jobKey, job: jobAddress, keeperId, gasUsed, baseFee, gasPrice, compensation, binJobAfter } = event.args;
 
-      this.clog(`'Execute' event: (block=${event.blockNumber
-      },jobKey=${jobKey
-      },jobAddress=${jobAddress
-      },keeperId=${keeperId.toNumber()
-      },gasUsed=${gasUsed.toNumber()},baseFee=${baseFee.toNumber()}gwei,gasPrice=${gasPrice.toNumber()
-      }wei,compensation=${compensation.toNumber() / 1e18}eth/${compensation.toNumber()}wei,binJobAfter=${binJobAfter})`);
+      this.clog(
+        `'Execute' event: (block=${
+          event.blockNumber
+        },jobKey=${jobKey},jobAddress=${jobAddress},keeperId=${keeperId.toNumber()},gasUsed=${gasUsed.toNumber()},baseFee=${baseFee.toNumber()}gwei,gasPrice=${gasPrice.toNumber()}wei,compensation=${
+          compensation.toNumber() / 1e18
+        }eth/${compensation.toNumber()}wei,binJobAfter=${binJobAfter})`,
+      );
 
       const job = this.jobs.get(jobKey);
       job.applyBinJobData(binJobAfter);
+
+      this._afterExecuteEvent(job);
+
       job.watch();
     });
 
-    this.contract.on('SetAgentParams', (event) => {
-      const {minKeeperCvp_, timeoutSeconds_, feePct_} = event.args;
+    this.contract.on('SetAgentParams', event => {
+      const { minKeeperCvp_, timeoutSeconds_, feePct_ } = event.args;
 
-      this.clog(`'SetAgentParams' event: (block=${event.blockNumber
-      },minKeeperCvp_=${minKeeperCvp_
-      },timeoutSeconds_=${timeoutSeconds_
-      },feePct_=${feePct_})`);
+      this.clog(
+        `'SetAgentParams' event: (block=${event.blockNumber},minKeeperCvp_=${minKeeperCvp_},timeoutSeconds_=${timeoutSeconds_},feePct_=${feePct_})`,
+      );
 
       this.clog("'SetAgentParams' event requires the bot to be restarted");
       process.exit(0);

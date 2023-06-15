@@ -1,5 +1,5 @@
 import { BigNumber } from 'ethers';
-import { AgentHardcodedConfig } from "./Types";
+import { AgentHardcodedConfig } from './Types';
 
 export const MIN_EXECUTION_GAS = 55_000;
 
@@ -7,15 +7,15 @@ export const DEFAULT_SYNC_FROM_CHAINS: { [network: string]: number } = {
   mainnet: 15665361,
   goerli: 7298263,
   rinkeby: 11096966,
-}
+};
 
-export const AGENT_HARDCODED_CONFIGS: { [network: string]: {[agent: string]: AgentHardcodedConfig}} = {
+export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: AgentHardcodedConfig } } = {
   mainnet: {
     '0x00000000000f02BB0c9a0fE681b589F67Cf9a5EE': {
       deployedAt: 15665361,
       version: '2.2.0',
       strategy: 'light',
-    }
+    },
   },
   goerli: {
     '0x96cb9B293eB7695904B4Ea0FA73eB3650e07e8E4': {
@@ -54,38 +54,55 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: {[agent: string]: Age
       deployedAt: 3311189,
       version: '2.3.0',
       strategy: 'randao',
-    }
-  }
-}
+    },
+    '0xEEc54451B01963518aFd57ED715E31fcAf2228D2': {
+      deployedAt: 3450952,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
+    '0x69F32100FDca93fc0760D9d375579a41E7955eFF': {
+      deployedAt: 3680463,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
+    '0x910C4874260384eB0F068211d6EB04ff5C29441d': {
+      deployedAt: 3680575,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
+  },
+};
 
 export const MULTICALL_CONTRACTS: { [network: string]: string } = {
   mainnet: '0x5ba1e12693dc8f9c48aad8770482f4739beed696',
   goerli: '0x5ba1e12693dc8f9c48aad8770482f4739beed696',
-  sepolia: '0x3BEDdA2f411409448e0033024d68f1cDb0EEDd7B'
-}
+  sepolia: '0x3BEDdA2f411409448e0033024d68f1cDb0EEDd7B',
+};
 
 export const EXTERNAL_LENS_CONTRACTS_2_2_0: { [network: string]: string } = {
   mainnet: '0x18d1e7b86dcea9e9c723eb25e0f2ba2a305acf88',
   goerli: '0xEAb11e3fF42FFb76f96df9e1F5b6f1AfAFc0C55A',
-  sepolia: '0xbbDf835B2F1b6886911C0A6Be9E056D35a55bcac'
-}
+  sepolia: '0xbbDf835B2F1b6886911C0A6Be9E056D35a55bcac',
+};
 
 export const EXTERNAL_LENS_CONTRACTS_2_3_0: { [network: string]: string } = {
   mainnet: '',
   goerli: '0x1a348FDcD9EcB6c81CA5043B4278716189e6aEe4',
-  sepolia: '0x3606422e94ea26E5eE2653AC0d137c2Bf8b232F8'
-}
+  sepolia: '0x3606422e94ea26E5eE2653AC0d137c2Bf8b232F8',
+};
 
 export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {
   mainnet: 12,
   sepolia: 12,
   goerli: 12,
-}
+};
 
 // export const FLAG_ACCEPT_MAX_BASE_FEE_LIMIT = 0x01;
 // export const FLAG_ACCRUE_REWARD = 0x02;
 
 export const BN_ZERO = BigNumber.from(0x0);
+export const BI_ZERO = BigInt(0);
+export const BI_10E15 = BigInt(10) ** BigInt(15);
 export const CFG_ACTIVE = BigNumber.from(0x01);
 export const CFG_USE_JOB_OWNER_CREDITS = BigNumber.from(0x02);
 export const CFG_ASSERT_RESOLVER_SELECTOR = BigNumber.from(0x04);

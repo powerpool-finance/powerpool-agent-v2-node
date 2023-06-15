@@ -1,5 +1,9 @@
 {
-  "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
+  "extends": [
+    "plugin:@typescript-eslint/recommended",
+    "plugin:prettier/recommended",
+    "prettier"
+  ],
   "root": true,
   "env": {
     "node": true,
@@ -14,7 +18,9 @@
   "parser": "@typescript-eslint/parser",
   "rules": {
     "quotes": ["error", "single", "avoid-escape"],
-    "@typescript-eslint/no-empty-function": "off"
+    "@typescript-eslint/no-empty-function": "off",
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/no-explicit-any": ["warn", { "ignoreRestArgs": true }]
   },
   "plugins": ["prettier", "@typescript-eslint"]
 }

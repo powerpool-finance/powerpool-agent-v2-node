@@ -8,7 +8,6 @@ import {
   CFG_USE_JOB_OWNER_CREDITS,
 } from './Constants.js';
 import { ParsedJobConfig, ParsedRawJob } from './Types.js';
-import { getIcapAddress } from "@ethersproject/address/src.ts";
 
 export function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms, []));
@@ -23,14 +22,14 @@ export function nowMs(): number {
 }
 
 export function nowTimeString(): string {
-  return (new Date()).toISOString().substring(11,24);
+  return new Date().toISOString().substring(11, 24);
 }
 
 export function nowDateTimeString(): string {
-  return (new Date()).toISOString();
+  return new Date().toISOString();
 }
 
-export function toNumber(value: any): number {
+export function toNumber(value: number | BigNumber): number {
   if (typeof value === 'number') {
     return value;
   } else if (BigNumber.isBigNumber(value)) {
@@ -51,7 +50,7 @@ export function toNumber(value: any): number {
 export function encodeExecute(address: string, jobId: number, cfg: number, keeperId: number, calldata?: string) {
   return `${utils.solidityPack(
     ['bytes4', 'address', 'uint24', 'uint8', 'uint24', 'bytes'],
-    ['0x00000000', address, jobId.toString(), cfg.toString(), keeperId.toString(), calldata || '0x']
+    ['0x00000000', address, jobId.toString(), cfg.toString(), keeperId.toString(), calldata || '0x'],
   )}`;
 }
 
@@ -65,13 +64,15 @@ export function applyObjectProps(source: object, destination: object, props: str
 
 // WARNING: Does support only simple types like bytes32, uint256, address.
 // Do not use this function with more complex types or indexed events.
-export function buildSignature(abiItem: any): string {
-  return `${abiItem.name}(${abiItem.inputs.map((item: any) => {
-    if (!['bytes32', 'uint256', 'address'].includes(item.internalType)) {
-      throw new Error(`Utils.buildSignature(): Unsupported type: ${item.internalType}`);
-    }
-    return item.internalType;
-  }).join(',')})`;
+export function buildSignature(abiItem: { name: string; inputs: object[] }): string {
+  return `${abiItem.name}(${abiItem.inputs
+    .map((item: any) => {
+      if (!['bytes32', 'uint256', 'address'].includes(item.internalType)) {
+        throw new Error(`Utils.buildSignature(): Unsupported type: ${item.internalType}`);
+      }
+      return item.internalType;
+    })
+    .join(',')})`;
 }
 
 export function buildAbiSelector(signature: string): string {
@@ -109,22 +110,25 @@ export function parseRawJob(rawJob: string): ParsedRawJob {
     nativeCredits,
     selector,
     config,
-  }
+  };
 }
+
+/**
+ * Parsing job config fetched from blockchain
+ * @param config
+ */
 export function parseConfig(config: BigNumber): ParsedJobConfig {
   return {
-    isActive: !(config.and(CFG_ACTIVE)).eq(BN_ZERO),
-    useJobOwnerCredits: !(config.and(CFG_USE_JOB_OWNER_CREDITS)).eq(BN_ZERO),
-    assertResolverSelector: !(config.and(CFG_ASSERT_RESOLVER_SELECTOR)).eq(BN_ZERO),
-    checkKeeperMinCvpDeposit: !(config.and(CFG_CHECK_KEEPER_MIN_CVP_DEPOSIT)).eq(BN_ZERO)
-  }
+    isActive: !config.and(CFG_ACTIVE).eq(BN_ZERO),
+    useJobOwnerCredits: !config.and(CFG_USE_JOB_OWNER_CREDITS).eq(BN_ZERO),
+    assertResolverSelector: !config.and(CFG_ASSERT_RESOLVER_SELECTOR).eq(BN_ZERO),
+    checkKeeperMinCvpDeposit: !config.and(CFG_CHECK_KEEPER_MIN_CVP_DEPOSIT).eq(BN_ZERO),
+  };
 }
 
 export function fbReasonStringToHexString(reason: string): string {
-  const  buff = Uint8Array.from(reason, e => e.charCodeAt(0) )
-  return '0x' + [...new Uint8Array(buff)]
-    .map(x => x.toString(16).padStart(2, '0'))
-    .join('');
+  const buff = Uint8Array.from(reason, e => e.charCodeAt(0));
+  return '0x' + [...new Uint8Array(buff)].map(x => x.toString(16).padStart(2, '0')).join('');
 }
 
 export function toChecksummedAddress(address: string): string {

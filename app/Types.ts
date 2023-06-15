@@ -3,18 +3,18 @@ import { Network } from './Network';
 import { Contract } from 'web3-eth-contract';
 import { WebsocketProvider } from 'web3-core';
 
-export type AvailableNetworkNames = 'mainnet' | 'bsc'  | 'polygon' | 'goerli';
+export type AvailableNetworkNames = 'mainnet' | 'bsc' | 'polygon' | 'goerli';
 export type ExecutorType = 'flashbots' | 'pga';
 
 export enum CALLDATA_SOURCE {
   SELECTOR,
   PRE_DEFINED_CALLDATA,
-  RESOLVER
+  RESOLVER,
 }
 
 export interface AgentConfig {
-  rewards_contract: string;
-  rewards_check_interval_minutes: number;
+  rewards_contract?: string;
+  rewards_check_interval_minutes?: number;
   keeper_address: string;
   key_pass: string;
   executor: ExecutorType;
@@ -25,11 +25,13 @@ export interface AgentConfig {
 
 export interface NetworkConfig {
   rpc: string;
-  flashbots: {
+  flashbots?: {
     rpc: string;
     address: string;
     pass: string;
-  }
+  };
+  source: string;
+  graphUrl: string;
   max_priority_fee_per_gas?: number;
   agents: { [key: string]: AgentConfig };
 }
@@ -44,9 +46,6 @@ export interface Config {
   networks: AllNetworksConfig;
 }
 
-export interface Storage {
-}
-
 export interface GetJobResponse {
   owner: string;
   pendingTransfer: string;
@@ -54,12 +53,57 @@ export interface GetJobResponse {
   details: JobDetails;
   preDefinedCalldata: string;
   resolver: Resolver;
-  randaoData: {
-    jobNextKeeperId: number,
-    jobReservedSlasherId: number,
-    jobSlashingPossibleAfter: number,
-    jobCreatedAt: number
+  randaoData?: {
+    jobNextKeeperId: number;
+    jobReservedSlasherId: number;
+    jobSlashingPossibleAfter: number;
+    jobCreatedAt: number;
   };
+  config: ParsedJobConfig;
+}
+
+export interface GraphJob {
+  id: string;
+  active: boolean;
+  jobAddress: string;
+  jobId: string;
+  assertResolverSelector: boolean;
+  credits: string;
+  depositCount: string;
+  calldataSource: string;
+  fixedReward: string;
+  executionCount: string;
+  jobSelector: string;
+  lastExecutionAt: string;
+  maxBaseFeeGwei: string;
+  minKeeperCVP: string;
+  resolverAddress: string | null;
+  resolverCalldata: string | null;
+  rewardPct: string;
+  totalCompensations: string;
+  totalExpenses: string;
+  totalProfit: string;
+  useJobOwnerCredits: boolean;
+  withdrawalCount: string;
+  jobCreatedAt: string;
+  intervalSeconds: string;
+  jobNextKeeperId: string;
+  jobReservedSlasherId: string;
+  jobSlashingPossibleAfter: string;
+  preDefinedCalldata: string;
+  owner: {
+    id: string;
+  } | null;
+  pendingOwner: {
+    id: string;
+  } | null;
+  name: string;
+  args: { [key: string]: any };
+}
+
+export interface LensGetJobBytes32AndNextBlockSlasherIdResponse {
+  binJob: string;
+  nextBlockSlasherId: number;
 }
 
 export interface JobDetails {
@@ -72,6 +116,13 @@ export interface JobDetails {
   calldataSource: number;
   intervalSeconds: number;
   lastExecutionAt: number;
+}
+
+export interface GraphJobConfigInterface {
+  active: boolean;
+  useJobOwnerCredits: boolean;
+  assertResolverSelector: boolean;
+  minKeeperCVP: string;
 }
 
 export interface RegisterJobEventParams {
@@ -127,10 +178,7 @@ export interface ClientWrapper {
 export interface ContractWrapperFactory {
   getDefaultProvider(): ethers.providers.BaseProvider | object;
   getLatestBlockNumber(): Promise<number>;
-  build(
-    addressOrName: string,
-    contractInterface: ethers.ContractInterface
-  ): ContractWrapper;
+  build(addressOrName: string, contractInterface: ethers.ContractInterface): ContractWrapper;
 }
 
 export interface ErrorWrapper {
@@ -157,7 +205,7 @@ export interface EventWrapper {
 
   blockNumber: number;
   blockHash: string;
-  nativeEvent: any;
+  nativeEvent: object;
 }
 
 export type WrapperListener = (event: EventWrapper) => void;
@@ -165,7 +213,7 @@ export type WrapperListener = (event: EventWrapper) => void;
 export enum JobType {
   SelectorOrPDCalldata,
   Resolver,
-  IntervalResolver
+  IntervalResolver,
 }
 
 export interface ParsedJobConfig {
@@ -198,16 +246,33 @@ export interface TxEnvelope {
   jobKey: string;
   tx: ethers.UnsignedTransaction;
 
-  // callbacks
-  txEstimationFailed: (error) => void;
-  txExecutionFailed: (error) => void;
-  txNotMinedInBlock: (blockNumber: number, blockTimestamp: number, baseFee: number) => null | TxGasUpdate;
+  executorCallbacks: ExecutorCallbacks;
 
   // TODO: get rid of the fields below
-  creditsAvailable: BigNumber;
-  fixedCompensation: BigNumber;
+  creditsAvailable: bigint;
+  fixedCompensation: bigint;
   ppmCompensation: number;
   minTimestamp?: number;
+}
+
+export interface ExecutorCallbacks {
+  txEstimationFailed: (error) => void;
+  txExecutionFailed: (error) => void;
+  txNotMinedInBlock: TxNotMinedInBlockCallback;
+}
+
+export type TxNotMinedInBlockCallback = (
+  blockNumber: number,
+  blockTimestamp: number,
+  baseFee: number,
+) => null | TxGasUpdate;
+
+export function EmptyTxNotMinedInBlockCallback(
+  _blockNumber: number,
+  _blockTimestamp: number,
+  _baseFee: number,
+): null | TxGasUpdate {
+  return null;
 }
 
 export interface AgentHardcodedConfig {
@@ -218,11 +283,15 @@ export interface AgentHardcodedConfig {
 }
 
 export interface IRandaoAgent extends IAgent {
-  registerIntervalJobSlashing(jobKey: string, timestamp: number, callback: (calldata) => void);
-  unregisterIntervalJobSlashing(jobKey: string);
+  registerJobSlashingTimeout(jobKey: string, timestamp: number, callback: (calldata) => void);
+  unregisterJobSlashingTimeout(jobKey: string);
+  amINextSlasher(jobKey: string): Promise<boolean>;
+  getJobBytes32AndNextBlockSlasherId(jobKey: string): Promise<LensGetJobBytes32AndNextBlockSlasherIdResponse>;
   getPeriod1Duration(): number;
   getPeriod2Duration(): number;
+  getJobMinCredits(): bigint;
   selfUnassignFromJob(jobKey: string): void;
+  initiateSlashing(jobAddress: string, jobId: number, jobKey: string, executorCallbacks: ExecutorCallbacks): void;
 }
 
 export interface IAgent {

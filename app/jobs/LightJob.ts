@@ -10,18 +10,24 @@ export class LightJob extends AbstractJob {
   }
 
   protected _beforeJobWatch(): boolean {
+    if (this.getCreditsAvailable() === 0n) {
+      this.clog('Ignoring a job with 0 credits');
+      return false;
+    }
     return true;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  protected _afterApplyJob(): void {
-  }
+  protected _afterApplyJob(): void {}
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  protected _watchIntervalJob(): void {
-  }
+  protected _watchIntervalJob(): void {}
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  protected intervalJobAvailableCallback(_blockNumber: number) {
+  protected intervalJobAvailableCallback(_blockNumber: number) {}
+
+  protected async resolverSuccessCallback(triggeredByBlockNumber, invokeCalldata) {
+    this.agent.unregisterResolver(this.key);
+    return this.executeTx(this.key, await this.buildTx(this.buildResolverCalldata(invokeCalldata)));
   }
 }

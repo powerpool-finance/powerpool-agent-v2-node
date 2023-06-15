@@ -1,13 +1,21 @@
-import { ClientWrapper, ContractWrapper, ContractWrapperFactory, IAgent, NetworkConfig, Resolver } from './Types.js';
-import {ethers} from 'ethers';
+import {
+  ClientWrapper,
+  ContractWrapper,
+  ContractWrapperFactory,
+  IAgent,
+  LensGetJobBytes32AndNextBlockSlasherIdResponse,
+  NetworkConfig,
+  Resolver,
+} from './Types.js';
+import { ethers } from 'ethers';
 import {
   getAgentVersionAndType,
   getAverageBlockTime,
   getExternalLensAddress,
-  getMulticall2Address
+  getMulticall2Address,
 } from './ConfigGetters.js';
 import { getExternalLensAbi, getMulticall2Abi } from './services/AbiService.js';
-import { nowMs, nowTimeString, toChecksummedAddress } from './Utils.js';
+import { nowMs, nowS, nowTimeString, toChecksummedAddress } from './Utils.js';
 import { EthersContractWrapperFactory } from './clients/EthersContractWrapperFactory.js';
 import EventEmitter from 'events';
 import { AgentRandao_2_3_0 } from './agents/Agent.2.3.0.randao.js';
@@ -24,6 +32,8 @@ interface TimeoutWithCallback {
 }
 
 export class Network {
+  source: string;
+  graphUrl: string;
   private name: string;
   private networkConfig: NetworkConfig;
   private rpc: string;
@@ -33,8 +43,8 @@ export class Network {
   private agents: IAgent[];
   private resolverJobData: { [key: string]: ResolverJobWithCallback };
   private timeoutData: { [key: string]: TimeoutWithCallback };
-  private multicall: ContractWrapper| undefined;
-  private externalLens: ContractWrapper| undefined;
+  private multicall: ContractWrapper | undefined;
+  private externalLens: ContractWrapper | undefined;
   private averageBlockTimeSeconds: number;
   private flashbotsAddress: string;
   private flashbotsPass: string;
@@ -42,7 +52,10 @@ export class Network {
   private newBlockNotifications: Map<number, Set<string>>;
   private contractWrapperFactory: ContractWrapperFactory;
   private newBlockEventEmitter: EventEmitter;
+
   private latestBaseFee: bigint;
+  private latestBlockNumber: bigint;
+  private latestBlockTimestamp: bigint;
 
   private toString(): string {
     return `(name: ${this.name}, rpc: ${this.rpc})`;
@@ -60,19 +73,28 @@ export class Network {
     this.contractWrapperFactory = new EthersContractWrapperFactory([networkConfig.rpc]);
     this.name = name;
     this.rpc = networkConfig.rpc;
+    this.graphUrl = networkConfig.graphUrl;
     this.networkConfig = networkConfig;
+
     this.flashbotsRpc = networkConfig?.flashbots?.rpc;
     this.flashbotsAddress = networkConfig?.flashbots?.address;
     this.flashbotsPass = networkConfig?.flashbots?.pass;
+
     this.averageBlockTimeSeconds = getAverageBlockTime(name);
     this.newBlockEventEmitter = new EventEmitter();
+
+    if (networkConfig.source) {
+      this.source = networkConfig.source;
+    } else {
+      this.source = 'blockchain';
+    }
 
     this.newBlockNotifications = new Map();
 
     if (!this.rpc && !this.rpc.startsWith('ws')) {
       throw this.err(
-        `Only WebSockets RPC endpoints are supported. The current value for '${this.getName()}' is '${this.rpc}'.`
-      )
+        `Only WebSockets RPC endpoints are supported. The current value for '${this.getName()}' is '${this.rpc}'.`,
+      );
     }
 
     this.resolverJobData = {};
@@ -103,10 +125,6 @@ export class Network {
 
   public getAverageBlockTimeSeconds(): number {
     return this.averageBlockTimeSeconds;
-  }
-
-  public async getLatestBlockNumber(): Promise<number> {
-    return this.contractWrapperFactory.getLatestBlockNumber();
   }
 
   public getName(): string {
@@ -150,9 +168,25 @@ export class Network {
     return this.latestBaseFee;
   }
 
+  public getLatestBlockNumber(): bigint {
+    return this.latestBlockNumber;
+  }
+
+  public getLatestBlockTimestamp(): bigint {
+    return this.latestBlockTimestamp;
+  }
+
   public async getJobRawBytes32(agent: string, jobKey: string): Promise<string> {
-    const res = await this.externalLens.ethCall('getJobRawBytes32', [agent, [jobKey]]);
+    const res = await this.externalLens.ethCall('getJobsRawBytes32', [agent, [jobKey]]);
     return res.results[0];
+  }
+
+  public async getJobBytes32AndNextBlockSlasherId(
+    agent: string,
+    jobKey: string,
+  ): Promise<LensGetJobBytes32AndNextBlockSlasherIdResponse> {
+    const res = await this.externalLens.ethCall('getJobBytes32AndNextBlockSlasherId', [agent, jobKey]);
+    return { binJob: res.binJob, nextBlockSlasherId: res.nextBlockSlasherId.toNumber() };
   }
 
   public async init() {
@@ -166,7 +200,7 @@ export class Network {
     // TODO: initialize this after we know agent version and strategy
     this.externalLens = this.contractWrapperFactory.build(
       getExternalLensAddress(this.name, null, null),
-      getExternalLensAbi()
+      getExternalLensAbi(),
     );
 
     try {
@@ -177,8 +211,11 @@ export class Network {
     }
 
     this.chainId = (await this.provider.getNetwork()).chainId;
-    this.latestBaseFee = BigInt((await this.provider.getGasPrice()).toString());
 
+    const latestBlock = await this.provider.getBlock('latest');
+    this.latestBaseFee = BigInt(latestBlock.baseFeePerGas.toString());
+    this.latestBlockNumber = BigInt(latestBlock.number.toString());
+    this.latestBlockTimestamp = BigInt(latestBlock.timestamp.toString());
 
     for (const agent of this.agents) {
       await agent.init();
@@ -190,6 +227,9 @@ export class Network {
       const fetchBlockDelay = nowMs() - before;
 
       this.latestBaseFee = BigInt(block.baseFeePerGas.toString());
+      this.latestBlockNumber = BigInt(block.number.toString());
+      this.latestBlockTimestamp = BigInt(block.timestamp.toString());
+
       this.newBlockEventEmitter.emit('newBlock', block.timestamp);
 
       if (this.newBlockNotifications.has(blockNumber)) {
@@ -202,11 +242,11 @@ export class Network {
         this.newBlockNotifications.set(blockNumber, new Set([block.hash]));
         this.walkThroughTheJobs(blockNumber, block.timestamp);
       }
-
-      this.clog(`🧱 New block: (number=${blockNumber},timestamp=${block.timestamp},hash=${block.hash
-      },txCount=${block.transactions.length},baseFee=${block.baseFeePerGas},fetchDelayMs=${fetchBlockDelay})`);
+      this.clog(
+        `🧱 New block: (number=${blockNumber},timestamp=${block.timestamp},hash=${block.hash},txCount=${block.transactions.length},baseFee=${block.baseFeePerGas},fetchDelayMs=${fetchBlockDelay})`,
+      );
     });
-    this.clog('✅ Network initialization done!')
+    this.clog('✅ Network initialization done!');
   }
 
   public getNewBlockEventEmitter(): EventEmitter {
@@ -241,7 +281,7 @@ export class Network {
       callbacks.push(jobData.callback);
       resolversToCall.push({
         target: jobData.resolver.resolverAddress,
-        callData: jobData.resolver.resolverCalldata
+        callData: jobData.resolver.resolverCalldata,
       });
       // TODO: let this.provider to be executed when making chunk requests;
     }
@@ -258,14 +298,15 @@ export class Network {
       if (res.success) {
         const decoded = ethers.utils.defaultAbiCoder.decode(['bool', 'bytes'], res.returnData);
         if (decoded[0]) {
-          callbacks[i](decoded[1]);
+          callbacks[i](blockNumber, decoded[1]);
           jobsToExecute += 1;
         }
       }
     }
 
-    this.clog(`Block ${blockNumber} resolver estimation results: (resolversToCall=${resolversToCall.length
-      },jobsToExecute=${jobsToExecute})`);
+    this.clog(
+      `Block ${blockNumber} resolver estimation results: (resolversToCall=${resolversToCall.length},jobsToExecute=${jobsToExecute})`,
+    );
   }
 
   private _validateKeyLength(key: string, type: string): void {
@@ -274,13 +315,13 @@ export class Network {
     }
   }
 
-  private _validateKeyNotInMap(key: string, map: {[key: string]: object}, type: string): void {
+  private _validateKeyNotInMap(key: string, map: { [key: string]: object }, type: string): void {
     if (map[key]) {
       throw this.err(`Callback key already exists: type=${type},key=${key}`);
     }
   }
 
-  private _validateKeyInMap(key: string, map: {[key: string]: object}, type: string): void {
+  private _validateKeyInMap(key: string, map: { [key: string]: object }, type: string): void {
     if (!map[key]) {
       throw this.err(`Callback key already exists: type=${type},key=${key}`);
     }
@@ -289,13 +330,15 @@ export class Network {
   public registerTimeout(key: string, triggerCallbackAfter: number, callback: (blockTimestamp: number) => void) {
     this._validateKeyLength(key, 'interval');
     this._validateKeyNotInMap(key, this.timeoutData, 'interval');
+    this.clog('SET Timeout', key, `at: ${triggerCallbackAfter}`, `now: ${nowS()}`);
     this.timeoutData[key] = {
       triggerCallbackAfter,
-      callback
+      callback,
     };
   }
 
   public unregisterTimeout(key: string) {
+    this.clog('UNSET Timeout', key);
     this._validateKeyLength(key, 'interval');
     delete this.timeoutData[key];
   }
@@ -305,7 +348,7 @@ export class Network {
     this._validateKeyNotInMap(key, this.resolverJobData, 'resolver');
     this.resolverJobData[key] = {
       resolver,
-      callback
+      callback,
     };
   }
 

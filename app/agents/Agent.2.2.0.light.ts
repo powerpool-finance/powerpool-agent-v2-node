@@ -31,11 +31,10 @@ export class AgentLight_2_2_0 extends AbstractAgent {
 
   async _tormSlashCurrent() {
     // TODO: walk thorugh jobs, try slash execute
-
   }
 
-  _afterInitializeListeners(blockNumber: number) {
-    this.contract.on('KeeperJobLock', (event) => {
+  _afterInitializeListeners(/*blockNumber: number*/) {
+    this.contract.on('KeeperJobLock', () => {
       // const {jobKey, resolverAddress, resolverCalldata} = event.args;
       //
       // this.clog(`'SetJobResolver' event: (block=${event.blockNumber
@@ -48,10 +47,8 @@ export class AgentLight_2_2_0 extends AbstractAgent {
       // job.watch();
     });
 
-    this.contract.on('KeeperJobUnlock', (event) => {
-    });
+    this.contract.on('KeeperJobUnlock', () => {});
 
-    this.contract.on('JobKeeperUnassigned', (event) => {
-    });
+    this.contract.on('JobKeeperUnassigned', () => {});
   }
 }

@@ -29,8 +29,11 @@ for (const file of files) {
 export function getEncryptedJson(address: string): string {
   address = address.toLowerCase();
   if (!(address in v3Objects)) {
-    throw new Error(`KeysService: missing '${address
-    }' in json key files. Available addresses are: ${JSON.stringify(Object.keys(v3Objects))}`);
+    throw new Error(
+      `KeysService: missing '${address}' in json key files. Available addresses are: ${JSON.stringify(
+        Object.keys(v3Objects),
+      )}`,
+    );
   }
   return v3Objects[address];
 }
@@ -62,7 +65,9 @@ export function getWorkerKey(networkName: string, agentAddress: string): string 
 
   const privateKey = networkConfig.agents[agentAddress];
   if (typeof privateKey !== 'string' || (privateKey.length != 64 && privateKey.length != 66)) {
-    throw new Error(`WorkerKeysService: Invalid worker private key for (network: ${networkName}, agent '${agentAddress}').`);
+    throw new Error(
+      `WorkerKeysService: Invalid worker private key for (network: ${networkName}, agent '${agentAddress}').`,
+    );
   }
 
   return privateKey;

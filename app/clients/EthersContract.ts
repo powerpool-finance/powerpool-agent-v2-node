@@ -1,8 +1,9 @@
 import { ethers } from 'ethers';
-import { buildSignature, buildAbiSelector, nowTimeString, sleep } from '../Utils.js';
+import { nowTimeString, sleep } from '../Utils.js';
 import { ContractWrapper, ErrorWrapper, EventWrapper, WrapperListener } from '../Types.js';
 import { Result, Fragment, ErrorFragment, FunctionFragment, EventFragment } from 'ethers/lib/utils.js';
 import EventEmitter from 'events';
+import { QueueEmitter } from '../services/QueueEmitter.js';
 
 // DANGER: DOES NOT support method override
 export class EthersContract implements ContractWrapper {
@@ -39,22 +40,30 @@ export class EthersContract implements ContractWrapper {
     this.abiEvents = new Map();
     this.abiEventByTopic = new Map();
     this.abiErrorFragments = new Map();
-    this.eventEmitter = new EventEmitter();
+    this.eventEmitter = new QueueEmitter();
 
     for (const obj of contractInterface) {
       switch (obj.type) {
         case 'function':
-          this.abiFunctionOutputKeys.set(obj.name, (FunctionFragment.fromObject(obj).outputs || []).map(v => {
-            return v.name;
-          }));
+          this.abiFunctionOutputKeys.set(
+            obj.name,
+            (FunctionFragment.fromObject(obj).outputs || []).map(v => {
+              return v.name;
+            }),
+          );
           break;
         case 'event':
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
-          obj.signature = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(`${obj.name}(${obj.inputs.map(input => input.type).join(',')})`));
+          obj.signature = this.contract.interface.getEventTopic(obj.name);
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
           this.abiEventByTopic.set(obj.signature, obj);
 
-          this.abiEventKeys.set(obj.name, (obj as EventFragment).inputs.map(v => v.name));
+          this.abiEventKeys.set(
+            obj.name,
+            (obj as EventFragment).inputs.map(v => v.name),
+          );
           this.abiEvents.set(obj.name, obj);
           break;
         default:
@@ -62,23 +71,27 @@ export class EthersContract implements ContractWrapper {
       }
     }
 
-    providers.get(primaryEndpoint).on({
-      address: this.address,
-      // @ts-ignore
-      fromBlock: 'latest'
-    }, (log) => {
-      this.processLog(log);
-    });
+    providers.get(primaryEndpoint).on(
+      {
+        address: this.address,
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        fromBlock: 'latest',
+      },
+      async log => {
+        await this.processLog(log);
+      },
+    );
   }
 
-  private processLog(log) {
+  private async processLog(log) {
     const topic0 = log.topics[0];
     if (this.abiEventByTopic.has(topic0)) {
       const abiEvent = this.abiEventByTopic.get(topic0);
       const parsedLogs = this.contract.interface.parseLog(log);
       this.eventEmitter.emit(abiEvent.name, Object.assign(log, parsedLogs));
     } else {
-      throw this.err('EthersContract: event missing from abi', log);
+      throw this.err('EthersContract: event missing from abi', JSON.stringify(log));
     }
   }
   public decodeError(response: string): ErrorWrapper {
@@ -86,7 +99,7 @@ export class EthersContract implements ContractWrapper {
     return {
       name: decoded.name,
       signature: decoded.signature,
-      args: filterFunctionResultObject(decoded.args)
+      args: filterFunctionResultObject(decoded.args),
     };
   }
 
@@ -115,7 +128,7 @@ export class EthersContract implements ContractWrapper {
 
   public encodeABI(method: string, args = []): string {
     if (!(method in this.contract)) {
-      throw this.err(`Contract ${this.address} doesn't have method '${method}' in the provided abi.`)
+      throw this.err(`Contract ${this.address} doesn't have method '${method}' in the provided abi.`);
     }
     return this.contract.interface.encodeFunctionData(method, args);
   }
@@ -126,7 +139,7 @@ export class EthersContract implements ContractWrapper {
 
   public async ethCall(method: string, args = [], overrides = {}, callStatic = false): Promise<any> {
     if (!(method in this.contract)) {
-      throw this.err(`Contract ${this.address} doesn't have method '${method}' in the provided abi.`)
+      throw this.err(`Contract ${this.address} doesn't have method '${method}' in the provided abi.`);
     }
     let errorCounter = this.attempts;
 
@@ -144,13 +157,16 @@ export class EthersContract implements ContractWrapper {
         clearTimeout(timeout);
         return filterFunctionResultObject(res);
       } catch (e) {
-        this.clog(`Error(attempt=${this.attempts - errorCounter}/${this.attempts}) querying method '${
-          method}' with arguments ${JSON.stringify(args)} and overrides ${JSON.stringify(overrides)}:
+        this.clog(`Error(attempt=${this.attempts - errorCounter}/${
+          this.attempts
+        }) querying method '${method}' with arguments ${JSON.stringify(args)} and overrides ${JSON.stringify(
+          overrides,
+        )}:
 ${e.message}: ${Error().stack}`);
         clearTimeout(timeout);
         await sleep(this.attemptTimeoutSeconds * 1000);
       }
-    } while (errorCounter-- > 0)
+    } while (errorCounter-- > 0);
   }
 
   public async getPastEvents(eventName: string, from: number, to: number): Promise<EventWrapper[]> {
@@ -166,30 +182,36 @@ ${e.message}: ${Error().stack}`);
         logIndex: event.logIndex,
         blockNumber: event.blockNumber,
         blockHash: event.blockHash,
-        nativeEvent: {}
+        nativeEvent: {},
       };
     });
   }
 
   public on(eventName: string, eventEmittedCallback: WrapperListener): ContractWrapper {
-    this.eventEmitter.on(eventName, (...args) => {
+    this.eventEmitter.on(eventName, async (...args) => {
+      const done = args.pop();
       const event = args[args.length - 1];
       console.log('😁😁😁😁😁😁😁😁😁😁😁', event.transactionHash, event.logIndex, eventName);
       const onlyFields = filterFunctionResultObject(event.args);
-      eventEmittedCallback({
+      await eventEmittedCallback({
         name: eventName,
         args: onlyFields,
         logIndex: event.logIndex,
         blockNumber: event.blockNumber,
         blockHash: event.blockHash,
-        nativeEvent: {}
+        nativeEvent: {},
       });
+      done();
     });
     return this;
   }
+
+  public getAbiEventsByLogs() {
+    return this.abiEventByTopic;
+  }
 }
 
-function filterFunctionResultObject(res: Result): { [key: string ]: any } {
+function filterFunctionResultObject(res: Result): { [key: string]: any } {
   if (!Array.isArray(res)) {
     return res;
   }
@@ -198,7 +220,8 @@ function filterFunctionResultObject(res: Result): { [key: string ]: any } {
 
   if (res.length === 0) {
     return {};
-  } if (res.length === 1) {
+  }
+  if (res.length === 1) {
     return [filterFunctionResultObject(res['0'])];
   } else if (res.length > 1) {
     // For a fake array the object keys length is twice bigger than its length
@@ -206,7 +229,8 @@ function filterFunctionResultObject(res: Result): { [key: string ]: any } {
     // if is a real array, it's items could be an unfiltered object
     if (isRealArray) {
       return res.map(v => filterFunctionResultObject(v));
-    } else { // else it is a fake object
+    } else {
+      // else it is a fake object
       let i = 0;
       for (const field in res) {
         if (i++ < res.length) {
