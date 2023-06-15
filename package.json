@@ -1,8 +1,8 @@
 {
   "name": "powerpool-agent-v2-node",
-  "version": "0.2.0",
-  "description": "",
-  "main": "index.js",
+  "version": "0.3.0",
+  "description": "PowerPool Agent V2 Keeper Node",
+  "main": "app/App.ts",
   "scripts": {
     "build": "tsc",
     "start": "ts-node app/App.ts",
