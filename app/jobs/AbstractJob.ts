@@ -291,7 +291,7 @@ export abstract class AbstractJob {
     }
   }
 
-  public async watch() {
+  public watch() {
     this.unwatch();
 
     this.clog('watch()');
