@@ -15,9 +15,12 @@ function clog(...args: any[]) {
   console.log(`>>> ${nowTimeString()} >>> App:`, ...args);
 }
 
+let unhandledExceptionsStrictMode = false;
+
 class App {
   private readonly networks: { [key: string]: object };
-  private config: Config;
+  private readonly config: Config;
+  private readonly details;
 
   constructor() {
     this.networks = {};
@@ -69,6 +72,9 @@ class App {
       };
 
       config = {
+        strict: {
+          all: false,
+        },
         networks: {
           enabled: [networkName],
           details: {
@@ -77,6 +83,42 @@ class App {
         },
         observe: false,
       };
+    }
+
+    // Override all
+    let anyStrict = false;
+    if (config.strict) {
+      if (typeof config.strict !== 'object') {
+        config.strict = { all: false };
+      }
+
+      if (typeof config.strict.all !== 'undefined' && typeof config.strict.all !== 'boolean') {
+        throw new Error(
+          `Invalid config.strict.all type: (type=${typeof config.strict.all},value=${
+            config.strict.all
+          }). Set a boolean value or remove it.`,
+        );
+      }
+
+      if (config.strict.all === true) {
+        const all = !!config.strict.all;
+        config.strict.basic = all;
+        config.strict.unhandled = all;
+        config.strict.estimations = all;
+        unhandledExceptionsStrictMode = all;
+        anyStrict = true;
+      } else {
+        config.strict.basic = !!config.strict.basic;
+        config.strict.unhandled = !!config.strict.unhandled;
+        config.strict.estimations = !!config.strict.estimations;
+        unhandledExceptionsStrictMode = !!config.strict.unhandled;
+        anyStrict = config.strict.basic || config.strict.unhandled || config.strict.estimations;
+      }
+    }
+
+    if (anyStrict) {
+      console.log({ strictMode: config.strict });
+      console.log('WARNING: "basic" and "estimations" strict mode options are not supported yet.');
     }
 
     console.log(config.networks);
@@ -126,5 +168,11 @@ class App {
 });
 
 process.on('unhandledRejection', function (reason, _promise) {
-  console.log('Unhandled Rejection, reason:', reason);
+  const msg = `Unhandled Rejection, reason: ${reason}`;
+  if (unhandledExceptionsStrictMode) {
+    throw new Error(msg);
+    process.exit(1);
+  } else {
+    console.log(msg);
+  }
 });

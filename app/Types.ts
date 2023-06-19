@@ -39,8 +39,16 @@ export interface AllNetworksConfig {
   details: { [key: string]: NetworkConfig };
 }
 
+export interface StrictModeConfig {
+  all?: boolean;
+  basic?: boolean;
+  unhandled?: boolean;
+  estimations?: boolean;
+}
+
 export interface Config {
-  observe: boolean;
+  observe?: boolean;
+  strict: StrictModeConfig;
   networks: AllNetworksConfig;
 }
 
