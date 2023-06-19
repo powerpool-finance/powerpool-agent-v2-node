@@ -155,7 +155,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
   }
 
   _afterInitializeListeners() {
-    this.contract.on('JobKeeperChanged', async event => {
+    this.contract.on(['JobKeeperChanged'], async event => {
       const { keeperFrom, keeperTo, jobKey } = event.args;
 
       this.clog(
@@ -189,8 +189,8 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       job.applyInitiateSlashing(jobSlashingPossibleAfter, slasherKeeperId);
     });
 
-    // TODO: Incorrect event name for contracts <= v2.3.0-beta.7. SlashJob should be used instead.
-    this.contract.on('SlashIntervalJob', event => {
+    // TODO: Incorrect event name for contracts <= v2.3.0-beta.7. SlashKeeper should be used instead.
+    this.contract.on(['SlashIntervalJob', 'SlashKeeper'], event => {
       const { jobKey, expectedKeeperId, actualKeeperId, fixedSlashAmount, dynamicSlashAmount, slashAmountMissing } =
         event.args;
 

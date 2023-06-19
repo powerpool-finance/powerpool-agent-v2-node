@@ -187,22 +187,31 @@ ${e.message}: ${Error().stack}`);
     });
   }
 
-  public on(eventName: string, eventEmittedCallback: WrapperListener): ContractWrapper {
-    this.eventEmitter.on(eventName, async (...args) => {
-      const done = args.pop();
-      const event = args[args.length - 1];
-      console.log('😁😁😁😁😁😁😁😁😁😁😁', event.transactionHash, event.logIndex, eventName);
-      const onlyFields = filterFunctionResultObject(event.args);
-      await eventEmittedCallback({
-        name: eventName,
-        args: onlyFields,
-        logIndex: event.logIndex,
-        blockNumber: event.blockNumber,
-        blockHash: event.blockHash,
-        nativeEvent: {},
+  public on(eventNameOrNames: string | string[], eventEmittedCallback: WrapperListener): ContractWrapper {
+    let eventNameList;
+    if (typeof eventNameOrNames === 'string') {
+      eventNameList = [eventNameOrNames];
+    } else {
+      eventNameList = eventNameOrNames;
+    }
+
+    for (const eventName of eventNameList) {
+      this.eventEmitter.on(eventName, async (...args) => {
+        const done = args.pop();
+        const event = args[args.length - 1];
+        console.log('Event Emitted ⚽️⚽️⚽️', event.transactionHash, event.logIndex, eventName);
+        const onlyFields = filterFunctionResultObject(event.args);
+        await eventEmittedCallback({
+          name: eventName,
+          args: onlyFields,
+          logIndex: event.logIndex,
+          blockNumber: event.blockNumber,
+          blockHash: event.blockHash,
+          nativeEvent: {},
+        });
+        done();
       });
-      done();
-    });
+    }
     return this;
   }
 

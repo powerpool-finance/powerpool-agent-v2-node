@@ -192,7 +192,7 @@ export interface ContractWrapper {
   ethCall(method: string, args?: any[], overrides?: object, callStatic?: boolean): Promise<any>;
   ethCallStatic(method: string, args?: any[], overrides?: object): Promise<any>;
   getPastEvents(eventName: string, from: number, to: number): Promise<any[]>;
-  on(eventName: string, eventEmittedCallback: WrapperListener): ContractWrapper;
+  on(eventNameOrNames: string | string[], eventEmittedCallback: WrapperListener): ContractWrapper;
   encodeABI(method: string, args?: any[]): string;
 }
 
