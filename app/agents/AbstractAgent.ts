@@ -33,7 +33,6 @@ export abstract class AbstractAgent implements IAgent {
   protected keeperId: number;
   protected contract: ContractWrapper;
   private source: BlockchainSource | SubgraphSource;
-  private rewardsContract: ContractWrapper;
   private workerSigner: ethers.Wallet;
   private executor: Executor;
 
