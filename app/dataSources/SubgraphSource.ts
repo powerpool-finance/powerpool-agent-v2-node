@@ -87,7 +87,7 @@ export class SubgraphSource extends AbstractSource {
       const [latestBock, { _meta }] = await Promise.all([
         this.network.getLatestBlockNumber(),
         this.query(
-          this.network.getGraphUrl,
+          this.network.getGraphUrl(),
           `{
           _meta {
             ${this.queries._meta}
@@ -96,7 +96,7 @@ export class SubgraphSource extends AbstractSource {
         ),
       ]);
 
-      const isSynced = latestBock - _meta.block.number <= 10; // Our graph is desynced if its behind for more than 10 blocks
+      const isSynced = latestBock - BigInt(_meta.block.number) <= 10; // Our graph is desynced if its behind for more than 10 blocks
       if (!isSynced) throw this.err(`Subgraph is out-of-sync with blockchain. it's url: ${this.network.getGraphUrl}`);
       return isSynced;
     } catch (e) {
@@ -121,7 +121,7 @@ export class SubgraphSource extends AbstractSource {
     }
     try {
       const { jobs } = await this.query(
-        this.network.getGraphUrl,
+        this.network.getGraphUrl(),
         `{
           jobs {
             ${this.queries.jobsQuery}
@@ -215,7 +215,7 @@ export class SubgraphSource extends AbstractSource {
       }
 
       const { jobOwners } = await this.query(
-        this.network.getGraphUrl,
+        this.network.getGraphUrl(),
         `{
           jobOwners {
             ${this.queries.jobOwnersQuery}
