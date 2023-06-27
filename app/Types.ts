@@ -23,6 +23,7 @@ export interface AgentConfig {
 
 export interface NetworkConfig {
   rpc: string;
+  ws_timeout: number;
   flashbots?: {
     rpc: string;
     address: string;

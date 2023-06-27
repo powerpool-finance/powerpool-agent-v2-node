@@ -9,6 +9,7 @@ import { QueueEmitter } from '../services/QueueEmitter.js';
 export class EthersContract implements ContractWrapper {
   private readonly contract: ethers.Contract;
   private readonly address: string;
+  private readonly ws_timeout: number;
 
   private readonly attempts = 3;
   private readonly attemptTimeoutSeconds = 1;
@@ -30,10 +31,12 @@ export class EthersContract implements ContractWrapper {
     contractInterface: ReadonlyArray<Fragment>,
     primaryEndpoint: string,
     providers: Map<string, ethers.providers.BaseProvider>,
+    ws_timeout: number,
   ) {
     this.address = addressOrName;
     this.contract = new ethers.Contract(addressOrName, contractInterface, providers.get(primaryEndpoint));
     this.primaryEndpoint = primaryEndpoint;
+    this.ws_timeout = ws_timeout;
     this.providers = providers;
     this.abiFunctionOutputKeys = new Map();
     this.abiEventKeys = new Map();
@@ -144,9 +147,14 @@ export class EthersContract implements ContractWrapper {
     let errorCounter = this.attempts;
 
     do {
+      const timeoutMs = this.ws_timeout ? this.ws_timeout : 15000;
       const timeout = setTimeout(() => {
-        throw new Error(`Call execution took more than 15 seconds: method=${method},args=${JSON.stringify(args)}.`);
-      }, 15000);
+        throw new Error(
+          `Call execution took more than ${Math.ceil(timeoutMs)} seconds: method=${method},args=${JSON.stringify(
+            args,
+          )}.`,
+        );
+      }, timeoutMs);
       try {
         let res;
         if (callStatic) {

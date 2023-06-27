@@ -70,7 +70,7 @@ export class Network {
   }
 
   constructor(name: string, networkConfig: NetworkConfig) {
-    this.contractWrapperFactory = new EthersContractWrapperFactory([networkConfig.rpc]);
+    this.contractWrapperFactory = new EthersContractWrapperFactory([networkConfig.rpc], networkConfig.ws_timeout);
     this.name = name;
     this.rpc = networkConfig.rpc;
     this.graphUrl = networkConfig.graphUrl;

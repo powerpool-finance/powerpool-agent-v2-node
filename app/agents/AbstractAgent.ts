@@ -320,6 +320,8 @@ export abstract class AbstractAgent implements IAgent {
     tmpMap.set(jobKey, job);
     await this.source.addLensFieldsToJob(tmpMap, this.address);
 
+    // nullify credits
+
     if (!this.ownerJobs.has(owner)) {
       this.ownerJobs.set(owner, new Set());
     }

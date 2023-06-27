@@ -65,6 +65,7 @@ class App {
       const netConfig: NetworkConfig = {
         graphUrl: '',
         source: '',
+        ws_timeout: 0,
         rpc: process.env.NETWORK_RPC,
         agents: {
           [agentAddress]: agentConfig,

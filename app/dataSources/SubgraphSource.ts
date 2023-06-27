@@ -154,7 +154,7 @@ export class SubgraphSource extends AbstractSource {
   /**
    * here we can populate job with full graph data, as if we made a request to getJobs lens method.
    * But we already hale all the data
-   * @param graphData -
+   * @param graphData
    */
   addLensFieldsToJob(graphData) {
     const lensFields: any = {};
