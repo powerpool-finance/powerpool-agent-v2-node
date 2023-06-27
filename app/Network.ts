@@ -33,7 +33,7 @@ interface TimeoutWithCallback {
 
 export class Network {
   source: string;
-  graphUrl: string;
+  private graphUrl: string;
   private name: string;
   private networkConfig: NetworkConfig;
   private rpc: string;
@@ -73,7 +73,7 @@ export class Network {
     this.contractWrapperFactory = new EthersContractWrapperFactory([networkConfig.rpc], networkConfig.ws_timeout);
     this.name = name;
     this.rpc = networkConfig.rpc;
-    this.graphUrl = networkConfig.graphUrl;
+    this.graphUrl = networkConfig.graph_url;
     this.networkConfig = networkConfig;
 
     this.flashbotsRpc = networkConfig?.flashbots?.rpc;
@@ -125,6 +125,10 @@ export class Network {
 
   public getAverageBlockTimeSeconds(): number {
     return this.averageBlockTimeSeconds;
+  }
+
+  public getGraphUrl(): string {
+    return this.graphUrl;
   }
 
   public getName(): string {

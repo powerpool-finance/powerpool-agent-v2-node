@@ -134,7 +134,7 @@ export abstract class AbstractAgent implements IAgent {
     }
 
     // setting data source
-    if (this.network.source === 'subgraph' && this.network.graphUrl) {
+    if (this.network.source === 'subgraph' && this.network.getGraphUrl) {
       this.source = new SubgraphSource(this.network, this.contract);
     } else {
       this.source = new BlockchainSource(this.network, this.contract);

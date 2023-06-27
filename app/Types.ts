@@ -30,7 +30,7 @@ export interface NetworkConfig {
     pass: string;
   };
   source: string;
-  graphUrl: string;
+  graph_url: string;
   max_priority_fee_per_gas?: number;
   agents: { [key: string]: AgentConfig };
 }
