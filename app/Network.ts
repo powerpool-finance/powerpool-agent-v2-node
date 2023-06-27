@@ -32,7 +32,7 @@ interface TimeoutWithCallback {
 }
 
 export class Network {
-  source: string;
+  private dataSource: string;
   private graphUrl: string;
   private name: string;
   private networkConfig: NetworkConfig;
@@ -83,10 +83,10 @@ export class Network {
     this.averageBlockTimeSeconds = getAverageBlockTime(name);
     this.newBlockEventEmitter = new EventEmitter();
 
-    if (networkConfig.source) {
-      this.source = networkConfig.source;
+    if (networkConfig.data_source) {
+      this.dataSource = networkConfig.data_source;
     } else {
-      this.source = 'blockchain';
+      this.dataSource = 'blockchain';
     }
 
     this.newBlockNotifications = new Map();
@@ -125,6 +125,10 @@ export class Network {
 
   public getAverageBlockTimeSeconds(): number {
     return this.averageBlockTimeSeconds;
+  }
+
+  public getDataSource(): string {
+    return this.dataSource;
   }
 
   public getGraphUrl(): string {

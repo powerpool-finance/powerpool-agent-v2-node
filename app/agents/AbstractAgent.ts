@@ -32,7 +32,7 @@ export abstract class AbstractAgent implements IAgent {
   protected address: string;
   protected keeperId: number;
   protected contract: ContractWrapper;
-  private source: BlockchainSource | SubgraphSource;
+  private dataSource: BlockchainSource | SubgraphSource;
   private workerSigner: ethers.Wallet;
   private executor: Executor;
 
@@ -134,10 +134,10 @@ export abstract class AbstractAgent implements IAgent {
     }
 
     // setting data source
-    if (this.network.source === 'subgraph' && this.network.getGraphUrl()) {
-      this.source = new SubgraphSource(this.network, this.contract);
+    if (this.network.getDataSource() === 'subgraph' && this.network.getGraphUrl()) {
+      this.dataSource = new SubgraphSource(this.network, this.contract);
     } else {
-      this.source = new BlockchainSource(this.network, this.contract);
+      this.dataSource = new BlockchainSource(this.network, this.contract);
     }
 
     // Ensure version matches
@@ -283,7 +283,7 @@ export abstract class AbstractAgent implements IAgent {
     const latestBock = await this.network.getLatestBlockNumber();
     // 1. init jobs
     let newJobs = new Map<string, RandaoJob | LightJob>();
-    newJobs = await this.source.getRegisteredJobs(this);
+    newJobs = await this.dataSource.getRegisteredJobs(this);
 
     // 2. set owners
     const jobOwnersSet = new Set<string>();
@@ -300,7 +300,7 @@ export abstract class AbstractAgent implements IAgent {
     }
 
     // 3. Load job owner balances
-    this.ownerBalances = await this.source.getOwnersBalances(this, jobOwnersSet);
+    this.ownerBalances = await this.dataSource.getOwnersBalances(this, jobOwnersSet);
     this.jobs = newJobs;
 
     await this.startAllJobs();
@@ -318,7 +318,7 @@ export abstract class AbstractAgent implements IAgent {
 
     const tmpMap = new Map();
     tmpMap.set(jobKey, job);
-    await this.source.addLensFieldsToJob(tmpMap, this.address);
+    await this.dataSource.addLensFieldsToJob(tmpMap, this.address);
 
     // nullify credits
 
@@ -328,7 +328,7 @@ export abstract class AbstractAgent implements IAgent {
     const set = this.ownerJobs.get(owner);
     set.add(jobKey);
 
-    const ownerBalances = await this.source.getOwnersBalances({ address: this.address }, new Set([owner]));
+    const ownerBalances = await this.dataSource.getOwnersBalances({ address: this.address }, new Set([owner]));
 
     this.ownerBalances.set(owner, ownerBalances.get(owner));
   }
