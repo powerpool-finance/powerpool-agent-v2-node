@@ -6,7 +6,7 @@ import { Fragment } from '@ethersproject/abi/src.ts/fragments';
 
 export class EthersContractWrapperFactory implements ContractWrapperFactory {
   private readonly primaryEndpoint: string;
-  private readonly ws_timeout: number;
+  private readonly wsCallTimeout: number;
   private readonly provider: ethers.providers.BaseProvider;
 
   constructor(wsRpcEndpoints: string[], wsTimeout) {
@@ -15,7 +15,7 @@ export class EthersContractWrapperFactory implements ContractWrapperFactory {
     }
     const [primaryEndpoint] = wsRpcEndpoints;
     this.primaryEndpoint = primaryEndpoint;
-    this.ws_timeout = wsTimeout;
+    this.wsCallTimeout = wsTimeout;
     console.log({ primaryEndpoint });
     this.provider = new ethers.providers.WebSocketProvider(primaryEndpoint);
   }
@@ -46,6 +46,6 @@ export class EthersContractWrapperFactory implements ContractWrapperFactory {
   build(addressOrName: string, contractInterface: ReadonlyArray<Fragment>): ContractWrapper {
     const providers = new Map<string, ethers.providers.BaseProvider>();
     providers.set(this.primaryEndpoint, this.getDefaultProvider());
-    return new EthersContract(addressOrName, contractInterface, this.primaryEndpoint, providers, this.ws_timeout);
+    return new EthersContract(addressOrName, contractInterface, this.primaryEndpoint, providers, this.wsCallTimeout);
   }
 }
