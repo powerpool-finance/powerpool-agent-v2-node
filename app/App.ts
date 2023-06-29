@@ -33,7 +33,7 @@ class App {
         fs.readFileSync(path.resolve(__dirname, `../config/${configName}.yaml`)).toString(),
       ) as Config;
     } else {
-      console.log('NETWORK_NAME is found. Assuming configuration is don with ENV vars...');
+      console.log('NETWORK_NAME is found. Assuming configuration is done with ENV vars...');
       const networkName = process.env.NETWORK_NAME;
       const networkRpc = process.env.NETWORK_RPC;
       const agentAddress = process.env.AGENT_ADDRESS;
@@ -63,9 +63,6 @@ class App {
       };
 
       const netConfig: NetworkConfig = {
-        graph_url: '',
-        data_source: '',
-        ws_timeout: 0,
         rpc: process.env.NETWORK_RPC,
         agents: {
           [agentAddress]: agentConfig,
@@ -140,9 +137,6 @@ class App {
         const network = new Network(netName, netConfig);
         inits.push(network.init());
         this.networks[netName] = network;
-        if (netConfig.data_source === 'subgraph' && !netConfig.graph_url) {
-          throw new Error('Please set graph_url if you want to proceed with subgraph data_source');
-        }
       } else {
         clog('Skipping', netName, 'network...');
       }

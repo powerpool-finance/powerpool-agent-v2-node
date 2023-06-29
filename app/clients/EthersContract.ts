@@ -150,7 +150,7 @@ export class EthersContract implements ContractWrapper {
       const timeoutMs = this.wsCallTimeout ? this.wsCallTimeout : 15000;
       const timeout = setTimeout(() => {
         throw new Error(
-          `Call execution took more than ${Math.ceil(timeoutMs)} seconds: method=${method},args=${JSON.stringify(
+          `Call execution took more than ${Math.ceil(timeoutMs / 1000)} seconds: method=${method},args=${JSON.stringify(
             args,
           )}.`,
         );

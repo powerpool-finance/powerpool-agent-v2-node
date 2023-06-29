@@ -7,6 +7,7 @@ import {
   ExecutorType,
   IAgent,
   Resolver,
+  SourceConfig,
   TxEnvelope,
 } from '../Types.js';
 import { BigNumber, ethers, Wallet } from 'ethers';
@@ -32,6 +33,7 @@ export abstract class AbstractAgent implements IAgent {
   protected address: string;
   protected keeperId: number;
   protected contract: ContractWrapper;
+  private sourceConfig: SourceConfig;
   private dataSource: BlockchainSource | SubgraphSource;
   private workerSigner: ethers.Wallet;
   private executor: Executor;
@@ -70,16 +72,22 @@ export abstract class AbstractAgent implements IAgent {
 
   protected _afterExecuteEvent(_job: AbstractJob) {}
 
-  constructor(address: string, agentConfig: AgentConfig, network: Network) {
+  constructor(address: string, agentConfig: AgentConfig, network: Network, sourceConfig: SourceConfig) {
     this.jobs = new Map();
     this.ownerBalances = new Map();
     this.ownerJobs = new Map();
     this.address = address;
     this.network = network;
     this.executorType = agentConfig.executor;
+    this.sourceConfig = sourceConfig;
 
     this.lastBlockTimestamp = 0;
     this.cfg = 0;
+
+    // Check if all data for subgraph is provided
+    if (this.sourceConfig.dataSource === 'subgraph' && !this.sourceConfig.graphUrl) {
+      throw new Error('Please set graph_url if you want to proceed with subgraph data_source');
+    }
 
     if (!('keeper_address' in agentConfig) || !agentConfig.keeper_address || agentConfig.keeper_address.length === 0) {
       throw this.err(
@@ -134,8 +142,8 @@ export abstract class AbstractAgent implements IAgent {
     }
 
     // setting data source
-    if (this.network.getDataSource() === 'subgraph' && this.network.getGraphUrl()) {
-      this.dataSource = new SubgraphSource(this.network, this.contract);
+    if (this.sourceConfig.dataSource === 'subgraph') {
+      this.dataSource = new SubgraphSource(this.network, this.contract, this.sourceConfig.graphUrl);
     } else {
       this.dataSource = new BlockchainSource(this.network, this.contract);
     }
@@ -319,8 +327,6 @@ export abstract class AbstractAgent implements IAgent {
     const tmpMap = new Map();
     tmpMap.set(jobKey, job);
     await this.dataSource.addLensFieldsToJob(tmpMap, this.address);
-
-    // nullify credits
 
     if (!this.ownerJobs.has(owner)) {
       this.ownerJobs.set(owner, new Set());

@@ -32,8 +32,6 @@ interface TimeoutWithCallback {
 }
 
 export class Network {
-  private dataSource: string;
-  private graphUrl: string;
   private name: string;
   private networkConfig: NetworkConfig;
   private rpc: string;
@@ -73,7 +71,6 @@ export class Network {
     this.contractWrapperFactory = new EthersContractWrapperFactory([networkConfig.rpc], networkConfig.ws_timeout);
     this.name = name;
     this.rpc = networkConfig.rpc;
-    this.graphUrl = networkConfig.graph_url;
     this.networkConfig = networkConfig;
 
     this.flashbotsRpc = networkConfig?.flashbots?.rpc;
@@ -82,12 +79,6 @@ export class Network {
 
     this.averageBlockTimeSeconds = getAverageBlockTime(name);
     this.newBlockEventEmitter = new EventEmitter();
-
-    if (networkConfig.data_source) {
-      this.dataSource = networkConfig.data_source;
-    } else {
-      this.dataSource = 'blockchain';
-    }
 
     this.newBlockNotifications = new Map();
 
@@ -108,9 +99,15 @@ export class Network {
       let agent;
 
       if (version === '2.3.0' && strategy === 'randao') {
-        agent = new AgentRandao_2_3_0(checksummedAddress, agentConfig, this);
+        agent = new AgentRandao_2_3_0(checksummedAddress, agentConfig, this, {
+          graphUrl: networkConfig.graph_url,
+          dataSource: networkConfig.data_source,
+        });
       } else if (version === '2.2.0' && strategy === 'light') {
-        agent = new AgentLight_2_2_0(checksummedAddress, agentConfig, this);
+        agent = new AgentLight_2_2_0(checksummedAddress, agentConfig, this, {
+          graphUrl: networkConfig.graph_url,
+          dataSource: networkConfig.data_source,
+        });
       } else {
         throw this.err(`Not supported agent version/strategy: version=${version},strategy=${strategy}`);
       }
@@ -125,14 +122,6 @@ export class Network {
 
   public getAverageBlockTimeSeconds(): number {
     return this.averageBlockTimeSeconds;
-  }
-
-  public getDataSource(): string {
-    return this.dataSource;
-  }
-
-  public getGraphUrl(): string {
-    return this.graphUrl;
   }
 
   public getName(): string {

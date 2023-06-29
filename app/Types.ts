@@ -23,16 +23,21 @@ export interface AgentConfig {
 
 export interface NetworkConfig {
   rpc: string;
-  ws_timeout: number;
+  ws_timeout?: number;
   flashbots?: {
     rpc: string;
     address: string;
     pass: string;
   };
-  data_source: string;
-  graph_url: string;
+  data_source?: string;
+  graph_url?: string;
   max_priority_fee_per_gas?: number;
   agents: { [key: string]: AgentConfig };
+}
+
+export interface SourceConfig {
+  graphUrl: string;
+  dataSource: string;
 }
 
 export interface AllNetworksConfig {
