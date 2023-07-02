@@ -17,7 +17,7 @@ function clog(...args: any[]) {
 
 let unhandledExceptionsStrictMode = false;
 
-class App {
+export class App {
   private readonly networks: { [key: string]: object };
   private readonly config: Config;
   private readonly details;
@@ -33,7 +33,7 @@ class App {
         fs.readFileSync(path.resolve(__dirname, `../config/${configName}.yaml`)).toString(),
       ) as Config;
     } else {
-      console.log('NETWORK_NAME is found. Assuming configuration is don with ENV vars...');
+      console.log('NETWORK_NAME is found. Assuming configuration is done with ENV vars...');
       const networkName = process.env.NETWORK_NAME;
       const networkRpc = process.env.NETWORK_RPC;
       const agentAddress = process.env.AGENT_ADDRESS;
@@ -110,8 +110,10 @@ class App {
       } else {
         config.strict.basic = !!config.strict.basic;
         config.strict.unhandled = !!config.strict.unhandled;
-        config.strict.estimations = !!config.strict.estimations;
+        config.strict.estimations = !!config.strict.estimations || !!config.strict['estimation'];
+
         unhandledExceptionsStrictMode = !!config.strict.unhandled;
+
         anyStrict = config.strict.basic || config.strict.unhandled || config.strict.estimations;
       }
     }
@@ -136,7 +138,7 @@ class App {
     const inits = [];
     for (const [netName, netConfig] of Object.entries(allNetworkConfigs.details)) {
       if (allNetworkConfigs.enabled.includes(netName)) {
-        const network = new Network(netName, netConfig);
+        const network = new Network(netName, netConfig, this);
         inits.push(network.init());
         this.networks[netName] = network;
         if (netConfig.source === 'subgraph' && !netConfig.graphUrl) {
@@ -156,6 +158,23 @@ class App {
     }
     clog('Networks initialization done!');
   }
+
+  public exitIfStrictTopic(topic) {
+    if (this.isStrict(topic)) {
+      console.log(`Exiting the app due to a strict mode for topic "${topic}"...`);
+      process.exit(1);
+    }
+  }
+
+  public isStrict(topic = 'basic'): boolean {
+    if (this.config.strict.all) {
+      return true;
+    }
+    if (!!this.config.strict[topic]) {
+      return true;
+    }
+    return false;
+  }
 }
 
 (async function () {
@@ -164,15 +183,19 @@ class App {
   await app.start();
 })().catch(error => {
   console.error(error);
+  console.log('App.ts: Unexpected error. Stopping the app with a code (1).');
   process.exit(1);
 });
 
-process.on('unhandledRejection', function (reason, _promise) {
-  const msg = `Unhandled Rejection, reason: ${reason}`;
+process.on('unhandledRejection', function (error, _promise) {
+  const msg = `Unhandled Rejection, reason: ${error}`;
+
   if (unhandledExceptionsStrictMode) {
+    console.log('UnhandledRejectionHandler:');
     throw new Error(msg);
+    console.log('Stopping the app with a code (1) since the "unhandledExceptionsStrictMode" is ON.');
     process.exit(1);
-  } else {
-    console.log(msg);
   }
+
+  console.log(msg);
 });
