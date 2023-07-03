@@ -31,8 +31,6 @@ export interface NetworkConfig {
     address: string;
     pass: string;
   };
-  data_source?: string;
-  graph_url?: string;
   max_priority_fee_per_gas?: number;
   agents: { [key: string]: AgentConfig };
 }
