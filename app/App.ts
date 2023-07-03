@@ -42,8 +42,8 @@ class App {
 
           Object.keys(network.agents).forEach(agentKey => {
             const agent = network.agents[agentKey];
-            agent.data_source = data_source;
-            agent.graph_url = graph_url;
+            if (!agent.data_source) agent.data_source = data_source;
+            if (!agent.graph_url) agent.graph_url = graph_url;
           });
         }
       });
