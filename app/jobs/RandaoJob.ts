@@ -108,12 +108,18 @@ export class RandaoJob extends AbstractJob {
     return (this.agent as IRandaoAgent).selfUnassignFromJob(this.key);
   }
 
+  private exitIfStrictTopic(topic) {
+    this.agent.exitIfStrictTopic(topic);
+  }
+
   private async initiateSlashing() {
-    const txEstimationFailed = error => {
-      console.log('InitiateSlashing() estimation failed', error);
+    const txEstimationFailed = () => {
+      this.clog('InitiateSlashing() estimation failed');
+      this.exitIfStrictTopic('estimations');
     };
-    const txExecutionFailed = error => {
-      console.log('InitiateSlashing() execution failed', error);
+    const txExecutionFailed = () => {
+      this.clog('InitiateSlashing() execution failed');
+      this.exitIfStrictTopic('executions');
     };
     if (this._initiateSlashingPending) {
       this.clog('Slashing is already pending...');

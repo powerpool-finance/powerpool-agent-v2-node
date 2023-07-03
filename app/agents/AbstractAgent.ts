@@ -259,6 +259,10 @@ export abstract class AbstractAgent implements IAgent {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private newBlockEventHandler(blockTimestamp) {}
 
+  public exitIfStrictTopic(topic) {
+    this.network.exitIfStrictTopic(topic);
+  }
+
   public getJobOwnerBalance(address: string): BigNumber {
     if (!this.ownerBalances.has(address)) {
       throw this.err(`getJobOwnerBalance(): Address ${address} not tracked`);

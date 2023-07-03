@@ -20,6 +20,7 @@ import { EthersContractWrapperFactory } from './clients/EthersContractWrapperFac
 import EventEmitter from 'events';
 import { AgentRandao_2_3_0 } from './agents/Agent.2.3.0.randao.js';
 import { AgentLight_2_2_0 } from './agents/Agent.2.2.0.light.js';
+import { App } from './App';
 
 interface ResolverJobWithCallback {
   resolver: Resolver;
@@ -33,6 +34,8 @@ interface TimeoutWithCallback {
 
 export class Network {
   private name: string;
+  private app: App;
+  private readonly name: string;
   private networkConfig: NetworkConfig;
   private rpc: string;
   private chainId: number;
@@ -67,9 +70,10 @@ export class Network {
     return new Error(`NetworkError${this.toString()}: ${args.join(' ')}`);
   }
 
-  constructor(name: string, networkConfig: NetworkConfig) {
-    this.contractWrapperFactory = new EthersContractWrapperFactory([networkConfig.rpc], networkConfig.ws_timeout);
+  constructor(name: string, networkConfig: NetworkConfig, app: App) {
+    this.app = app;
     this.name = name;
+    this.contractWrapperFactory = new EthersContractWrapperFactory([networkConfig.rpc], networkConfig.ws_timeout);
     this.rpc = networkConfig.rpc;
     this.networkConfig = networkConfig;
 
@@ -108,6 +112,10 @@ export class Network {
 
       this.agents.push(agent);
     }
+  }
+
+  public exitIfStrictTopic(topic) {
+    this.app.exitIfStrictTopic(topic);
   }
 
   public getContractWrapperFactory(): ContractWrapperFactory {

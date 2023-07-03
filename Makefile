@@ -2,7 +2,10 @@ build:
 	tsc
 
 run:
-	ts-node app/App.ts
+	./run.sh
+
+run-second:
+	./run.sh second
 
 docker:
 	docker buildx build --platform linux/amd64 --push -t  polipaul/agent-v2-bot:dev .

@@ -44,7 +44,7 @@ export abstract class AbstractExecutor {
           }
         }
         this.clog(
-          `⛔️ Ignoring tx estimation reverted with '${decoded.name}' error and the following arguments:`,
+          `⛔️ Ignoring tx estimation reverted with '${decoded.name}' error and the following error arguments:`,
           decoded.args,
           `(calldata=${txCalldata})`,
         );

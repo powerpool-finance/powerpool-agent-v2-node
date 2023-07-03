@@ -44,15 +44,11 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
     try {
       gasLimitEstimation = await this.genericProvider.estimateGas(tx);
     } catch (_) {
-      try {
-        const txSimulation = await this.genericProvider.call(tx);
-        this.printSolidityCustomError(txSimulation, tx.data as string);
-        envelope.executorCallbacks.txEstimationFailed(tx.data as string);
-      } catch (e) {
-        console.log(e);
-        console.log('Exiting at PGAExecutor.process(): .call(tx) reverted');
-        process.exit(1);
-      }
+      const txSimulation = await this.genericProvider.call(tx);
+      this.printSolidityCustomError(txSimulation, tx.data as string);
+
+      // This callback could trigger an error which will be caught by unhandledExceptionHandler
+      envelope.executorCallbacks.txEstimationFailed(tx.data as string);
 
       // force execute (only for debug)
       if (true) {
@@ -84,6 +80,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
         `Tx ${txHash}: ⛓ Successfully mined in block #${res.blockNumber} with nonce ${tx.nonce}. The queue length is: ${this.queue.length}.`,
       );
     } catch (e) {
+      // This callback could trigger an error which will be caught by unhandledExceptionHandler
       envelope.executorCallbacks.txExecutionFailed(tx.data as string);
     }
     // TODO: setTimeout with .call(tx), send cancel tx (eth transfer) with a higher gas price

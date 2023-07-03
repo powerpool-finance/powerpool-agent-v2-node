@@ -105,11 +105,13 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       maxFeePerGas: (this.network.getBaseFee() * 2n).toString(),
     };
     await this.populateTxExtraFields(tx);
-    const txEstimationFailed = (error): void => {
-      this.clog('Self-Unassign transaction estimation failed:', error);
+    const txEstimationFailed = (): void => {
+      this.clog('Error: Self-Unassign releaseJob() estimation failed');
+      this.exitIfStrictTopic('estimations');
     };
-    const txExecutionFailed = (error): void => {
-      this.clog('Self-Unassign reverted (while the estimation was ok):', error);
+    const txExecutionFailed = (): void => {
+      this.clog('Error: Self-Unassign releaseJob() execution failed');
+      this.exitIfStrictTopic('executions');
     };
     const envelope = {
       executorCallbacks: {

@@ -329,4 +329,6 @@ export interface IAgent {
   getJobOwnerBalance(address: string): BigNumber;
 
   sendTxEnvelope(envelope: TxEnvelope);
+
+  exitIfStrictTopic(topic): void;
 }
