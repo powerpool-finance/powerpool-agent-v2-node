@@ -32,11 +32,28 @@ class App {
       config = YAML.parse(
         fs.readFileSync(path.resolve(__dirname, `../config/${configName}.yaml`)).toString(),
       ) as Config;
+
+      // Adds source_data to agent configs
+      const enabledNetworks = config.networks.enabled;
+      Object.keys(config.networks.details).forEach(networkKey => {
+        if (enabledNetworks.includes(networkKey)) {
+          const network = config.networks.details[networkKey];
+          const { data_source, graph_url } = network;
+
+          Object.keys(network.agents).forEach(agentKey => {
+            const agent = network.agents[agentKey];
+            agent.data_source = data_source;
+            agent.graph_url = graph_url;
+          });
+        }
+      });
     } else {
       console.log('NETWORK_NAME is found. Assuming configuration is done with ENV vars...');
       const networkName = process.env.NETWORK_NAME;
       const networkRpc = process.env.NETWORK_RPC;
       const agentAddress = process.env.AGENT_ADDRESS;
+      const dataSource = process.env.DATA_SOURCE;
+      const graphUrl = process.env.GRAPH_URL;
       const keeperAddress = process.env.KEEPER_ADDRESS;
       const keyPassword = process.env.KEYPASSWORD || '';
       const acceptMaxBaseFeeLimit = process.env.ACCEPT_MAX_BASE_FEE_LIMIT === 'true';
@@ -53,13 +70,17 @@ class App {
       if (!keyPassword) {
         throw new Error('ENV Config: Missing KEYPASSWORD value');
       }
-
+      if (dataSource === 'subgraph' && !graphUrl) {
+        throw new Error('ENV CONFIG: On order to use subgraph as data source, you must define GRAPH_URL');
+      }
       const agentConfig: AgentConfig = {
         accept_max_base_fee_limit: acceptMaxBaseFeeLimit,
         accrue_reward: accrueReward,
         executor: 'pga',
         keeper_address: keeperAddress,
         key_pass: keyPassword,
+        data_source: dataSource,
+        graph_url: graphUrl,
       };
 
       const netConfig: NetworkConfig = {

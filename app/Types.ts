@@ -19,6 +19,8 @@ export interface AgentConfig {
   accept_max_base_fee_limit?: boolean;
   accrue_reward?: boolean;
   deployed_at?: number;
+  data_source?: string;
+  graph_url?: string;
 }
 
 export interface NetworkConfig {

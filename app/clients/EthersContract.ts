@@ -36,7 +36,6 @@ export class EthersContract implements ContractWrapper {
     this.address = addressOrName;
     this.contract = new ethers.Contract(addressOrName, contractInterface, providers.get(primaryEndpoint));
     this.primaryEndpoint = primaryEndpoint;
-    this.wsCallTimeout = wsCallTimeout;
     this.providers = providers;
     this.abiFunctionOutputKeys = new Map();
     this.abiEventKeys = new Map();
@@ -44,6 +43,10 @@ export class EthersContract implements ContractWrapper {
     this.abiEventByTopic = new Map();
     this.abiErrorFragments = new Map();
     this.eventEmitter = new QueueEmitter();
+
+    // Setting connection timeout
+    if (wsCallTimeout) this.wsCallTimeout = wsCallTimeout;
+    else this.wsCallTimeout = 15000;
 
     for (const obj of contractInterface) {
       switch (obj.type) {
@@ -147,14 +150,13 @@ export class EthersContract implements ContractWrapper {
     let errorCounter = this.attempts;
 
     do {
-      const timeoutMs = this.wsCallTimeout ? this.wsCallTimeout : 15000;
       const timeout = setTimeout(() => {
         throw new Error(
-          `Call execution took more than ${Math.ceil(timeoutMs / 1000)} seconds: method=${method},args=${JSON.stringify(
-            args,
-          )}.`,
+          `Call execution took more than
+           ${Math.ceil(this.wsCallTimeout / 1000)}
+           seconds: method=${method},args=${JSON.stringify(args)}.`,
         );
-      }, timeoutMs);
+      }, this.wsCallTimeout);
       try {
         let res;
         if (callStatic) {

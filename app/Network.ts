@@ -99,15 +99,9 @@ export class Network {
       let agent;
 
       if (version === '2.3.0' && strategy === 'randao') {
-        agent = new AgentRandao_2_3_0(checksummedAddress, agentConfig, this, {
-          graphUrl: networkConfig.graph_url,
-          dataSource: networkConfig.data_source,
-        });
+        agent = new AgentRandao_2_3_0(checksummedAddress, agentConfig, this);
       } else if (version === '2.2.0' && strategy === 'light') {
-        agent = new AgentLight_2_2_0(checksummedAddress, agentConfig, this, {
-          graphUrl: networkConfig.graph_url,
-          dataSource: networkConfig.data_source,
-        });
+        agent = new AgentLight_2_2_0(checksummedAddress, agentConfig, this);
       } else {
         throw this.err(`Not supported agent version/strategy: version=${version},strategy=${strategy}`);
       }

@@ -72,14 +72,17 @@ export abstract class AbstractAgent implements IAgent {
 
   protected _afterExecuteEvent(_job: AbstractJob) {}
 
-  constructor(address: string, agentConfig: AgentConfig, network: Network, sourceConfig: SourceConfig) {
+  constructor(address: string, agentConfig: AgentConfig, network: Network) {
     this.jobs = new Map();
     this.ownerBalances = new Map();
     this.ownerJobs = new Map();
     this.address = address;
     this.network = network;
     this.executorType = agentConfig.executor;
-    this.sourceConfig = sourceConfig;
+    this.sourceConfig = {
+      dataSource: agentConfig.data_source,
+      graphUrl: agentConfig.graph_url,
+    };
 
     this.lastBlockTimestamp = 0;
     this.cfg = 0;
