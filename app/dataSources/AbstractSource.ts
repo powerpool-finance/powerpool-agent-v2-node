@@ -4,9 +4,9 @@ import { RandaoJob } from '../jobs/RandaoJob';
 import { LightJob } from '../jobs/LightJob';
 
 export abstract class AbstractSource {
-  type: string;
-  network: Network;
-  contract: ContractWrapper;
+  protected type: string;
+  protected network: Network;
+  protected contract: ContractWrapper;
 
   constructor(network: Network, contract: ContractWrapper) {
     this.network = network;

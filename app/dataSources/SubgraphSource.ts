@@ -13,10 +13,12 @@ import { BigNumber, utils } from 'ethers';
 export class SubgraphSource extends AbstractSource {
   private queries: { [name: string]: string };
   private blockchainSource: BlockchainSource;
+  private graphUrl: string;
 
-  constructor(network: Network, contract: ContractWrapper) {
+  constructor(network: Network, contract: ContractWrapper, graphUrl: string) {
     super(network, contract);
     this.type = 'subgraph';
+    this.graphUrl = graphUrl;
 
     this.queries = {};
     this.queries._meta = `
@@ -87,7 +89,7 @@ export class SubgraphSource extends AbstractSource {
       const [latestBock, { _meta }] = await Promise.all([
         this.network.getLatestBlockNumber(),
         this.query(
-          this.network.graphUrl,
+          this.graphUrl,
           `{
           _meta {
             ${this.queries._meta}
@@ -96,8 +98,8 @@ export class SubgraphSource extends AbstractSource {
         ),
       ]);
 
-      const isSynced = latestBock - _meta.block.number <= 10; // Our graph is desynced if its behind for more than 10 blocks
-      if (!isSynced) throw this.err(`Subgraph is out-of-sync with blockchain. it's url: ${this.network.graphUrl}`);
+      const isSynced = latestBock - BigInt(_meta.block.number) <= 10; // Our graph is desynced if its behind for more than 10 blocks
+      if (!isSynced) throw this.err(`Subgraph is out-of-sync with blockchain. it's url: ${this.graphUrl}`);
       return isSynced;
     } catch (e) {
       throw this.err('Graph is not responding. ', e);
@@ -121,7 +123,7 @@ export class SubgraphSource extends AbstractSource {
     }
     try {
       const { jobs } = await this.query(
-        this.network.graphUrl,
+        this.graphUrl,
         `{
           jobs {
             ${this.queries.jobsQuery}
@@ -154,7 +156,7 @@ export class SubgraphSource extends AbstractSource {
   /**
    * here we can populate job with full graph data, as if we made a request to getJobs lens method.
    * But we already hale all the data
-   * @param graphData -
+   * @param graphData
    */
   addLensFieldsToJob(graphData) {
     const lensFields: any = {};
@@ -215,7 +217,7 @@ export class SubgraphSource extends AbstractSource {
       }
 
       const { jobOwners } = await this.query(
-        this.network.graphUrl,
+        this.graphUrl,
         `{
           jobOwners {
             ${this.queries.jobOwnersQuery}

@@ -9,6 +9,7 @@ import { QueueEmitter } from '../services/QueueEmitter.js';
 export class EthersContract implements ContractWrapper {
   private readonly contract: ethers.Contract;
   private readonly address: string;
+  private readonly wsCallTimeout: number;
 
   private readonly attempts = 3;
   private readonly attemptTimeoutSeconds = 1;
@@ -30,6 +31,7 @@ export class EthersContract implements ContractWrapper {
     contractInterface: ReadonlyArray<Fragment>,
     primaryEndpoint: string,
     providers: Map<string, ethers.providers.BaseProvider>,
+    wsCallTimeout: number,
   ) {
     this.address = addressOrName;
     this.contract = new ethers.Contract(addressOrName, contractInterface, providers.get(primaryEndpoint));
@@ -41,6 +43,10 @@ export class EthersContract implements ContractWrapper {
     this.abiEventByTopic = new Map();
     this.abiErrorFragments = new Map();
     this.eventEmitter = new QueueEmitter();
+
+    // Setting connection timeout
+    if (wsCallTimeout) this.wsCallTimeout = wsCallTimeout;
+    else this.wsCallTimeout = 15000;
 
     for (const obj of contractInterface) {
       switch (obj.type) {
@@ -145,8 +151,12 @@ export class EthersContract implements ContractWrapper {
 
     do {
       const timeout = setTimeout(() => {
-        throw new Error(`Call execution took more than 15 seconds: method=${method},args=${JSON.stringify(args)}.`);
-      }, 15000);
+        throw new Error(
+          `Call execution took more than
+           ${Math.ceil(this.wsCallTimeout / 1000)}
+           seconds: method=${method},args=${JSON.stringify(args)}.`,
+        );
+      }, this.wsCallTimeout);
       try {
         let res;
         if (callStatic) {

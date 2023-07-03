@@ -7,6 +7,7 @@ import {
   ExecutorType,
   IAgent,
   Resolver,
+  SourceConfig,
   TxEnvelope,
 } from '../Types.js';
 import { BigNumber, ethers, Wallet } from 'ethers';
@@ -32,7 +33,8 @@ export abstract class AbstractAgent implements IAgent {
   protected address: string;
   protected keeperId: number;
   protected contract: ContractWrapper;
-  private source: BlockchainSource | SubgraphSource;
+  private sourceConfig: SourceConfig;
+  private dataSource: BlockchainSource | SubgraphSource;
   private workerSigner: ethers.Wallet;
   private executor: Executor;
 
@@ -77,9 +79,18 @@ export abstract class AbstractAgent implements IAgent {
     this.address = address;
     this.network = network;
     this.executorType = agentConfig.executor;
+    this.sourceConfig = {
+      dataSource: agentConfig.data_source,
+      graphUrl: agentConfig.graph_url,
+    };
 
     this.lastBlockTimestamp = 0;
     this.cfg = 0;
+
+    // Check if all data for subgraph is provided
+    if (this.sourceConfig.dataSource === 'subgraph' && !this.sourceConfig.graphUrl) {
+      throw new Error('Please set graph_url if you want to proceed with subgraph data_source');
+    }
 
     if (!('keeper_address' in agentConfig) || !agentConfig.keeper_address || agentConfig.keeper_address.length === 0) {
       throw this.err(
@@ -134,10 +145,10 @@ export abstract class AbstractAgent implements IAgent {
     }
 
     // setting data source
-    if (this.network.source === 'subgraph' && this.network.graphUrl) {
-      this.source = new SubgraphSource(this.network, this.contract);
+    if (this.sourceConfig.dataSource === 'subgraph') {
+      this.dataSource = new SubgraphSource(this.network, this.contract, this.sourceConfig.graphUrl);
     } else {
-      this.source = new BlockchainSource(this.network, this.contract);
+      this.dataSource = new BlockchainSource(this.network, this.contract);
     }
 
     // Ensure version matches
@@ -287,7 +298,7 @@ export abstract class AbstractAgent implements IAgent {
     const latestBock = await this.network.getLatestBlockNumber();
     // 1. init jobs
     let newJobs = new Map<string, RandaoJob | LightJob>();
-    newJobs = await this.source.getRegisteredJobs(this);
+    newJobs = await this.dataSource.getRegisteredJobs(this);
 
     // 2. set owners
     const jobOwnersSet = new Set<string>();
@@ -304,7 +315,7 @@ export abstract class AbstractAgent implements IAgent {
     }
 
     // 3. Load job owner balances
-    this.ownerBalances = await this.source.getOwnersBalances(this, jobOwnersSet);
+    this.ownerBalances = await this.dataSource.getOwnersBalances(this, jobOwnersSet);
     this.jobs = newJobs;
 
     await this.startAllJobs();
@@ -322,7 +333,7 @@ export abstract class AbstractAgent implements IAgent {
 
     const tmpMap = new Map();
     tmpMap.set(jobKey, job);
-    await this.source.addLensFieldsToJob(tmpMap, this.address);
+    await this.dataSource.addLensFieldsToJob(tmpMap, this.address);
 
     if (!this.ownerJobs.has(owner)) {
       this.ownerJobs.set(owner, new Set());
@@ -330,7 +341,7 @@ export abstract class AbstractAgent implements IAgent {
     const set = this.ownerJobs.get(owner);
     set.add(jobKey);
 
-    const ownerBalances = await this.source.getOwnersBalances({ address: this.address }, new Set([owner]));
+    const ownerBalances = await this.dataSource.getOwnersBalances({ address: this.address }, new Set([owner]));
 
     this.ownerBalances.set(owner, ownerBalances.get(owner));
   }

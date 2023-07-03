@@ -33,8 +33,7 @@ interface TimeoutWithCallback {
 }
 
 export class Network {
-  source: string;
-  graphUrl: string;
+  private name: string;
   private app: App;
   private readonly name: string;
   private networkConfig: NetworkConfig;
@@ -73,10 +72,9 @@ export class Network {
 
   constructor(name: string, networkConfig: NetworkConfig, app: App) {
     this.app = app;
-    this.contractWrapperFactory = new EthersContractWrapperFactory([networkConfig.rpc]);
     this.name = name;
+    this.contractWrapperFactory = new EthersContractWrapperFactory([networkConfig.rpc], networkConfig.ws_timeout);
     this.rpc = networkConfig.rpc;
-    this.graphUrl = networkConfig.graphUrl;
     this.networkConfig = networkConfig;
 
     this.flashbotsRpc = networkConfig?.flashbots?.rpc;
@@ -85,12 +83,6 @@ export class Network {
 
     this.averageBlockTimeSeconds = getAverageBlockTime(name);
     this.newBlockEventEmitter = new EventEmitter();
-
-    if (networkConfig.source) {
-      this.source = networkConfig.source;
-    } else {
-      this.source = 'blockchain';
-    }
 
     this.newBlockNotifications = new Map();
 

@@ -19,19 +19,25 @@ export interface AgentConfig {
   accept_max_base_fee_limit?: boolean;
   accrue_reward?: boolean;
   deployed_at?: number;
+  data_source?: string;
+  graph_url?: string;
 }
 
 export interface NetworkConfig {
   rpc: string;
+  ws_timeout?: number;
   flashbots?: {
     rpc: string;
     address: string;
     pass: string;
   };
-  source: string;
-  graphUrl: string;
   max_priority_fee_per_gas?: number;
   agents: { [key: string]: AgentConfig };
+}
+
+export interface SourceConfig {
+  graphUrl: string;
+  dataSource: string;
 }
 
 export interface AllNetworksConfig {

@@ -37,6 +37,8 @@ export class App {
       const networkName = process.env.NETWORK_NAME;
       const networkRpc = process.env.NETWORK_RPC;
       const agentAddress = process.env.AGENT_ADDRESS;
+      const dataSource = process.env.DATA_SOURCE;
+      const graphUrl = process.env.GRAPH_URL;
       const keeperAddress = process.env.KEEPER_ADDRESS;
       const keyPassword = process.env.KEYPASSWORD || '';
       const acceptMaxBaseFeeLimit = process.env.ACCEPT_MAX_BASE_FEE_LIMIT === 'true';
@@ -53,18 +55,20 @@ export class App {
       if (!keyPassword) {
         throw new Error('ENV Config: Missing KEYPASSWORD value');
       }
-
+      if (dataSource === 'subgraph' && !graphUrl) {
+        throw new Error('ENV CONFIG: On order to use subgraph as data source, you must define GRAPH_URL');
+      }
       const agentConfig: AgentConfig = {
         accept_max_base_fee_limit: acceptMaxBaseFeeLimit,
         accrue_reward: accrueReward,
         executor: 'pga',
         keeper_address: keeperAddress,
         key_pass: keyPassword,
+        data_source: dataSource,
+        graph_url: graphUrl,
       };
 
       const netConfig: NetworkConfig = {
-        graphUrl: '',
-        source: '',
         rpc: process.env.NETWORK_RPC,
         agents: {
           [agentAddress]: agentConfig,
@@ -141,9 +145,6 @@ export class App {
         const network = new Network(netName, netConfig, this);
         inits.push(network.init());
         this.networks[netName] = network;
-        if (netConfig.source === 'subgraph' && !netConfig.graphUrl) {
-          throw new Error('Please set graphUrl if you want to proceed with subgraph source');
-        }
       } else {
         clog('Skipping', netName, 'network...');
       }
