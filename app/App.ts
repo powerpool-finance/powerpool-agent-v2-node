@@ -32,21 +32,6 @@ class App {
       config = YAML.parse(
         fs.readFileSync(path.resolve(__dirname, `../config/${configName}.yaml`)).toString(),
       ) as Config;
-
-      // Adds source_data to agent configs
-      const enabledNetworks = config.networks.enabled;
-      Object.keys(config.networks.details).forEach(networkKey => {
-        if (enabledNetworks.includes(networkKey)) {
-          const network = config.networks.details[networkKey];
-          const { data_source, graph_url } = network;
-
-          Object.keys(network.agents).forEach(agentKey => {
-            const agent = network.agents[agentKey];
-            if (!agent.data_source) agent.data_source = data_source;
-            if (!agent.graph_url) agent.graph_url = graph_url;
-          });
-        }
-      });
     } else {
       console.log('NETWORK_NAME is found. Assuming configuration is done with ENV vars...');
       const networkName = process.env.NETWORK_NAME;
