@@ -33,7 +33,6 @@ interface TimeoutWithCallback {
 }
 
 export class Network {
-  private name: string;
   private app: App;
   private readonly name: string;
   private networkConfig: NetworkConfig;
