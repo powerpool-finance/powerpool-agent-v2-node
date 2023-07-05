@@ -188,12 +188,11 @@ export class App {
   process.exit(1);
 });
 
-process.on('unhandledRejection', function (error, _promise) {
+process.on('unhandledRejection', function (error: Error, _promise) {
   const msg = `Unhandled Rejection, reason: ${error}`;
+  console.log(error.stack);
 
   if (unhandledExceptionsStrictMode) {
-    console.log('UnhandledRejectionHandler:');
-    throw new Error(msg);
     console.log('Stopping the app with a code (1) since the "unhandledExceptionsStrictMode" is ON.');
     process.exit(1);
   }

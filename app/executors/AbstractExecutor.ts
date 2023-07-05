@@ -26,11 +26,14 @@ export abstract class AbstractExecutor {
   protected abstract process(tx: TxEnvelope);
 
   protected printSolidityCustomError(bytes: string, txCalldata: string): void {
-    if (bytes === '0x4e2c6c26') {
+    if (bytes.startsWith('0x4e487b71')) {
+      const hexCode = ethers.utils.defaultAbiCoder.decode(['uint256'], `0x${bytes.substring(10)}`);
       this
-        .clog(`⛔️ Ignoring a tx with a failed estimation, calldata=${txCalldata}. The reason is "Panic(uint256)", returned value is "0x4e2c6c26". This error can happen in the following cases:
+        .clog(`⛔️ Ignoring a tx with a failed estimation, calldata=${txCalldata}. The reason is "Panic(${hexCode})". This error can happen in the following cases:
 - Can't perform native token transfer within one of internal txs due insufficient funds;
 - The calling method doesn't exist;
+
+Check out here for more details on Panic(uint256) errors: https://docs.soliditylang.org/en/v0.8.19/control-structures.html#panic-via-assert-and-error-via-require.
 `);
     } else if (bytes.startsWith('0x08c379a0')) {
       const msg = ethers.utils.defaultAbiCoder.decode(['string'], `0x${bytes.substring(10)}`);
