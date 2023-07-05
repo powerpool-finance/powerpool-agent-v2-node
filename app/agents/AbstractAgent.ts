@@ -346,9 +346,9 @@ export abstract class AbstractAgent implements IAgent {
     this.ownerBalances.set(owner, ownerBalances.get(owner));
   }
 
-  protected async startAllJobs() {
+  protected startAllJobs() {
     for (const [, job] of this.jobs) {
-      await job.watch();
+      job.watch();
     }
   }
 
