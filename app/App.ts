@@ -7,6 +7,7 @@ import { Network } from './Network.js';
 import { nowTimeString } from './Utils.js';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { initApi } from './Api.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -18,9 +19,8 @@ function clog(...args: any[]) {
 let unhandledExceptionsStrictMode = false;
 
 export class App {
-  private readonly networks: { [key: string]: object };
+  private readonly networks: { [key: string]: Network };
   private readonly config: Config;
-  private readonly details;
 
   constructor() {
     this.networks = {};
@@ -43,6 +43,7 @@ export class App {
       const keyPassword = process.env.KEYPASSWORD || '';
       const acceptMaxBaseFeeLimit = process.env.ACCEPT_MAX_BASE_FEE_LIMIT === 'true';
       const accrueReward = process.env.ACCRUE_REWARD === 'true';
+      const api = process.env.API_SERVER === 'true';
       if (!networkRpc) {
         throw new Error('ENV Config: Missing NETWORK_RPC value');
       }
@@ -76,6 +77,7 @@ export class App {
       };
 
       config = {
+        api,
         strict: {
           all: false,
         },
@@ -87,6 +89,10 @@ export class App {
         },
         observe: false,
       };
+    }
+
+    if (!!config.api) {
+      initApi(this);
     }
 
     // Override all
@@ -131,13 +137,13 @@ export class App {
     this.config = config;
   }
 
-  async start() {
+  public async start() {
     // const config: Config = TOML.parse(fs.readFileSync(path.resolve(__dirname, '../config/main.toml')).toString()) as any;
 
     await this.initNetworks(this.config.networks);
   }
 
-  async initNetworks(allNetworkConfigs: AllNetworksConfig) {
+  private async initNetworks(allNetworkConfigs: AllNetworksConfig) {
     clog('Network initialization start...');
     const inits = [];
     for (const [netName, netConfig] of Object.entries(allNetworkConfigs.details)) {
@@ -165,6 +171,18 @@ export class App {
       console.log(`Exiting the app due to a strict mode for topic "${topic}"...`);
       process.exit(1);
     }
+  }
+
+  public getNetworkList(): string[] {
+    return Object.keys(this.networks);
+  }
+
+  public getConfig(): object {
+    return this.config;
+  }
+
+  public getNetwork(networkName): Network {
+    return this.networks[networkName];
   }
 
   public isStrict(topic = 'basic'): boolean {

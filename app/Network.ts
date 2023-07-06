@@ -35,8 +35,8 @@ interface TimeoutWithCallback {
 export class Network {
   private app: App;
   private readonly name: string;
-  private networkConfig: NetworkConfig;
-  private rpc: string;
+  private readonly networkConfig: NetworkConfig;
+  private readonly rpc: string;
   private chainId: number;
   private client: ClientWrapper | undefined;
   private provider: ethers.providers.WebSocketProvider | undefined;
@@ -133,6 +133,15 @@ export class Network {
     return this.chainId;
   }
 
+  public getAgent(agentAddress: string): IAgent {
+    for (const agent of this.agents) {
+      if (agent.address === agentAddress) {
+        return agent;
+      }
+    }
+    return null;
+  }
+
   // TODO: throttle node requests
   public async getMaxPriorityFeePerGas(): Promise<number> {
     return this.provider.send('eth_maxPriorityFeePerGas', []);
@@ -172,6 +181,42 @@ export class Network {
 
   public getLatestBlockTimestamp(): bigint {
     return this.latestBlockTimestamp;
+  }
+
+  public getStatusObjectForApi(): object {
+    const agents = this.agents.map((agent: IAgent) => {
+      return {
+        address: agent.address,
+        keeperId: agent.getKeeperId(),
+        workerAddress: agent.getKeyAddress(),
+        executorType: agent.executorType,
+      };
+    });
+    const timeoutCallbacks = {};
+    const nowSeconds = nowS();
+    for (const [key, jobData] of Object.entries(this.timeoutData)) {
+      timeoutCallbacks[key] = {
+        callbackAt: jobData.triggerCallbackAfter,
+        callbackIn: jobData.triggerCallbackAfter - nowSeconds,
+      };
+    }
+
+    return {
+      name: this.name,
+      rpc: this.rpc,
+      chainId: this.chainId,
+      baseFee: this.getBaseFee(),
+      latestBlockNumber: this.getLatestBlockNumber(),
+      latestBlockTimestamp: this.getLatestBlockTimestamp(),
+      getAverageBlockTime: this.averageBlockTimeSeconds,
+      addresses: {
+        externalLens: this.externalLens.address,
+        multicall: this.multicall.address,
+      },
+      agents,
+      timeoutCallbacks,
+      resolverCallbacks: this.resolverJobData,
+    };
   }
 
   public async getJobRawBytes32(agent: string, jobKey: string): Promise<string> {

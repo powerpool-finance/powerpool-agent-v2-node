@@ -405,6 +405,19 @@ export abstract class AbstractJob {
     return this.details.lastExecutionAt + this.details.intervalSeconds;
   }
 
+  public getJobCalldataSourceString(): string {
+    switch (this.details.calldataSource) {
+      case CALLDATA_SOURCE.SELECTOR:
+        return 'Selector';
+      case CALLDATA_SOURCE.PRE_DEFINED_CALLDATA:
+        return 'Pre-Defined Calldata';
+      case CALLDATA_SOURCE.RESOLVER:
+        return 'Resolver';
+      default:
+        throw this.err(`Invalid job calldata source: ${this.details.calldataSource}`);
+    }
+  }
+
   public getJobType(): JobType {
     if (this.details.intervalSeconds > 0 && this.details.calldataSource === CALLDATA_SOURCE.RESOLVER) {
       return JobType.IntervalResolver;
@@ -451,5 +464,25 @@ export abstract class AbstractJob {
 
   public isResolverJob(): boolean {
     return this.details.calldataSource === CALLDATA_SOURCE.RESOLVER;
+  }
+
+  public getStatusObjectForApi(): object {
+    return {
+      key: this.getKey(),
+      address: this.address,
+      id: this.id,
+      owner: this.owner,
+      active: this.isActive(),
+
+      type: this.isIntervalJob() ? 'Interval' : 'Resolver',
+      calldataSource: this.getJobCalldataSourceString(),
+      creditsAvailableWei: this.getCreditsAvailable(),
+      maxFeePerGasWei: this.calculateMaxFeePerGas(),
+      jobLevelMinKeeperCvp: this.jobLevelMinKeeperCvp,
+
+      config: this.config,
+      details: this.details,
+      resolver: this.resolver,
+    };
   }
 }

@@ -5,14 +5,14 @@ export abstract class AbstractExecutor {
   protected networkName: string;
   protected agentContract: ContractWrapper;
   protected genericProvider: ethers.providers.BaseProvider;
+  protected workerSigner: ethers.Wallet;
 
   protected currentTxKey: string;
+  protected currentTx: TxEnvelope;
   protected queue: string[];
-  // protected queue: ethers.UnsignedTransaction[];
   protected pendingTxs: Map<string, TxEnvelope>;
   protected queueKeys: object;
   protected queueHandlerLock: boolean;
-  protected workerSigner: ethers.Wallet;
 
   protected constructor(agentContract: ContractWrapper) {
     this.agentContract = agentContract;
@@ -24,6 +24,17 @@ export abstract class AbstractExecutor {
   protected abstract clog(...args: any[]);
   protected abstract err(...args: any[]);
   protected abstract process(tx: TxEnvelope);
+
+  public getStatusObjectForApi(): object {
+    return {
+      currentTxKey: this.currentTxKey,
+      currentTx: this.currentTx,
+      queueHandlerLock: this.queueHandlerLock,
+      queue: this.queue,
+      queueKeys: this.queueKeys,
+      pendingTxs: Object.fromEntries(Array.from(this.pendingTxs)),
+    };
+  }
 
   protected printSolidityCustomError(bytes: string, txCalldata: string): void {
     if (bytes.startsWith('0x4e487b71')) {
@@ -68,9 +79,11 @@ Check out here for more details on Panic(uint256) errors: https://docs.solidityl
     while (this.queue.length > 0) {
       this.currentTxKey = this.queue.shift();
       const tx = this.pendingTxs.get(this.currentTxKey);
+      this.currentTx = tx;
       this.pendingTxs.delete(this.currentTxKey);
       await this.process(tx);
       this.currentTxKey = null;
+      this.currentTx = null;
     }
 
     this.unlockQueue();

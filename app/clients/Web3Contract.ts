@@ -11,7 +11,7 @@ export class Web3Contract implements ContractWrapper {
   private web3: Web3;
   private contract: Contract;
 
-  private address: string;
+  public address: string;
 
   private attempts = 3;
   private attemptTimeoutSeconds = 1;

@@ -8,7 +8,7 @@ import { QueueEmitter } from '../services/QueueEmitter.js';
 // DANGER: DOES NOT support method override
 export class EthersContract implements ContractWrapper {
   private readonly contract: ethers.Contract;
-  private readonly address: string;
+  public readonly address: string;
   private readonly wsCallTimeout: number;
 
   private readonly attempts = 3;

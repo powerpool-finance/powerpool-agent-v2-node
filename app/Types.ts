@@ -54,6 +54,7 @@ export interface StrictModeConfig {
 
 export interface Config {
   observe?: boolean;
+  api?: boolean;
   strict: StrictModeConfig;
   networks: AllNetworksConfig;
 }
@@ -178,7 +179,7 @@ export interface Resolver {
 }
 
 export interface Executor {
-  // The calldata starting with 0x00000000{address}{jobId}
+  getStatusObjectForApi(): object;
   init();
   push(key: string, tx: TxEnvelope);
 }
@@ -200,6 +201,7 @@ export interface ErrorWrapper {
 }
 
 export interface ContractWrapper {
+  readonly address: string;
   decodeError(response: string): ErrorWrapper;
   getNativeContract(): ethers.Contract | Contract;
   getDefaultProvider(): ethers.providers.BaseProvider | WebsocketProvider;
@@ -313,13 +315,20 @@ export interface IRandaoAgent extends IAgent {
 }
 
 export interface IAgent {
+  readonly executorType: ExecutorType;
+  readonly address: string;
+
   getNetwork(): Network;
 
   getAddress(): string;
 
+  getKeyAddress(): string;
+
   getKeeperId(): number;
 
   getCfg(): number;
+
+  getStatusObjectForApi(): object;
 
   // METHODS
   init(): void;

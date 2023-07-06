@@ -28,10 +28,10 @@ const FLAG_ACCRUE_REWARD = 2;
 const BIG_NUMBER_1E18 = BigNumber.from(10).pow(18);
 
 export abstract class AbstractAgent implements IAgent {
-  private executorType: ExecutorType;
+  public readonly executorType: ExecutorType;
+  public readonly address: string;
   protected network: Network;
-  protected address: string;
-  protected keeperId: number;
+  public keeperId: number;
   protected contract: ContractWrapper;
   private sourceConfig: SourceConfig;
   private dataSource: BlockchainSource | SubgraphSource;
@@ -43,12 +43,11 @@ export abstract class AbstractAgent implements IAgent {
   private fullSyncFrom: number;
   private acceptMaxBaseFeeLimit: boolean;
   private accrueReward: boolean;
-  private cfg: number;
+  private keeperConfig: number;
 
   protected jobs: Map<string, LightJob | RandaoJob>;
   private ownerBalances: Map<string, BigNumber>;
   private ownerJobs: Map<string, Set<string>>;
-  private lastBlockTimestamp: number;
   private keyAddress: string;
   private keyPass: string;
 
@@ -84,8 +83,7 @@ export abstract class AbstractAgent implements IAgent {
       graphUrl: agentConfig.graph_url,
     };
 
-    this.lastBlockTimestamp = 0;
-    this.cfg = 0;
+    this.keeperConfig = 0;
 
     // Check if all data for subgraph is provided
     if (this.sourceConfig.dataSource === 'subgraph' && !this.sourceConfig.graphUrl) {
@@ -115,7 +113,7 @@ export abstract class AbstractAgent implements IAgent {
     if ('accept_max_base_fee_limit' in agentConfig) {
       this.acceptMaxBaseFeeLimit = !!agentConfig.accept_max_base_fee_limit;
       if (this.acceptMaxBaseFeeLimit) {
-        this.cfg = this.cfg | FLAG_ACCEPT_MAX_BASE_FEE_LIMIT;
+        this.keeperConfig = this.keeperConfig | FLAG_ACCEPT_MAX_BASE_FEE_LIMIT;
       }
     } else {
       this.acceptMaxBaseFeeLimit = false;
@@ -124,7 +122,7 @@ export abstract class AbstractAgent implements IAgent {
     // accrueReward
     this.accrueReward = !!agentConfig.accrue_reward;
     if (this.accrueReward) {
-      this.cfg = this.cfg | FLAG_ACCRUE_REWARD;
+      this.keeperConfig = this.keeperConfig | FLAG_ACCRUE_REWARD;
     }
 
     this.network.getNewBlockEventEmitter().on('newBlock', this.newBlockEventHandler.bind(this));
@@ -278,12 +276,49 @@ export abstract class AbstractAgent implements IAgent {
     return this.address;
   }
 
+  public getKeyAddress(): string {
+    return this.keyAddress;
+  }
+
   public getKeeperId(): number {
     return this.keeperId;
   }
 
   public getCfg(): number {
-    return this.cfg;
+    return this.keeperConfig;
+  }
+
+  public getJobsCount(): { total: number; interval: number; resolver: number } {
+    return {
+      total: 0,
+      interval: 0,
+      resolver: 0,
+    };
+  }
+
+  public getStatusObjectForApi(): object {
+    const jobs = [];
+    for (const job of this.jobs.values()) {
+      jobs.push(job.getStatusObjectForApi());
+    }
+
+    return {
+      address: this.address,
+      workerAddress: this.keyAddress,
+      keeperId: this.keeperId,
+      keeperConfigNumeric: this.keeperConfig,
+      fullSyncFrom: this.fullSyncFrom,
+      minKeeperCvp: this.minKeeperCvp?.toString(),
+      accrueReward: this.accrueReward,
+      acceptMaxBaseFeeLimit: this.acceptMaxBaseFeeLimit,
+      dataSource: this.sourceConfig,
+      executor: this.executor?.getStatusObjectForApi(),
+
+      jobOwnerBalances: Object.fromEntries(Array.from(this.ownerBalances)),
+      ownerJobs: Object.fromEntries(Array.from(this.ownerJobs)),
+
+      jobs,
+    };
   }
 
   /**
