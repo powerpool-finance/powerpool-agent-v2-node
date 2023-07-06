@@ -129,9 +129,21 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
     await this._sendNonExecuteTransaction(envelope);
   }
 
-  async initiateSlashing(jobAddress: string, jobId: number, jobKey: string, executorCallbacks: ExecutorCallbacks) {
+  async initiateSlashing(
+    jobAddress: string,
+    jobId: number,
+    jobKey: string,
+    jobCalldata: string,
+    executorCallbacks: ExecutorCallbacks,
+  ) {
     // jobAddress, jobId, myKeeperId, useResolver, jobCalldata
-    const calldata = this.contract.encodeABI('initiateSlashing', [jobAddress, jobId, this.getKeeperId(), true, '0x']);
+    const calldata = this.contract.encodeABI('initiateSlashing', [
+      jobAddress,
+      jobId,
+      this.getKeeperId(),
+      false,
+      jobCalldata,
+    ]);
     const tx = {
       to: this.getAddress(),
 

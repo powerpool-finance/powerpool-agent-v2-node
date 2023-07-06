@@ -303,7 +303,13 @@ export interface IRandaoAgent extends IAgent {
   getPeriod2Duration(): number;
   getJobMinCredits(): bigint;
   selfUnassignFromJob(jobKey: string): void;
-  initiateSlashing(jobAddress: string, jobId: number, jobKey: string, executorCallbacks: ExecutorCallbacks): void;
+  initiateSlashing(
+    jobAddress: string,
+    jobId: number,
+    jobKey: string,
+    jobCalldata: string,
+    executorCallbacks: ExecutorCallbacks,
+  ): void;
 }
 
 export interface IAgent {

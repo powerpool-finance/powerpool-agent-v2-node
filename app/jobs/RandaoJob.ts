@@ -112,7 +112,7 @@ export class RandaoJob extends AbstractJob {
     this.agent.exitIfStrictTopic(topic);
   }
 
-  private async initiateSlashing() {
+  private async initiateSlashing(resolverCalldata) {
     const txEstimationFailed = () => {
       this.clog('InitiateSlashing() estimation failed');
       this.exitIfStrictTopic('estimations');
@@ -128,7 +128,7 @@ export class RandaoJob extends AbstractJob {
       this.clog('initiateSlashing()');
       this._lockInitiateSlashing();
     }
-    return (this.agent as IRandaoAgent).initiateSlashing(this.address, this.id, this.key, {
+    return (this.agent as IRandaoAgent).initiateSlashing(this.address, this.id, this.key, resolverCalldata, {
       txEstimationFailed,
       txExecutionFailed,
       txNotMinedInBlock: EmptyTxNotMinedInBlockCallback,
@@ -275,7 +275,7 @@ export class RandaoJob extends AbstractJob {
       // if can slash
       if (this.t1 && now > this.t1 + period1) {
         if (await (this.agent as IRandaoAgent).amINextSlasher(this.key)) {
-          await this.initiateSlashing();
+          await this.initiateSlashing(invokeCalldata);
         } else {
           this.clog("😟 Can't initiate slashing, i'm not the next block slasher");
         }
