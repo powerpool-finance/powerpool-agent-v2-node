@@ -3,7 +3,7 @@ import { BigNumber } from 'ethers';
 import { App } from './App.js';
 import { toChecksummedAddress } from './Utils.js';
 
-export function initApi(app: App) {
+export function initApi(app: App, port: number) {
   const fastify = Fastify({
     logger: false,
   });
@@ -63,7 +63,7 @@ export function initApi(app: App) {
     prettyReply(reply, agent.getStatusObjectForApi());
   });
 
-  fastify.listen({ port: parseInt(process.env.API_PORT) || 8099 }, (err, address) => {
+  fastify.listen({ port: parseInt(process.env.API_PORT) || port }, (err, address) => {
     console.log(`API Server listening on ${address}`);
     if (err) throw err;
     // Server is now listening on ${address}

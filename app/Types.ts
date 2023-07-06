@@ -54,7 +54,7 @@ export interface StrictModeConfig {
 
 export interface Config {
   observe?: boolean;
-  api?: boolean;
+  api?: boolean | number;
   strict: StrictModeConfig;
   networks: AllNetworksConfig;
 }

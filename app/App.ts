@@ -92,7 +92,11 @@ export class App {
     }
 
     if (!!config.api) {
-      initApi(this);
+      let port = 8099;
+      if (typeof config.api === 'number') {
+        port = config.api;
+      }
+      initApi(this, port);
     }
 
     // Override all
