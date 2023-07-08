@@ -37,6 +37,28 @@ export class RandaoJob extends AbstractJob {
     this._initiateSlashingPending = false;
   }
 
+  public getStatusObjectForApi(): object {
+    const obj = Object.assign(super.getStatusObjectForApi(), {
+      jobRandaoFields: {
+        currentPeriod: this._getCurrentPeriod(),
+        t1: this.t1,
+        b1: this.b1,
+        tn: this.tn,
+        bn: this.bn,
+        assignedKeeperId: this.assignedKeeperId,
+        reservedSlasherId: this.reservedSlasherId,
+        slashingPossibleAfter: this.slashingPossibleAfter,
+        _selfUnassignPending: !!this._selfUnassignPending,
+        _initiateSlashingPending: !!this._initiateSlashingPending,
+        createdAt: this.createdAt,
+      },
+    });
+    if (this.isIntervalJob()) {
+      obj['intervalPeriod2StartsAt'] = this.intervalPeriod2StartsAt();
+    }
+    return obj;
+  }
+
   // true if it should update binJob
   public applyKeeperAssigned(keeperId: number): boolean {
     this.clog(this.key, 'keeperID update ✅✅✅✅✅✅✅✅✅✅✅✅✅', this.assignedKeeperId, '->', keeperId);
@@ -167,6 +189,7 @@ export class RandaoJob extends AbstractJob {
     return 3;
   }
 
+  // NOTICE: Invalid formula below
   private _getCurrentPeriodResolverJob(): number {
     const now = nowS();
 

@@ -22,6 +22,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
   _getSupportedAgentVersions(): string[] {
     return ['2.3.0'];
   }
+
   async _beforeInit() {
     const ppAgentV2Abi = getPPAgentV2_3_0_RandaoAbi();
     this.contract = this.network.getContractWrapperFactory().build(this.address, ppAgentV2Abi);
