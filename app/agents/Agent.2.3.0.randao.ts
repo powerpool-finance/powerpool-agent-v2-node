@@ -28,6 +28,21 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
     this.contract = this.network.getContractWrapperFactory().build(this.address, ppAgentV2Abi);
   }
 
+  public getStatusObjectForApi(): object {
+    const obj = Object.assign(super.getStatusObjectForApi(), {
+      agentRandaoFields: {
+        slashingEpochBlocks: this.slashingEpochBlocks,
+        period1Seconds: this.period1,
+        period2Seconds: this.period2,
+        slashingFeeFixedCVP: this.slashingFeeFixedCVP,
+        slashingFeeBps: this.slashingFeeBps,
+        jobMinCreditsFinney: this.jobMinCreditsFinney,
+        blacklistedJobs: Array.from(this.blacklistedJobs),
+      },
+    });
+    return obj;
+  }
+
   protected async _beforeResyncAllJobs() {
     const rdConfig = await this.contract.ethCall('getRdConfig', []);
     this.slashingEpochBlocks = rdConfig.slashingEpochBlocks;

@@ -1,20 +1,35 @@
 import { AbstractJob } from './AbstractJob.js';
 import { nowS, nowTimeString } from '../Utils.js';
-import { EmptyTxNotMinedInBlockCallback, GetJobResponse, IRandaoAgent, JobType } from '../Types.js';
+import {
+  EmptyTxNotMinedInBlockCallback,
+  EventWrapper,
+  GetJobResponse,
+  IAgent,
+  IRandaoAgent,
+} from '../Types.js';
 
 export class RandaoJob extends AbstractJob {
+  private BLACKLIST_ESTIMATIONS_LIMIT = 5;
+
   protected assignedKeeperId: number;
   protected createdAt: number;
   protected reservedSlasherId: number;
   protected slashingPossibleAfter: number;
   private _selfUnassignPending: boolean;
   private _initiateSlashingPending: boolean;
+  private failedInitiateSlashingEstimationsInARow: number;
 
   protected clog(...args) {
     console.log(`>>> ${nowTimeString()} >>> RandaoJob${this.toString()}:`, ...args);
   }
   protected err(...args): Error {
     return new Error(`RandaoJobError${this.toString()}: ${args.join(' ')}`);
+  }
+
+  constructor(creationEvent: EventWrapper, agent: IAgent) {
+    super(creationEvent, agent);
+    this._initiateSlashingPending = false;
+    this.failedInitiateSlashingEstimationsInARow = 0;
   }
 
   private _lockSelfUnassign() {
@@ -38,6 +53,12 @@ export class RandaoJob extends AbstractJob {
   }
 
   public getStatusObjectForApi(): object {
+    let canInitiateSlashingIn = 0;
+    if (this.t1) {
+      const period1 = (this.agent as IRandaoAgent).getPeriod1Duration();
+      const now = nowS();
+      canInitiateSlashingIn = this.t1 + period1 - now;
+    }
     const obj = Object.assign(super.getStatusObjectForApi(), {
       jobRandaoFields: {
         currentPeriod: this._getCurrentPeriod(),
@@ -45,11 +66,16 @@ export class RandaoJob extends AbstractJob {
         b1: this.b1,
         tn: this.tn,
         bn: this.bn,
+        assignedKeeperIsMe: this.assignedKeeperId === this.agent.getKeeperId(),
         assignedKeeperId: this.assignedKeeperId,
         reservedSlasherId: this.reservedSlasherId,
         slashingPossibleAfter: this.slashingPossibleAfter,
+        failedEstimationsInARow: this.failedExecuteEstimationsInARow,
+        _failedInitiateSlashingEstimationsInARow: this.failedInitiateSlashingEstimationsInARow,
         _selfUnassignPending: !!this._selfUnassignPending,
         _initiateSlashingPending: !!this._initiateSlashingPending,
+        canInitiateSlashingIn,
+
         createdAt: this.createdAt,
       },
     });
@@ -134,14 +160,33 @@ export class RandaoJob extends AbstractJob {
     this.agent.exitIfStrictTopic(topic);
   }
 
+  private async _initiateSlashingIncrementFailedCounter() {
+    // TODO: implement interval job counter
+    if (this.isResolverJob()) {
+      this.failedInitiateSlashingEstimationsInARow += 1;
+
+      if (this.failedInitiateSlashingEstimationsInARow > this.BLACKLIST_ESTIMATIONS_LIMIT) {
+        this.applyClearResolverTimeouts();
+        this.agent.addJobToBlacklist(this.key);
+        this.failedInitiateSlashingEstimationsInARow = 0;
+      } else {
+        this._unlockInitiateSlashing();
+      }
+    }
+
+    this.watch();
+  }
+
   private async initiateSlashing(resolverCalldata) {
     const txEstimationFailed = () => {
       this.clog('InitiateSlashing() estimation failed');
       this.exitIfStrictTopic('estimations');
+      this._initiateSlashingIncrementFailedCounter();
     };
     const txExecutionFailed = () => {
       this.clog('InitiateSlashing() execution failed');
       this.exitIfStrictTopic('executions');
+      this._initiateSlashingIncrementFailedCounter();
     };
     if (this._initiateSlashingPending) {
       this.clog('Slashing is already pending...');
@@ -189,24 +234,18 @@ export class RandaoJob extends AbstractJob {
     return 3;
   }
 
-  // NOTICE: Invalid formula below
   private _getCurrentPeriodResolverJob(): number {
     const now = nowS();
 
-    if (now < this.details.lastExecutionAt + this.details.intervalSeconds) {
+    if (this.slashingPossibleAfter === 0) {
       return 0;
-    } else if (
-      now <
-      this.details.lastExecutionAt + this.details.intervalSeconds + (this.agent as IRandaoAgent).getPeriod1Duration()
-    ) {
+    }
+
+    if (now < this.slashingPossibleAfter) {
       return 1;
-    } else if (
-      now <
-      this.details.lastExecutionAt +
-        this.details.intervalSeconds +
-        (this.agent as IRandaoAgent).getPeriod1Duration() +
-        (this.agent as IRandaoAgent).getPeriod2Duration()
-    ) {
+    }
+
+    if (now < this.slashingPossibleAfter + (this.agent as IRandaoAgent).getPeriod2Duration()) {
       return 2;
     }
 
@@ -239,16 +278,26 @@ export class RandaoJob extends AbstractJob {
   }
 
   protected _executeTxEstimationFailed(_txData: string): void {
-    if (this._getCurrentPeriod() === 3 || this.getJobType() === JobType.Resolver) {
+    if (this._getCurrentPeriod() === 3) {
       this._selfUnassign();
+      this.watch();
+      return;
     }
+
+    if (this.isResolverJob()) {
+      // Assume that a failed execution behaviour is equal to a failed estimation
+      this.failedExecuteEstimationsInARow += 1;
+      if (this.failedExecuteEstimationsInARow > this.BLACKLIST_ESTIMATIONS_LIMIT) {
+        this.agent.addJobToBlacklist(this.key);
+        this.failedExecuteEstimationsInARow = 0;
+      }
+    }
+
     this.watch();
   }
 
   protected _executeTxExecutionFailed(_txData: string): void {
-    if (this._getCurrentPeriod() === 3 || this.getJobType() === JobType.Resolver) {
-      this._selfUnassign();
-    }
+    this._executeTxEstimationFailed(_txData);
   }
 
   // t1 - resolver available at;

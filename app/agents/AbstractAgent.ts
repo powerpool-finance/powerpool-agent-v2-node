@@ -51,6 +51,9 @@ export abstract class AbstractAgent implements IAgent {
   private keyAddress: string;
   private keyPass: string;
 
+  // blacklisting by a job key
+  protected blacklistedJobs: Set<string>;
+
   abstract _getSupportedAgentVersions(): string[];
 
   protected toString(): string {
@@ -84,6 +87,7 @@ export abstract class AbstractAgent implements IAgent {
     };
 
     this.keeperConfig = 0;
+    this.blacklistedJobs = new Set();
 
     // Check if all data for subgraph is provided
     if (this.sourceConfig.dataSource === 'subgraph' && !this.sourceConfig.graphUrl) {
@@ -261,6 +265,10 @@ export abstract class AbstractAgent implements IAgent {
     this.network.exitIfStrictTopic(topic);
   }
 
+  public addJobToBlacklist(jobKey) {
+    this.blacklistedJobs.add(jobKey);
+  }
+
   public getJobOwnerBalance(address: string): BigNumber {
     if (!this.ownerBalances.has(address)) {
       throw this.err(`getJobOwnerBalance(): Address ${address} not tracked`);
@@ -288,12 +296,23 @@ export abstract class AbstractAgent implements IAgent {
     return this.keeperConfig;
   }
 
+  public isJobBlacklisted(jobKey: string): boolean {
+    return this.blacklistedJobs.has(jobKey);
+  }
+
   public getJobsCount(): { total: number; interval: number; resolver: number } {
-    return {
+    const counters = {
       total: 0,
       interval: 0,
       resolver: 0,
     };
+    for (const job of this.jobs.values()) {
+      if (job.isIntervalJob()) counters.interval++;
+      else counters.resolver++;
+
+      counters.total++;
+    }
+    return counters;
   }
 
   public getStatusObjectForApi(): object {
@@ -307,11 +326,13 @@ export abstract class AbstractAgent implements IAgent {
       workerAddress: this.keyAddress,
       keeperId: this.keeperId,
       keeperConfigNumeric: this.keeperConfig,
+      supportedAgentVersions: this._getSupportedAgentVersions(),
       fullSyncFrom: this.fullSyncFrom,
       minKeeperCvp: this.minKeeperCvp?.toString(),
       accrueReward: this.accrueReward,
       acceptMaxBaseFeeLimit: this.acceptMaxBaseFeeLimit,
       dataSource: this.sourceConfig,
+      jobsCounter: this.getJobsCount(),
       executor: this.executor?.getStatusObjectForApi(),
 
       jobOwnerBalances: Object.fromEntries(Array.from(this.ownerBalances)),
@@ -609,6 +630,7 @@ export abstract class AbstractAgent implements IAgent {
 
       const job = this.jobs.get(jobKey);
       job.applyBinJobData(binJobAfter);
+      job.applyWasExecuted();
 
       this._afterExecuteEvent(job);
 

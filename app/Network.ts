@@ -190,6 +190,7 @@ export class Network {
         keeperId: agent.getKeeperId(),
         workerAddress: agent.getKeyAddress(),
         executorType: agent.executorType,
+        jobs: agent.getJobsCount(),
       };
     });
     const timeoutCallbacks = {};

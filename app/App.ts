@@ -122,6 +122,7 @@ export class App {
         unhandledExceptionsStrictMode = all;
         anyStrict = true;
       } else {
+        config.strict.all = false;
         config.strict.basic = !!config.strict.basic;
         config.strict.unhandled = !!config.strict.unhandled;
         config.strict.estimations = !!config.strict.estimations || !!config.strict['estimation'];
@@ -130,6 +131,8 @@ export class App {
 
         anyStrict = config.strict.basic || config.strict.unhandled || config.strict.estimations;
       }
+    } else {
+      config.strict = { all: false };
     }
 
     if (anyStrict) {

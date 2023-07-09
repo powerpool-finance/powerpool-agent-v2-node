@@ -328,7 +328,11 @@ export interface IAgent {
 
   getCfg(): number;
 
+  isJobBlacklisted(jobKey: string): boolean;
+
   getStatusObjectForApi(): object;
+
+  getJobsCount(): { total: number; interval: number; resolver: number };
 
   // METHODS
   init(): void;
@@ -346,4 +350,6 @@ export interface IAgent {
   sendTxEnvelope(envelope: TxEnvelope);
 
   exitIfStrictTopic(topic): void;
+
+  addJobToBlacklist(jobKey);
 }

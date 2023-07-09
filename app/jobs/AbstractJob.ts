@@ -65,6 +65,7 @@ export abstract class AbstractJob {
   private network: Network;
 
   private initializing = true;
+  protected failedExecuteEstimationsInARow = 0;
 
   protected abstract clog(...args): void;
   protected abstract err(...args): Error;
@@ -253,6 +254,10 @@ export abstract class AbstractJob {
     this.owner = owner;
   }
 
+  public applyWasExecuted() {
+    this.failedExecuteEstimationsInARow = 0;
+  }
+
   private assertType(title: string, type: string, value: any) {
     if (typeof value !== type) {
       throw this.err(`${title} not ${type}: (actualType=${typeof value},value=${value})`);
@@ -302,6 +307,10 @@ export abstract class AbstractJob {
 
     if (!this.config) {
       throw this.err('Cant read the jobs config');
+    }
+    if (this.agent.isJobBlacklisted(this.key)) {
+      this.clog('Ignoring a blacklisted job');
+      return;
     }
     if (!this.config.isActive) {
       this.clog('Ignoring a disabled job');
