@@ -103,11 +103,15 @@ export abstract class AbstractAgent implements IAgent {
       throw new Error('Please set graph_url if you want to proceed with subgraph data_source');
     }
 
-    if (!('keeper_address' in agentConfig) || !agentConfig.keeper_address || agentConfig.keeper_address.length === 0) {
+    if (
+      !('keeper_worker_address' in agentConfig) ||
+      !agentConfig.keeper_worker_address ||
+      agentConfig.keeper_worker_address.length === 0
+    ) {
       throw this.err(
-        `Missing keeper_address for agent: (network=${this.network.getName()},address=${
+        `Missing keeper_worker_address for agent: (network=${this.network.getName()},address=${
           this.address
-        },keeper_address_value=${agentConfig.keeper_address})`,
+        },keeper_address_value=${agentConfig.keeper_worker_address})`,
       );
     }
 
@@ -119,7 +123,7 @@ export abstract class AbstractAgent implements IAgent {
       );
     }
 
-    this.keyAddress = ethers.utils.getAddress(agentConfig.keeper_address);
+    this.keyAddress = ethers.utils.getAddress(agentConfig.keeper_worker_address);
     this.keyPass = agentConfig.key_pass;
 
     // acceptMaxBaseFeeLimit

@@ -13,7 +13,7 @@ export enum CALLDATA_SOURCE {
 }
 
 export interface AgentConfig {
-  keeper_address: string;
+  keeper_worker_address: string;
   key_pass: string;
   executor: ExecutorType;
   accept_max_base_fee_limit?: boolean;

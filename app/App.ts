@@ -39,7 +39,7 @@ export class App {
       const agentAddress = process.env.AGENT_ADDRESS;
       const dataSource = process.env.DATA_SOURCE;
       const graphUrl = process.env.GRAPH_URL;
-      const keeperAddress = process.env.KEEPER_ADDRESS;
+      const keeperAddress = process.env.KEEPER_WORKER_ADDRESS;
       const keyPassword = process.env.KEYPASSWORD || '';
       const acceptMaxBaseFeeLimit = process.env.ACCEPT_MAX_BASE_FEE_LIMIT === 'true';
       const accrueReward = process.env.ACCRUE_REWARD === 'true';
@@ -63,7 +63,7 @@ export class App {
         accept_max_base_fee_limit: acceptMaxBaseFeeLimit,
         accrue_reward: accrueReward,
         executor: 'pga',
-        keeper_address: keeperAddress,
+        keeper_worker_address: keeperAddress,
         key_pass: keyPassword,
         data_source: dataSource,
         graph_url: graphUrl,
