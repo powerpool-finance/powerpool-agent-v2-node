@@ -704,12 +704,12 @@ export abstract class AbstractAgent implements IAgent {
       }
     });
 
-    this.contract.on('FinalizeRedeem', event => {
-      const { keeperId, amount } = event.args;
+    this.contract.on('InitiateRedeem', event => {
+      const { keeperId, redeemAmount } = event.args;
       if (this.keeperId == keeperId) {
-        this.clog(`Redeem from a keeperId ${keeperId}. Amount of redeem is ${amount}`);
+        this.clog(`Redeem from a keeperId ${keeperId}. Amount of redeem is ${redeemAmount}`);
 
-        this.myStake = this.myStake.sub(amount);
+        this.myStake = this.myStake.sub(redeemAmount);
 
         this.activateOrTerminateAgentIfRequired();
       }
