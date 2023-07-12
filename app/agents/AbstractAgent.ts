@@ -696,7 +696,7 @@ export abstract class AbstractAgent implements IAgent {
     this.contract.on('Stake', event => {
       const { keeperId, amount } = event.args;
       if (this.keeperId == keeperId) {
-        this.clog(`Stake for a keeperId ${keeperId}. Amount of stake is ${amount}`);
+        this.clog(`Stake for a keeperId ${keeperId}. Amount of stake is ${amount}.`);
 
         this.myStake = this.myStake.add(amount);
 
@@ -707,7 +707,7 @@ export abstract class AbstractAgent implements IAgent {
     this.contract.on('InitiateRedeem', event => {
       const { keeperId, redeemAmount } = event.args;
       if (this.keeperId == keeperId) {
-        this.clog(`Redeem from a keeperId ${keeperId}. Amount of redeem is ${redeemAmount}`);
+        this.clog(`Redeem from a keeperId ${keeperId}. Amount of redeem is ${redeemAmount}.`);
 
         this.myStake = this.myStake.sub(redeemAmount);
 
@@ -716,25 +716,23 @@ export abstract class AbstractAgent implements IAgent {
     });
 
     this.contract.on('DisableKeeper', event => {
-      const { keeperId } = event.args;
-      console.log('from args id is: ', keeperId);
-      console.log('in agent id is: ', this.keeperId);
+      const keeperId = event.args[0];
       if (this.keeperId == keeperId) {
         this.clog(`Keeper with id ${keeperId} is disabled.`);
 
         this.myKeeperIsActive = false;
+        this.isAgentUp = this.myKeeperIsActive && this.myStakeIsSufficient();
         this.activateOrTerminateAgentIfRequired();
       }
     });
 
     this.contract.on('FinalizeKeeperActivation', event => {
-      const { keeperId } = event.args;
-      console.log('from args id is: ', keeperId);
-      console.log('in agent id is: ', this.keeperId);
+      const keeperId = event.args[0];
       if (this.keeperId == keeperId) {
         this.clog(`Keeper with id ${keeperId} is enabled.`);
 
         this.myKeeperIsActive = true;
+        this.isAgentUp = this.myKeeperIsActive && this.myStakeIsSufficient();
         this.activateOrTerminateAgentIfRequired();
       }
     });
