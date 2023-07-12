@@ -39,6 +39,7 @@ export abstract class AbstractAgent implements IAgent {
   private executor: Executor;
 
   // Agent Config
+  private isAgentUp: boolean;
   private minKeeperCvp: BigNumber;
   private fullSyncFrom: number;
   private acceptMaxBaseFeeLimit: boolean;
@@ -50,6 +51,14 @@ export abstract class AbstractAgent implements IAgent {
   private ownerJobs: Map<string, Set<string>>;
   private keyAddress: string;
   private keyPass: string;
+
+  // Keeper fields
+  private myStake: BigNumber;
+  private myKeeperIsActive: boolean;
+  protected myStakeIsSufficient(): boolean {
+    if (this.minKeeperCvp) return this.myStake.gte(this.minKeeperCvp);
+    return false;
+  }
 
   // blacklisting by a job key
   protected blacklistedJobs: Set<string>;
@@ -222,6 +231,8 @@ export abstract class AbstractAgent implements IAgent {
     }
 
     const keeperConfig = await this.contract.ethCall('getKeeper', [this.keeperId]);
+    this.myStake = keeperConfig.currentStake;
+    this.myKeeperIsActive = keeperConfig.isActive;
 
     if (this.workerSigner.address != keeperConfig.worker) {
       throw this.err(
@@ -250,6 +261,7 @@ export abstract class AbstractAgent implements IAgent {
     await this._beforeResyncAllJobs();
 
     // Task #2
+    this.isAgentUp = this.myKeeperIsActive && this.myStakeIsSufficient();
     const upTo = await this.resyncAllJobs();
     this.initializeListeners(upTo);
     // setTimeout(this.verifyLastExecutionAtLoop.bind(this), 3 * 60 * 1000);
@@ -282,6 +294,10 @@ export abstract class AbstractAgent implements IAgent {
 
   public getAddress(): string {
     return this.address;
+  }
+
+  public getIsAgentUp(): boolean {
+    return this.isAgentUp;
   }
 
   public getKeyAddress(): string {
@@ -322,6 +338,8 @@ export abstract class AbstractAgent implements IAgent {
     }
 
     return {
+      isAgentUp: this.isAgentUp,
+      keeperStake: this.myStake.toString(),
       address: this.address,
       workerAddress: this.keyAddress,
       keeperId: this.keeperId,
@@ -408,6 +426,12 @@ export abstract class AbstractAgent implements IAgent {
     }
   }
 
+  protected stopAllJobs() {
+    for (const [, job] of this.jobs) {
+      job.unwatch();
+    }
+  }
+
   public registerIntervalJobExecution(jobKey: string, timestamp: number, callback: (calldata) => void) {
     this.network.registerTimeout(`${this.address}/${jobKey}/execution`, timestamp, callback);
   }
@@ -474,9 +498,28 @@ export abstract class AbstractAgent implements IAgent {
     return this.executor.push(`other-tx-type/${nowMs()}`, envelope);
   }
 
+  private activateOrTerminateAgentIfRequired() {
+    if (!this.isAgentUp && this.myStakeIsSufficient() && this.myKeeperIsActive) {
+      this.activateAgent();
+    } else if (this.isAgentUp && !(this.myStakeIsSufficient() && this.myKeeperIsActive)) {
+      this.terminateAgent();
+    }
+  }
+
+  private activateAgent() {
+    this.isAgentUp = true;
+    this.startAllJobs();
+  }
+
+  private terminateAgent() {
+    this.isAgentUp = false;
+    this.stopAllJobs();
+  }
+
   abstract _afterInitializeListeners(blockNumber: number);
 
   protected initializeListeners(blockNumber: number) {
+    // Job events
     this.contract.on('DepositJobCredits', event => {
       const { jobKey, amount, fee } = event.args;
 
@@ -637,6 +680,7 @@ export abstract class AbstractAgent implements IAgent {
       job.watch();
     });
 
+    // Agent events
     this.contract.on('SetAgentParams', event => {
       const { minKeeperCvp_, timeoutSeconds_, feePct_ } = event.args;
 
@@ -648,6 +692,48 @@ export abstract class AbstractAgent implements IAgent {
       process.exit(0);
     });
 
+    // Keeper events
+    this.contract.on('Stake', event => {
+      const { keeperId, amount } = event.args;
+      if (this.keeperId == keeperId) {
+        this.clog(`Stake for a keeperId ${keeperId}. Amount of stake is ${amount}.`);
+
+        this.myStake = this.myStake.add(amount);
+
+        this.activateOrTerminateAgentIfRequired();
+      }
+    });
+
+    this.contract.on('InitiateRedeem', event => {
+      const { keeperId, redeemAmount } = event.args;
+      if (this.keeperId == keeperId) {
+        this.clog(`Redeem from a keeperId ${keeperId}. Amount of redeem is ${redeemAmount}.`);
+
+        this.myStake = this.myStake.sub(redeemAmount);
+
+        this.activateOrTerminateAgentIfRequired();
+      }
+    });
+
+    this.contract.on('DisableKeeper', event => {
+      const keeperId = event.args[0];
+      if (this.keeperId == keeperId) {
+        this.clog(`Keeper with id ${keeperId} is disabled.`);
+
+        this.myKeeperIsActive = false;
+        this.activateOrTerminateAgentIfRequired();
+      }
+    });
+
+    this.contract.on('FinalizeKeeperActivation', event => {
+      const keeperId = event.args[0];
+      if (this.keeperId == keeperId) {
+        this.clog(`Keeper with id ${keeperId} is enabled.`);
+
+        this.myKeeperIsActive = true;
+        this.activateOrTerminateAgentIfRequired();
+      }
+    });
     this._afterInitializeListeners(blockNumber);
   }
 }

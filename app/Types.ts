@@ -352,4 +352,6 @@ export interface IAgent {
   exitIfStrictTopic(topic): void;
 
   addJobToBlacklist(jobKey);
+
+  getIsAgentUp(): boolean;
 }
