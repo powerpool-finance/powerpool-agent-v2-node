@@ -507,13 +507,13 @@ export abstract class AbstractAgent implements IAgent {
   }
 
   private activateAgent() {
-    this.startAllJobs();
     this.isAgentUp = true;
+    this.startAllJobs();
   }
 
   private terminateAgent() {
-    this.stopAllJobs();
     this.isAgentUp = false;
+    this.stopAllJobs();
   }
 
   abstract _afterInitializeListeners(blockNumber: number);
@@ -721,7 +721,6 @@ export abstract class AbstractAgent implements IAgent {
         this.clog(`Keeper with id ${keeperId} is disabled.`);
 
         this.myKeeperIsActive = false;
-        this.isAgentUp = this.myKeeperIsActive && this.myStakeIsSufficient();
         this.activateOrTerminateAgentIfRequired();
       }
     });
@@ -732,7 +731,6 @@ export abstract class AbstractAgent implements IAgent {
         this.clog(`Keeper with id ${keeperId} is enabled.`);
 
         this.myKeeperIsActive = true;
-        this.isAgentUp = this.myKeeperIsActive && this.myStakeIsSufficient();
         this.activateOrTerminateAgentIfRequired();
       }
     });
