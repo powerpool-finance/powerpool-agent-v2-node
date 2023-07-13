@@ -615,7 +615,8 @@ export abstract class AbstractAgent implements IAgent {
       const { jobKey, maxBaseFeeGwei, rewardPct, fixedReward, jobMinCvp, intervalSeconds } = event.args;
 
       this.clog(
-        `'JobUpdate' event: (block=${event.blockNumber},jobKey=${jobKey},maxBaseFeeGwei=${maxBaseFeeGwei},reardPct=${rewardPct},fixedReward=${fixedReward},jobMinCvp=${jobMinCvp},intervalSeconds=${intervalSeconds})`,
+        `'JobUpdate' event: (block=${event.blockNumber},jobKey=${jobKey},maxBaseFeeGwei=${maxBaseFeeGwei},
+        reardPct=${rewardPct},fixedReward=${fixedReward},jobMinCvp=${jobMinCvp},intervalSeconds=${intervalSeconds})`,
       );
 
       const job = this.jobs.get(jobKey);
@@ -627,7 +628,8 @@ export abstract class AbstractAgent implements IAgent {
       const { jobKey, resolverAddress, resolverCalldata } = event.args;
 
       this.clog(
-        `'SetJobResolver' event: (block=${event.blockNumber},jobKey=${jobKey},resolverAddress=${resolverAddress},useJobOwnerCredits_=${resolverCalldata})`,
+        `'SetJobResolver' event: (block=${event.blockNumber},jobKey=${jobKey},resolverAddress=${resolverAddress},
+        useJobOwnerCredits_=${resolverCalldata})`,
       );
 
       const job = this.jobs.get(jobKey);
@@ -639,7 +641,8 @@ export abstract class AbstractAgent implements IAgent {
       const { jobKey, isActive_, useJobOwnerCredits_, assertResolverSelector_ } = event.args;
 
       this.clog(
-        `'SetJobConfig' event: (block=${event.blockNumber},jobKey=${jobKey},isActive=${isActive_},useJobOwnerCredits_=${useJobOwnerCredits_},assertResolverSelector_=${assertResolverSelector_})`,
+        `'SetJobConfig' event: (block=${event.blockNumber},jobKey=${jobKey},isActive=${isActive_},
+        useJobOwnerCredits_=${useJobOwnerCredits_},assertResolverSelector_=${assertResolverSelector_})`,
       );
 
       const job = this.jobs.get(jobKey);
@@ -664,11 +667,9 @@ export abstract class AbstractAgent implements IAgent {
       const { jobKey, job: jobAddress, keeperId, gasUsed, baseFee, gasPrice, compensation, binJobAfter } = event.args;
 
       this.clog(
-        `'Execute' event: (block=${
-          event.blockNumber
-        },jobKey=${jobKey},jobAddress=${jobAddress},keeperId=${keeperId.toNumber()},gasUsed=${gasUsed.toNumber()},baseFee=${baseFee.toNumber()}gwei,gasPrice=${gasPrice.toNumber()}wei,compensation=${
-          compensation.toNumber() / 1e18
-        }eth/${compensation.toNumber()}wei,binJobAfter=${binJobAfter})`,
+        `'Execute' event: (block=${event.blockNumber},jobKey=${jobKey},jobAddress=${jobAddress},
+        keeperId=${keeperId.toNumber()},gasUsed=${gasUsed.toNumber()},baseFee=${baseFee.toNumber()}gwei,gasPrice=${gasPrice.toNumber()}wei,
+        compensation=${compensation.toNumber() / 1e18}eth/${compensation.toNumber()}wei,binJobAfter=${binJobAfter})`,
       );
 
       const job = this.jobs.get(jobKey);
@@ -685,11 +686,15 @@ export abstract class AbstractAgent implements IAgent {
       const { minKeeperCvp_, timeoutSeconds_, feePct_ } = event.args;
 
       this.clog(
-        `'SetAgentParams' event: (block=${event.blockNumber},minKeeperCvp_=${minKeeperCvp_},timeoutSeconds_=${timeoutSeconds_},feePct_=${feePct_})`,
+        `'SetAgentParams' event: (block=${event.blockNumber},minKeeperCvp_=${minKeeperCvp_},
+        timeoutSeconds_=${timeoutSeconds_},feePct_=${feePct_})`,
       );
 
       this.clog("'SetAgentParams' event requires the bot to be restarted");
       process.exit(0);
+    });
+    this.contract.on('SetRdConfig', () => {
+      this._beforeResyncAllJobs();
     });
 
     // Keeper events
