@@ -53,8 +53,8 @@ export abstract class AbstractAgent implements IAgent {
   private keyPass: string;
 
   // Keeper fields
-  private myStake: BigNumber;
-  private myKeeperIsActive: boolean;
+  protected myStake: BigNumber;
+  protected myKeeperIsActive: boolean;
   protected myStakeIsSufficient(): boolean {
     if (this.minKeeperCvp) return this.myStake.gte(this.minKeeperCvp);
     return false;
@@ -394,6 +394,7 @@ export abstract class AbstractAgent implements IAgent {
       if (!this.ownerJobs.has(owner)) {
         this.ownerJobs.set(owner, new Set());
       }
+      job.finalizeInitialization();
       const set = this.ownerJobs.get(owner);
       set.add(jobKeys[i]);
     }
@@ -509,7 +510,7 @@ export abstract class AbstractAgent implements IAgent {
     return this.executor.push(`other-tx-type/${nowMs()}`, envelope);
   }
 
-  private activateOrTerminateAgentIfRequired() {
+  protected activateOrTerminateAgentIfRequired() {
     if (!this.isAgentUp && this.myStakeIsSufficient() && this.myKeeperIsActive) {
       this.activateAgent();
     } else if (this.isAgentUp && !(this.myStakeIsSufficient() && this.myKeeperIsActive)) {

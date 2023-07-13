@@ -99,7 +99,7 @@ export class RandaoJob extends AbstractJob {
     this.reservedSlasherId = slasherKeeperId;
   }
 
-  public applySlashIntervalJob() {
+  public applySlashKeeper() {
     this.slashingPossibleAfter = 0;
     this.reservedSlasherId = 0;
   }
@@ -189,7 +189,7 @@ export class RandaoJob extends AbstractJob {
       this.clog('initiateSlashing()');
       this._lockInitiateSlashing();
     }
-    return (this.agent as IRandaoAgent).initiateSlashing(this.address, this.id, this.key, resolverCalldata, {
+    return (this.agent as IRandaoAgent).initiateKeeperSlashing(this.address, this.id, this.key, resolverCalldata, {
       txEstimationFailed,
       txExecutionFailed,
       txNotMinedInBlock: EmptyTxNotMinedInBlockCallback,

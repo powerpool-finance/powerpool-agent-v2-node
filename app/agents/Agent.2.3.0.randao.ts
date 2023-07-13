@@ -145,7 +145,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
     await this._sendNonExecuteTransaction(envelope);
   }
 
-  async initiateSlashing(
+  async initiateKeeperSlashing(
     jobAddress: string,
     jobId: number,
     jobKey: string,
@@ -153,7 +153,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
     executorCallbacks: ExecutorCallbacks,
   ) {
     // jobAddress, jobId, myKeeperId, useResolver, jobCalldata
-    const calldata = this.contract.encodeABI('initiateSlashing', [
+    const calldata = this.contract.encodeABI('initiateKeeperSlashing', [
       jobAddress,
       jobId,
       this.getKeeperId(),
@@ -219,18 +219,26 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       job.applyInitiateSlashing(jobSlashingPossibleAfter, slasherKeeperId);
     });
 
-    // TODO: Incorrect event name for contracts <= v2.3.0-beta.7. SlashKeeper should be used instead.
-    this.contract.on(['SlashIntervalJob', 'SlashKeeper'], event => {
+    this.contract.on('SlashKeeper', event => {
       const { jobKey, expectedKeeperId, actualKeeperId, fixedSlashAmount, dynamicSlashAmount, slashAmountMissing } =
         event.args;
 
       this.clog(
-        `'SlashIntervalJob' event 🔈: (block=${event.blockNumber},jobKey=${jobKey},expectedKeeperId=${expectedKeeperId},actualKeeperId=${actualKeeperId},fixedSlashAmount=${fixedSlashAmount},dynamicSlashAmount=${dynamicSlashAmount},slashAmountMissing=${slashAmountMissing})`,
+        `'SlashKeeper' event 🔈: (block=${event.blockNumber},jobKey=${jobKey},expectedKeeperId=${expectedKeeperId},actualKeeperId=${actualKeeperId},fixedSlashAmount=${fixedSlashAmount},dynamicSlashAmount=${dynamicSlashAmount},slashAmountMissing=${slashAmountMissing})`,
       );
 
+      if (this.getKeeperId() === expectedKeeperId.toNumber()) {
+        const amount = fixedSlashAmount.add(dynamicSlashAmount).sub(slashAmountMissing);
+        this.myStake = this.myStake.sub(amount);
+        this.activateOrTerminateAgentIfRequired();
+      } else if (this.getKeeperId() === actualKeeperId.toNumber()) {
+        const amount = fixedSlashAmount.add(dynamicSlashAmount).sub(slashAmountMissing);
+        this.myStake = this.myStake.add(amount);
+        this.activateOrTerminateAgentIfRequired();
+      }
+
       const job = this.jobs.get(jobKey) as RandaoJob;
-      // WARNING: incorrect name
-      job.applySlashIntervalJob();
+      job.applySlashKeeper();
     });
   }
 }

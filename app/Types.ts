@@ -305,7 +305,7 @@ export interface IRandaoAgent extends IAgent {
   getPeriod2Duration(): number;
   getJobMinCredits(): bigint;
   selfUnassignFromJob(jobKey: string): void;
-  initiateSlashing(
+  initiateKeeperSlashing(
     jobAddress: string,
     jobId: number,
     jobKey: string,
