@@ -341,8 +341,8 @@ export abstract class AbstractAgent implements IAgent {
       jobs.push(job.getStatusObjectForApi());
     }
 
-    const jobOwnerBalancesEth = Object.fromEntries(
-      Array.from(this.ownerBalances).map(pair => [pair[0], weiValueToEth(pair[1])]),
+    const jobOwnerBalances = Object.fromEntries(
+      Array.from(this.ownerBalances).map(pair => [pair[0], { wei: pair[1].toString(), eth: weiValueToEth(pair[1]) }]),
     );
 
     return {
@@ -363,7 +363,7 @@ export abstract class AbstractAgent implements IAgent {
       jobsCounter: this.getJobsCount(),
       executor: this.executor?.getStatusObjectForApi(),
 
-      jobOwnerBalances: jobOwnerBalancesEth,
+      jobOwnerBalances,
       ownerJobs: Object.fromEntries(Array.from(this.ownerJobs).map(pair => [pair[0], Array.from(pair[1])])),
 
       jobs,
@@ -680,6 +680,15 @@ export abstract class AbstractAgent implements IAgent {
       const job = this.jobs.get(jobKey);
       job.applyBinJobData(binJobAfter);
       job.applyWasExecuted();
+
+      if (job.creditsSourceIsJobOwner()) {
+        const ownerCreditsBefore = this.ownerBalances.get(job.getOwner());
+        const ownerCreditsAfter = ownerCreditsBefore.sub(compensation);
+        this.clog(
+          `Owner balance credited: (jobOwner=${job.getOwner()},amount=${compensation.toString()},before=${ownerCreditsBefore},after=${ownerCreditsAfter}`,
+        );
+        this.ownerBalances.set(job.getOwner(), ownerCreditsAfter);
+      }
 
       this._afterExecuteEvent(job);
 

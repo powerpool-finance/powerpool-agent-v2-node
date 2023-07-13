@@ -491,6 +491,10 @@ export abstract class AbstractJob {
     return this.details.calldataSource === CALLDATA_SOURCE.RESOLVER;
   }
 
+  public creditsSourceIsJobOwner(): boolean {
+    return !!this.config.useJobOwnerCredits;
+  }
+
   public getStatusObjectForApi(): object {
     const obj: object = {
       key: this.getKey(),
