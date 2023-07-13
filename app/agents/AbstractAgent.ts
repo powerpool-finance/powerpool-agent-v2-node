@@ -693,9 +693,6 @@ export abstract class AbstractAgent implements IAgent {
       this.clog("'SetAgentParams' event requires the bot to be restarted");
       process.exit(0);
     });
-    this.contract.on('SetRdConfig', () => {
-      this._beforeResyncAllJobs();
-    });
 
     // Keeper events
     this.contract.on('Stake', event => {
