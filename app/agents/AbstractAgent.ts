@@ -664,7 +664,11 @@ export abstract class AbstractAgent implements IAgent {
       const { jobKey, job: jobAddress, keeperId, gasUsed, baseFee, gasPrice, compensation, binJobAfter } = event.args;
 
       this.clog(
-        `'Execute' event: (block=${event.blockNumber},jobKey=${jobKey},jobAddress=${jobAddress},keeperId=${keeperId.toNumber()},gasUsed=${gasUsed.toNumber()},baseFee=${baseFee.toNumber()}gwei,gasPrice=${gasPrice.toNumber()}wei,compensation=${compensation.toNumber() / 1e18}eth/${compensation.toNumber()}wei,binJobAfter=${binJobAfter})`,
+        `'Execute' event: (block=${
+          event.blockNumber
+        },jobKey=${jobKey},jobAddress=${jobAddress},keeperId=${keeperId.toNumber()},gasUsed=${gasUsed.toNumber()},baseFee=${baseFee.toNumber()}gwei,gasPrice=${gasPrice.toNumber()}wei,compensation=${
+          compensation.toNumber() / 1e18
+        }eth/${compensation.toNumber()}wei,binJobAfter=${binJobAfter})`,
       );
 
       const job = this.jobs.get(jobKey);
