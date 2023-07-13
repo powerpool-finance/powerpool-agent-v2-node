@@ -1,12 +1,6 @@
 import { AbstractJob } from './AbstractJob.js';
 import { nowS, nowTimeString } from '../Utils.js';
-import {
-  EmptyTxNotMinedInBlockCallback,
-  EventWrapper,
-  GetJobResponse,
-  IAgent,
-  IRandaoAgent,
-} from '../Types.js';
+import { EmptyTxNotMinedInBlockCallback, EventWrapper, GetJobResponse, IAgent, IRandaoAgent } from '../Types.js';
 
 export class RandaoJob extends AbstractJob {
   private BLACKLIST_ESTIMATIONS_LIMIT = 5;
@@ -105,7 +99,7 @@ export class RandaoJob extends AbstractJob {
     this.reservedSlasherId = slasherKeeperId;
   }
 
-  public applySlashIntervalJob() {
+  public applySlashKeeper() {
     this.slashingPossibleAfter = 0;
     this.reservedSlasherId = 0;
   }
@@ -195,7 +189,7 @@ export class RandaoJob extends AbstractJob {
       this.clog('initiateSlashing()');
       this._lockInitiateSlashing();
     }
-    return (this.agent as IRandaoAgent).initiateSlashing(this.address, this.id, this.key, resolverCalldata, {
+    return (this.agent as IRandaoAgent).initiateKeeperSlashing(this.address, this.id, this.key, resolverCalldata, {
       txEstimationFailed,
       txExecutionFailed,
       txNotMinedInBlock: EmptyTxNotMinedInBlockCallback,

@@ -1,6 +1,8 @@
 import { BigNumber, utils } from 'ethers';
 import { keccak256 } from 'ethers/lib/utils.js';
 import {
+  BI_10E9,
+  BN_10E9,
   BN_ZERO,
   CFG_ACTIVE,
   CFG_ASSERT_RESOLVER_SELECTOR,
@@ -37,6 +39,30 @@ export function toNumber(value: number | BigNumber): number {
   } else {
     throw new Error(`Utils.toNumber(): Value not a number: (typeof=${typeof value},value=${value})`);
   }
+}
+
+export function weiValueToEth(value): number {
+  if (!value) {
+    return 0;
+  }
+  if (BigNumber.isBigNumber(value)) {
+    return value.div(BN_10E9).toNumber() / 1e9;
+  } else if (typeof value === 'bigint') {
+    return Number(value / BI_10E9) / 1e9;
+  }
+  throw new Error(`Utils.weiValueToEth() value not a BigNumber but ${typeof value}`);
+}
+
+export function weiValueToGwei(value): number {
+  if (!value) {
+    return 0;
+  }
+  if (BigNumber.isBigNumber(value)) {
+    return value.toNumber() / 1e9;
+  } else if (typeof value === 'bigint') {
+    return Number(value) / 1e9;
+  }
+  throw new Error(`Utils.weiValueToGwei() value not a BigNumber but ${typeof value}`);
 }
 
 /**

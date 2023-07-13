@@ -32,6 +32,11 @@
     "type": "error"
   },
   {
+    "inputs": [],
+    "name": "AssignedKeeperCantSlash",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -293,6 +298,11 @@
   },
   {
     "inputs": [],
+    "name": "JobHasNoKeeperAssigned",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "JobIdOverflow",
     "type": "error"
   },
@@ -304,11 +314,6 @@
   {
     "inputs": [],
     "name": "JobWithoutOwner",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "KeeperCantSlash",
     "type": "error"
   },
   {
@@ -765,7 +770,7 @@
       {
         "indexed": true,
         "internalType": "uint256",
-        "name": "keeperId",
+        "name": "actualKeeperId",
         "type": "uint256"
       },
       {
@@ -773,6 +778,12 @@
         "internalType": "bytes",
         "name": "executionReturndata",
         "type": "bytes"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "compensation",
+        "type": "uint256"
       }
     ],
     "name": "ExecutionReverted",
@@ -878,6 +889,37 @@
     "inputs": [
       {
         "indexed": true,
+        "internalType": "bytes32",
+        "name": "jobKey",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "slasherKeeperId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "useResolver",
+        "type": "bool"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "jobSlashingPossibleAfter",
+        "type": "uint256"
+      }
+    ],
+    "name": "InitiateKeeperSlashing",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
         "internalType": "uint256",
         "name": "keeperId",
         "type": "uint256"
@@ -902,37 +944,6 @@
       }
     ],
     "name": "InitiateRedeem",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "jobKey",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "slasherKeeperId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bool",
-        "name": "useResolver",
-        "type": "bool"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "jobSlashingPossibleAfter",
-        "type": "uint256"
-      }
-    ],
-    "name": "InitiateSlashing",
     "type": "event"
   },
   {
@@ -1001,6 +1012,37 @@
       }
     ],
     "name": "JobUpdate",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "keeperId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "currentAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "pendingAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "OwnerSlash",
     "type": "event"
   },
   {
@@ -1331,37 +1373,6 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "uint256",
-        "name": "keeperId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "currentAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "pendingAmount",
-        "type": "uint256"
-      }
-    ],
-    "name": "Slash",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
         "internalType": "bytes32",
         "name": "jobKey",
         "type": "bytes32"
@@ -1397,7 +1408,7 @@
         "type": "uint256"
       }
     ],
-    "name": "SlashIntervalJob",
+    "name": "SlashKeeper",
     "type": "event"
   },
   {
@@ -2296,30 +2307,6 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "keeperId_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount_",
-        "type": "uint256"
-      }
-    ],
-    "name": "initiateRedeem",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "pendingWithdrawalAfter",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "address",
         "name": "jobAddress_",
         "type": "address"
@@ -2345,8 +2332,32 @@
         "type": "bytes"
       }
     ],
-    "name": "initiateSlashing",
+    "name": "initiateKeeperSlashing",
     "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "keeperId_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount_",
+        "type": "uint256"
+      }
+    ],
+    "name": "initiateRedeem",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "pendingWithdrawalAfter",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -2494,6 +2505,34 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "keeperId_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "to_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "currentAmount_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "pendingAmount_",
+        "type": "uint256"
+      }
+    ],
+    "name": "ownerSlash",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -2837,34 +2876,6 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "keeperId_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "to_",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "currentAmount_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "pendingAmount_",
-        "type": "uint256"
-      }
-    ],
-    "name": "slash",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
