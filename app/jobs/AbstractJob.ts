@@ -315,6 +315,10 @@ export abstract class AbstractJob {
       this.clog('Ignoring watch(): Job still initializing...');
       return;
     }
+
+    if (!this.config) {
+      throw this.err('Cant read the jobs config');
+    }
     if (!this.agent.getIsAgentUp()) {
       this.clog(`Agent with keeperId ${this.agent.getKeeperId()} is currently disabled. Can't watch job`);
       return;

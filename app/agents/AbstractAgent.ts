@@ -510,6 +510,7 @@ export abstract class AbstractAgent implements IAgent {
     return this.executor.push(`other-tx-type/${nowMs()}`, envelope);
   }
 
+
   protected activateOrTerminateAgentIfRequired() {
     if (!this.isAgentUp && this.myStakeIsSufficient() && this.myKeeperIsActive) {
       this.activateAgent();
