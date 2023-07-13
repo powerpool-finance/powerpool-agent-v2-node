@@ -1,12 +1,6 @@
 import { AbstractJob } from './AbstractJob.js';
 import { nowS, nowTimeString } from '../Utils.js';
-import {
-  EmptyTxNotMinedInBlockCallback,
-  EventWrapper,
-  GetJobResponse,
-  IAgent,
-  IRandaoAgent,
-} from '../Types.js';
+import { EmptyTxNotMinedInBlockCallback, EventWrapper, GetJobResponse, IAgent, IRandaoAgent } from '../Types.js';
 
 export class RandaoJob extends AbstractJob {
   private BLACKLIST_ESTIMATIONS_LIMIT = 5;

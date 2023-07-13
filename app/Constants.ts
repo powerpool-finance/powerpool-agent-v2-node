@@ -127,6 +127,8 @@ export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {
 
 export const BN_ZERO = BigNumber.from(0x0);
 export const BI_ZERO = BigInt(0);
+export const BN_10E9 = BigNumber.from('1000000000');
+export const BI_10E9 = BigInt('1000000000');
 export const BI_10E15 = BigInt(10) ** BigInt(15);
 export const CFG_ACTIVE = BigNumber.from(0x01);
 export const CFG_USE_JOB_OWNER_CREDITS = BigNumber.from(0x02);

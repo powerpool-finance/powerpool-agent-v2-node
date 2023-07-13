@@ -12,8 +12,9 @@ import {
   UpdateJobEventArgs,
 } from '../Types.js';
 import { BigNumber, ethers, Event } from 'ethers';
-import { encodeExecute, parseConfig, parseRawJob, toNumber } from '../Utils.js';
+import { encodeExecute, parseConfig, parseRawJob, toNumber, weiValueToEth, weiValueToGwei } from '../Utils.js';
 import { Network } from '../Network.js';
+import { BN_ZERO } from '../Constants.js';
 
 /**
  * Starts watching on:
@@ -123,10 +124,6 @@ export abstract class AbstractJob {
     // NOTICE: this.details object remains uninitialized
   }
 
-  public isInitializing(): boolean {
-    return this.initializing;
-  }
-
   private getFixedReward(): bigint {
     return BigInt(this.details.fixedReward) * 1000000000000000n;
   }
@@ -232,6 +229,16 @@ export abstract class AbstractJob {
     return requiresRestart;
   }
 
+  // Use this only when handling live RegisterJob event since there will be DepositJobCredits event later
+  // which will actually assign a proper credits value.
+  public clearJobCredits() {
+    this.details.credits = BN_ZERO;
+  }
+
+  public finalizeInitialization() {
+    this.initializing = false;
+  }
+
   public applyJobCreditsDeposit(credits: BigNumber) {
     this.details.credits = this.details.credits.add(credits);
   }
@@ -301,17 +308,16 @@ export abstract class AbstractJob {
 
     this.clog('watch()');
 
-    if (this.initializing) {
-      this.initializing = false;
+    if (!this.config) {
+      throw this.err('Job.watch(): Cant read the jobs config');
     }
-
+    if (this.initializing) {
+      this.clog('Ignoring watch(): Job still initializing...');
+      return;
+    }
     if (!this.agent.getIsAgentUp()) {
       this.clog(`Agent with keeperId ${this.agent.getKeeperId()} is currently disabled. Can't watch job`);
       return;
-    }
-
-    if (!this.config) {
-      throw this.err('Cant read the jobs config');
     }
     if (this.agent.isJobBlacklisted(this.key)) {
       this.clog('Ignoring a blacklisted job');
@@ -387,7 +393,7 @@ export abstract class AbstractJob {
   }
 
   // 1 is 1 wei
-  protected getCreditsAvailable(): bigint {
+  public getCreditsAvailable(): bigint {
     let balanceAvailable = this.details.credits;
     if (this.config.useJobOwnerCredits) {
       balanceAvailable = this.agent.getJobOwnerBalance(this.owner);
@@ -481,7 +487,7 @@ export abstract class AbstractJob {
   }
 
   public getStatusObjectForApi(): object {
-    return {
+    const obj: object = {
       key: this.getKey(),
       address: this.address,
       id: this.id,
@@ -491,12 +497,18 @@ export abstract class AbstractJob {
       type: this.isIntervalJob() ? 'Interval' : 'Resolver',
       calldataSource: this.getJobCalldataSourceString(),
       creditsAvailableWei: this.getCreditsAvailable(),
+      creditsAvailableEth: weiValueToEth(this.getCreditsAvailable()),
       maxFeePerGasWei: this.calculateMaxFeePerGas(),
+      maxFeePerGasGwei: weiValueToGwei(this.calculateMaxFeePerGas()),
       jobLevelMinKeeperCvp: this.jobLevelMinKeeperCvp,
 
       config: this.config,
       details: this.details,
       resolver: this.resolver,
     };
+    if (obj['details']) {
+      obj['details'].creditsEth = weiValueToEth(obj['details'].credits);
+    }
+    return obj;
   }
 }

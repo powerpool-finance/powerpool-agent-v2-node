@@ -12,8 +12,8 @@ import {
 } from '../Types.js';
 import { BigNumber, ethers, Wallet } from 'ethers';
 import { getEncryptedJson } from '../services/KeyService.js';
-import { DEFAULT_SYNC_FROM_CHAINS } from '../Constants.js';
-import { nowMs, nowTimeString } from '../Utils.js';
+import { BN_ZERO, DEFAULT_SYNC_FROM_CHAINS } from '../Constants.js';
+import { nowMs, nowTimeString, weiValueToEth } from '../Utils.js';
 import { FlashbotsExecutor } from '../executors/FlashbotsExecutor.js';
 import { PGAExecutor } from '../executors/PGAExecutor.js';
 import { getAgentDefaultSyncFromSafe } from '../ConfigGetters.js';
@@ -341,24 +341,30 @@ export abstract class AbstractAgent implements IAgent {
       jobs.push(job.getStatusObjectForApi());
     }
 
+    const jobOwnerBalancesEth = Object.fromEntries(
+      Array.from(this.ownerBalances).map(pair => [pair[0], weiValueToEth(pair[1])]),
+    );
+
     return {
       isAgentUp: this.isAgentUp,
-      keeperStake: this.myStake.toString(),
+      keeperStakeCvpWei: this.myStake?.toString(),
+      keeperStakeCvp: weiValueToEth(this.myStake),
       address: this.address,
       workerAddress: this.keyAddress,
       keeperId: this.keeperId,
       keeperConfigNumeric: this.keeperConfig,
       supportedAgentVersions: this._getSupportedAgentVersions(),
       fullSyncFrom: this.fullSyncFrom,
-      minKeeperCvp: this.minKeeperCvp?.toString(),
+      minKeeperCvpWei: this.minKeeperCvp?.toString(),
+      minKeeperCvp: weiValueToEth(this.minKeeperCvp),
       accrueReward: this.accrueReward,
       acceptMaxBaseFeeLimit: this.acceptMaxBaseFeeLimit,
       dataSource: this.sourceConfig,
       jobsCounter: this.getJobsCount(),
       executor: this.executor?.getStatusObjectForApi(),
 
-      jobOwnerBalances: Object.fromEntries(Array.from(this.ownerBalances)),
-      ownerJobs: Object.fromEntries(Array.from(this.ownerJobs)),
+      jobOwnerBalances: jobOwnerBalancesEth,
+      ownerJobs: Object.fromEntries(Array.from(this.ownerJobs).map(pair => [pair[0], Array.from(pair[1])])),
 
       jobs,
     };
@@ -412,6 +418,7 @@ export abstract class AbstractAgent implements IAgent {
     const tmpMap = new Map();
     tmpMap.set(jobKey, job);
     await this.dataSource.addLensFieldsToJob(tmpMap, this.address);
+    job.clearJobCredits();
 
     if (!this.ownerJobs.has(owner)) {
       this.ownerJobs.set(owner, new Set());
@@ -419,9 +426,9 @@ export abstract class AbstractAgent implements IAgent {
     const set = this.ownerJobs.get(owner);
     set.add(jobKey);
 
-    const ownerBalances = await this.dataSource.getOwnersBalances({ address: this.address }, new Set([owner]));
-
-    this.ownerBalances.set(owner, ownerBalances.get(owner));
+    if (!this.ownerBalances.has(owner)) {
+      this.ownerBalances.set(owner, BN_ZERO);
+    }
   }
 
   protected startAllJobs() {
@@ -530,17 +537,12 @@ export abstract class AbstractAgent implements IAgent {
       this.clog(`'DepositJobCredits' event: (block=${event.blockNumber},jobKey=${jobKey},amount=${amount},fee=${fee})`);
 
       if (!this.jobs.has(jobKey)) {
-        this.clog(`Ignoring DepositJobCredits event due the job missing: (jobKey=${jobKey})`);
-        return;
-      }
-
-      if (this.jobs.get(jobKey).isInitializing()) {
-        this.clog(`Ignoring DepositJobCredits event due still initializing: (jobKey=${jobKey})`);
-        return;
+        throw this.err(`Ignoring DepositJobCredits event due the job missing: (jobKey=${jobKey})`);
       }
 
       const job = this.jobs.get(jobKey);
       job.applyJobCreditsDeposit(BigNumber.from(amount));
+      job.finalizeInitialization();
       job.watch();
     });
 
@@ -570,10 +572,8 @@ export abstract class AbstractAgent implements IAgent {
 
       if (this.ownerJobs.has(jobOwner)) {
         for (const jobKey of this.ownerJobs.get(jobOwner)) {
-          const job = this.jobs.get(jobKey);
-          if (!job.isInitializing()) {
-            this.jobs.get(jobKey).watch();
-          }
+          this.jobs.get(jobKey).finalizeInitialization();
+          this.jobs.get(jobKey).watch();
         }
       }
     });
