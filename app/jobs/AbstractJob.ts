@@ -379,18 +379,19 @@ export abstract class AbstractJob {
   }
 
   private calculateMaxFeePerGas(): bigint {
-    const gasPrice = this.agent.getNetwork().getBaseFee();
-    const max = BigInt(this.details.maxBaseFeeGwei) * BigInt(1e9);
+    const baseFee = this.agent.getNetwork().getBaseFee();
+    const jobConfigMaxFee = BigInt(this.details.maxBaseFeeGwei) * BigInt(1e9);
 
-    console.log({ gasPrice, max });
+    console.log({ baseFee, max: jobConfigMaxFee });
 
-    if (max < gasPrice) {
+    if (jobConfigMaxFee < baseFee) {
       return 0n;
     }
 
-    const currentDouble = gasPrice * 2n;
-    if (currentDouble > max) {
-      return max;
+    // TODO: set back to 2n when txNotMined callback is implemented
+    const currentDouble = baseFee * 3n;
+    if (currentDouble > jobConfigMaxFee) {
+      return jobConfigMaxFee;
     } else {
       return currentDouble;
     }
