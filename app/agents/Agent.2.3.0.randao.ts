@@ -227,7 +227,8 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
     });
 
     this.contract.on('SetRdConfig', event => {
-      const { slashingEpochBlocks, period1, period2, slashingFeeFixedCVP, slashingFeeBps, jobMinCreditsFinney } = event.args[0];
+      const { slashingEpochBlocks, period1, period2, slashingFeeFixedCVP, slashingFeeBps, jobMinCreditsFinney } =
+        event.args[0];
 
       this.clog(`'SetRdConfig' event 🔈: (block=${event.blockNumber}. Restarting all the jobs...`);
 
