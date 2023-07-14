@@ -128,7 +128,11 @@ export class RandaoJob extends AbstractJob {
       return false;
     }
     if (this.getCreditsAvailable() <= (this.agent as IRandaoAgent).getJobMinCredits()) {
-      this.clog('_beforeJobWatch(): selfUnassign');
+      this.clog(
+        `_beforeJobWatch(): Scheduling self-unassign due insufficient credits (required=${(
+          this.agent as IRandaoAgent
+        ).getJobMinCredits()},available=${this.getCreditsAvailable()}`,
+      );
       this._selfUnassign();
       return false;
     }
@@ -273,6 +277,7 @@ export class RandaoJob extends AbstractJob {
 
   protected _executeTxEstimationFailed(_txData: string): void {
     if (this._getCurrentPeriod() === 3) {
+      this.clog('Scheduling self-unassign since the current period is #3...');
       this._selfUnassign();
       this.watch();
       return;
