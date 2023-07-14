@@ -374,7 +374,12 @@ export class Network {
   public registerTimeout(key: string, triggerCallbackAfter: number, callback: (blockTimestamp: number) => void) {
     this._validateKeyLength(key, 'interval');
     this._validateKeyNotInMap(key, this.timeoutData, 'interval');
-    this.clog('SET Timeout', key, `at: ${triggerCallbackAfter}`, `now: ${nowS()}`);
+    this.clog(
+      'SET Timeout',
+      key,
+      `at: ${triggerCallbackAfter}`,
+      `now: ${nowS()}, in: ${triggerCallbackAfter - nowS()}`,
+    );
     this.timeoutData[key] = {
       triggerCallbackAfter,
       callback,

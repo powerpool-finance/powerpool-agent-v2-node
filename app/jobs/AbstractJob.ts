@@ -247,6 +247,10 @@ export abstract class AbstractJob {
     this.details.credits = this.details.credits.sub(credits);
   }
 
+  public applyJobCreditsCredit(credits: BigNumber) {
+    this.details.credits = this.details.credits.sub(credits);
+  }
+
   public applyResolver(resolverAddress: string, resolverCalldata: string) {
     this.resolver = { resolverAddress, resolverCalldata };
   }
@@ -422,7 +426,7 @@ export abstract class AbstractJob {
     });
   }
 
-  private nextExecutionTimestamp(): number {
+  protected nextExecutionTimestamp(): number {
     if (this.details.intervalSeconds === 0) {
       throw this.err(`Unexpected nextExecutionTimestamp() callback for job ${this.key}`);
     }

@@ -47,7 +47,7 @@ export abstract class AbstractAgent implements IAgent {
   private keeperConfig: number;
 
   protected jobs: Map<string, LightJob | RandaoJob>;
-  private ownerBalances: Map<string, BigNumber>;
+  protected ownerBalances: Map<string, BigNumber>;
   private ownerJobs: Map<string, Set<string>>;
   private keyAddress: string;
   private keyPass: string;

@@ -112,13 +112,23 @@ export class RandaoJob extends AbstractJob {
     this._unlockInitiateSlashing();
   }
 
+  protected nextExecutionTimestamp(): number {
+    if (this.details.intervalSeconds === 0) {
+      throw this.err(`Unexpected nextExecutionTimestamp() callback for job ${this.key}`);
+    }
+
+    return (this.details.lastExecutionAt || this.createdAt) + this.details.intervalSeconds;
+  }
+
   private intervalPeriod2StartsAt(): number {
     if (this.details.intervalSeconds === 0) {
       throw this.err(`Unexpected slashingAvailableTimestamp() callback for job ${this.key}`);
     }
 
     return (
-      this.details.lastExecutionAt + this.details.intervalSeconds + (this.agent as IRandaoAgent).getPeriod1Duration()
+      (this.details.lastExecutionAt || this.createdAt) +
+      this.details.intervalSeconds +
+      (this.agent as IRandaoAgent).getPeriod1Duration()
     );
   }
 

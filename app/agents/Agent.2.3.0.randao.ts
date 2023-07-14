@@ -185,6 +185,30 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
   }
 
   _afterInitializeListeners() {
+    this.contract.on('ExecutionReverted', event => {
+      const { actualKeeperId, compensation, executionReturndata, jobKey } = event.args;
+
+      this.clog(
+        `'ExecutionReverted' event 🔈: (block=${event.blockNumber},jobKey=${jobKey},actualKeeperId=${actualKeeperId},compensation=${compensation},executionReturndata=${executionReturndata})`,
+      );
+
+      const job = this.jobs.get(jobKey);
+      job.applyWasExecuted();
+
+      if (job.creditsSourceIsJobOwner()) {
+        const ownerCreditsBefore = this.ownerBalances.get(job.getOwner());
+        const ownerCreditsAfter = ownerCreditsBefore.sub(compensation);
+        this.clog(
+          `Owner balance credited: (jobOwner=${job.getOwner()},amount=${compensation.toString()},before=${ownerCreditsBefore},after=${ownerCreditsAfter}`,
+        );
+        this.ownerBalances.set(job.getOwner(), ownerCreditsAfter);
+      } else {
+        job.applyJobCreditsCredit(compensation);
+      }
+
+      // The keeper was unassigned earlier with JobKeeperChanged event, thus no need to call watch() here
+    });
+
     this.contract.on(['JobKeeperChanged'], async event => {
       const { keeperFrom, keeperTo, jobKey } = event.args;
 
