@@ -186,10 +186,10 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
 
   _afterInitializeListeners() {
     this.contract.on('ExecutionReverted', event => {
-      const { actualKeeperId, compensation, executionReturndata, jobKey } = event.args;
+      const { assignedKeeperId, actualKeeperId, compensation, executionReturndata, jobKey } = event.args;
 
       this.clog(
-        `'ExecutionReverted' event 🔈: (block=${event.blockNumber},jobKey=${jobKey},actualKeeperId=${actualKeeperId},compensation=${compensation},executionReturndata=${executionReturndata})`,
+        `'ExecutionReverted' event 🔈: (block=${event.blockNumber},jobKey=${jobKey},assignedKeeperId=${assignedKeeperId},actualKeeperId=${actualKeeperId},compensation=${compensation},executionReturndata=${executionReturndata})`,
       );
 
       const job = this.jobs.get(jobKey);
@@ -255,14 +255,14 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
     });
 
     this.contract.on('SlashKeeper', event => {
-      const { jobKey, expectedKeeperId, actualKeeperId, fixedSlashAmount, dynamicSlashAmount, slashAmountMissing } =
+      const { jobKey, assignedKeeperId, actualKeeperId, fixedSlashAmount, dynamicSlashAmount, slashAmountMissing } =
         event.args;
 
       this.clog(
-        `'SlashKeeper' event 🔈: (block=${event.blockNumber},jobKey=${jobKey},expectedKeeperId=${expectedKeeperId},actualKeeperId=${actualKeeperId},fixedSlashAmount=${fixedSlashAmount},dynamicSlashAmount=${dynamicSlashAmount},slashAmountMissing=${slashAmountMissing})`,
+        `'SlashKeeper' event 🔈: (block=${event.blockNumber},jobKey=${jobKey},assignedKeeperId=${assignedKeeperId},actualKeeperId=${actualKeeperId},fixedSlashAmount=${fixedSlashAmount},dynamicSlashAmount=${dynamicSlashAmount},slashAmountMissing=${slashAmountMissing})`,
       );
 
-      if (this.getKeeperId() === expectedKeeperId.toNumber()) {
+      if (this.getKeeperId() === assignedKeeperId.toNumber()) {
         const amount = fixedSlashAmount.add(dynamicSlashAmount).sub(slashAmountMissing);
         this.myStake = this.myStake.sub(amount);
         this.activateOrTerminateAgentIfRequired();

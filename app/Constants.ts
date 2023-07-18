@@ -95,6 +95,21 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
       version: '2.3.0',
       strategy: 'randao',
     },
+    '0xc8E864f12c337Bdf6294a3DCeE0E565D2B1B4d90': {
+      deployedAt: 3917456,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
+    '0x52D303bBc927eC2Fee6B5380A2d100FA49518B84': {
+      deployedAt: 3917477,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
+    '0xec344c76EF6cd1D329CB98CFa896ED9Badedb1CD': {
+      deployedAt: 3917469,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
   },
 };
 

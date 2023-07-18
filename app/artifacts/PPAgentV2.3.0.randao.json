@@ -175,7 +175,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "expectedKeeperId",
+        "name": "assignedKeeperId",
         "type": "uint256"
       },
       {
@@ -432,7 +432,7 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "expectedKeeperId",
+        "name": "assignedKeeperId",
         "type": "uint256"
       },
       {
@@ -766,6 +766,12 @@
         "internalType": "bytes32",
         "name": "jobKey",
         "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "assignedKeeperId",
+        "type": "uint256"
       },
       {
         "indexed": true,
@@ -1380,7 +1386,7 @@
       {
         "indexed": true,
         "internalType": "uint256",
-        "name": "expectedKeeperId",
+        "name": "assignedKeeperId",
         "type": "uint256"
       },
       {
