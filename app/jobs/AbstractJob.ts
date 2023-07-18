@@ -61,6 +61,7 @@ export abstract class AbstractJob {
   protected config: ParsedJobConfig;
   private jobLevelMinKeeperCvp: BigNumber;
   protected resolver: Resolver;
+  protected preDefinedCalldata: string;
 
   private averageBlockTimeSeconds: number;
   private network: Network;
@@ -175,6 +176,7 @@ export abstract class AbstractJob {
 
   public applyJob(job: GetJobResponse): boolean {
     this.resolver = { resolverAddress: job.resolver.resolverAddress, resolverCalldata: job.resolver.resolverCalldata };
+    this.preDefinedCalldata = job.preDefinedCalldata;
 
     if (typeof job.details !== 'object') {
       throw this.err(`applyJob(): job.details is not an object: ${job.details}`);
@@ -253,6 +255,10 @@ export abstract class AbstractJob {
 
   public applyResolver(resolverAddress: string, resolverCalldata: string) {
     this.resolver = { resolverAddress, resolverCalldata };
+  }
+
+  public applyPreDefinedCalldata(preDefinedCalldata: string) {
+    this.preDefinedCalldata = preDefinedCalldata;
   }
 
   public applyConfig(isActive: boolean, useJobOwnerCredits: boolean, assertResolverSelector: boolean) {

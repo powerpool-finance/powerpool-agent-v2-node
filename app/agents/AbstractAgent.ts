@@ -379,7 +379,7 @@ export abstract class AbstractAgent implements IAgent {
    * @private
    */
   private async resyncAllJobs(): Promise<number> {
-    const latestBock = await this.network.getLatestBlockNumber();
+    const latestBock = this.network.getLatestBlockNumber();
     // 1. init jobs
     let newJobs = new Map<string, RandaoJob | LightJob>();
     newJobs = await this.dataSource.getRegisteredJobs(this);
@@ -543,7 +543,6 @@ export abstract class AbstractAgent implements IAgent {
 
       const job = this.jobs.get(jobKey);
       job.applyJobCreditsDeposit(BigNumber.from(amount));
-      job.finalizeInitialization();
       job.watch();
     });
 
@@ -573,7 +572,6 @@ export abstract class AbstractAgent implements IAgent {
 
       if (this.ownerJobs.has(jobOwner)) {
         for (const jobKey of this.ownerJobs.get(jobOwner)) {
-          this.jobs.get(jobKey).finalizeInitialization();
           this.jobs.get(jobKey).watch();
         }
       }
@@ -625,6 +623,18 @@ export abstract class AbstractAgent implements IAgent {
 
       const job = this.jobs.get(jobKey);
       job.applyUpdate(maxBaseFeeGwei, rewardPct, fixedReward, jobMinCvp, intervalSeconds);
+      job.watch();
+    });
+
+    this.contract.on('SetJobPreDefinedCalldata', event => {
+      const { jobKey, preDefinedCalldata } = event.args;
+
+      this.clog(
+        `'SetJobPreDefinedCalldata' event: (block=${event.blockNumber},jobKey=${jobKey},preDefinedCalldata=${preDefinedCalldata})`,
+      );
+
+      const job = this.jobs.get(jobKey);
+      job.applyPreDefinedCalldata(preDefinedCalldata);
       job.watch();
     });
 

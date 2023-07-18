@@ -223,6 +223,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
         this.clog('Updating binJob to', binJob);
         job.applyBinJobData(binJob);
       }
+      job.finalizeInitialization();
       job.watch();
     });
 
