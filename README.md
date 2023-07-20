@@ -1,5 +1,7 @@
 # PowerPool Agent V2 Keeper Node
 
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/powerpool-finance/powerpool-agent-v2-node/main.yml?branch=master)
+
 The node monitors onchain events and execute jobs when required.
 This node is distributed via docker images.
 
