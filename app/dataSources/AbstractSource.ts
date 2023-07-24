@@ -2,22 +2,23 @@ import { Network } from '../Network';
 import { ContractWrapper } from '../Types';
 import { RandaoJob } from '../jobs/RandaoJob';
 import { LightJob } from '../jobs/LightJob';
+import { BigNumber } from 'ethers';
 
 export abstract class AbstractSource {
   protected type: string;
   protected network: Network;
   protected contract: ContractWrapper;
 
-  constructor(network: Network, contract: ContractWrapper) {
+  protected constructor(network: Network, contract: ContractWrapper) {
     this.network = network;
     this.contract = contract;
 
     if (!this.contract) {
-      throw this.err('Contract is not initialized');
+      throw this._err('Missing contract argument');
     }
 
     if (!this.network) {
-      throw this.err('network is not initialized');
+      throw this._err('Missing network argument');
     }
   }
 
@@ -26,13 +27,13 @@ export abstract class AbstractSource {
    * @param args
    * @protected
    */
-  protected err(...args: unknown[]): Error {
-    return new Error(`SourceError${this.toString()}: ${args.join(' ')}`);
+  private _err(...args: unknown[]): Error {
+    return new Error(`AbstractDataSourceError${this.toString()}: ${args.join(' ')}`);
   }
 
-  async getRegisteredJobs(_context): Promise<Map<string, RandaoJob | LightJob>> {
-    return new Map<string, RandaoJob | LightJob>();
-  }
+  abstract getRegisteredJobs(_context): Promise<Map<string, RandaoJob | LightJob>>;
+  abstract getOwnersBalances(context, jobOwnersSet: Set<string>): Promise<Map<string, BigNumber>>;
+  abstract addLensFieldsToNewJob(newJobs: RandaoJob | LightJob): void;
 
   /**
    * Helps handle null addresses. If value is null it returns a null address
@@ -40,7 +41,7 @@ export abstract class AbstractSource {
    * @param longVersion - If longer version of null address is required: 0x -> 0x0000000000000000000000000000000000000000
    * @param objectKey - If value is an object that can turn to null. Here you can pass key of that object which should be returned otherwise
    */
-  _checkNullAddress(value, longVersion = false, objectKey = ''): string {
+  protected _checkNullAddress(value, longVersion = false, objectKey = ''): string {
     if (typeof value !== 'undefined' && value === null) {
       return longVersion ? '0x0000000000000000000000000000000000000000' : '0x';
     } else {

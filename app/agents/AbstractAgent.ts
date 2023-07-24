@@ -416,9 +416,7 @@ export abstract class AbstractAgent implements IAgent {
     const job = this._buildNewJob(creationEvent);
     this.jobs.set(jobKey, job);
 
-    const tmpMap = new Map();
-    tmpMap.set(jobKey, job);
-    await this.dataSource.addLensFieldsToJob(tmpMap, this.address);
+    await this.dataSource.addLensFieldsToNewJob(job);
     job.clearJobCredits();
 
     if (!this.ownerJobs.has(owner)) {

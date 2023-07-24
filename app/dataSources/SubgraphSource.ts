@@ -6,67 +6,85 @@ import { LightJob } from '../jobs/LightJob';
 import { Network } from '../Network';
 import { ContractWrapper } from '../Types';
 import { BigNumber, utils } from 'ethers';
+import { nowTimeString } from '../Utils.js';
+
+const QUERY_ALL_JOBS = `{
+  jobs(first: 1000) {
+    id
+    active
+    jobAddress
+    jobId
+    assertResolverSelector
+    credits
+    depositCount
+    calldataSource
+    fixedReward
+    executionCount
+    jobSelector
+    lastExecutionAt
+    maxBaseFeeGwei
+    minKeeperCVP
+    preDefinedCalldata
+    intervalSeconds
+    resolverAddress
+    resolverCalldata
+    rewardPct
+    totalCompensations
+    totalExpenses
+    totalProfit
+    useJobOwnerCredits
+    withdrawalCount
+    owner {
+      id
+    }
+    pendingOwner {
+      id
+    }
+    jobCreatedAt
+    jobNextKeeperId
+    jobReservedSlasherId
+    jobSlashingPossibleAfter
+  }
+}`;
+
+const QUERY_META = `{
+  _meta {
+    block {
+      number
+    }
+  }
+}`;
+
+const QUERY_JOB_OWNERS = `{
+  jobOwners {
+    id
+    credits
+  }
+}`;
 
 /**
  * This class used for fetching data from subgraph
  */
 export class SubgraphSource extends AbstractSource {
-  private queries: { [name: string]: string };
   private blockchainSource: BlockchainSource;
-  private graphUrl: string;
+  private readonly subgraphUrl: string;
+
+  private toString(): string {
+    return `(url: ${this.subgraphUrl})`;
+  }
+
+  private clog(...args: unknown[]) {
+    console.log(`>>> ${nowTimeString()} >>> SubgraphDataSource${this.toString()}:`, ...args);
+  }
+
+  private err(...args: unknown[]): Error {
+    return new Error(`SubgraphDataSourceError${this.toString()}: ${args.join(' ')}`);
+  }
 
   constructor(network: Network, contract: ContractWrapper, graphUrl: string) {
     super(network, contract);
     this.type = 'subgraph';
-    this.graphUrl = graphUrl;
-
-    this.queries = {};
-    this.queries._meta = `
-      block {
-        number
-      }
-    `;
-    this.queries.jobsQuery = `
-      id
-      active
-      jobAddress
-      jobId
-      assertResolverSelector
-      credits
-      depositCount
-      calldataSource
-      fixedReward
-      executionCount
-      jobSelector
-      lastExecutionAt
-      maxBaseFeeGwei
-      minKeeperCVP
-      preDefinedCalldata
-      intervalSeconds
-      resolverAddress
-      resolverCalldata
-      rewardPct
-      totalCompensations
-      totalExpenses
-      totalProfit
-      useJobOwnerCredits
-      withdrawalCount
-      owner {
-        id
-      }
-      pendingOwner {
-        id
-      }
-      jobCreatedAt
-      jobNextKeeperId
-      jobReservedSlasherId
-      jobSlashingPossibleAfter
-    `;
-
-    this.queries.jobOwnersQuery = `
-      id
-      credits
-    `;
+    this.subgraphUrl = graphUrl;
 
     this.blockchainSource = new BlockchainSource(network, contract);
   }
@@ -77,8 +95,16 @@ export class SubgraphSource extends AbstractSource {
    * @param endpoint
    * @param query
    */
-  query(endpoint, query) {
-    return axios.post(endpoint, { query }).then(res => res.data.data);
+  async query(endpoint, query) {
+    const res = await axios.post(endpoint, { query });
+    if (res.data.errors) {
+      let locations = '';
+      if ('locations' in res.data.errors[0]) {
+        locations = `Locations: ${JSON.stringify(res.data.errors[0].locations)}. `;
+      }
+      throw new Error(`Subgraph query error: ${res.data.errors[0].message}. ${locations}Executed query:\n${query}\n`);
+    }
+    return res.data.data;
   }
 
   /**
@@ -88,18 +114,14 @@ export class SubgraphSource extends AbstractSource {
     try {
       const [latestBock, { _meta }] = await Promise.all([
         this.network.getLatestBlockNumber(),
-        this.query(
-          this.graphUrl,
-          `{
-          _meta {
-            ${this.queries._meta}
-          }
-      }`,
-        ),
+        this.query(this.subgraphUrl, QUERY_META),
       ]);
 
-      const isSynced = latestBock - BigInt(_meta.block.number) <= 10; // Our graph is desynced if its behind for more than 10 blocks
-      if (!isSynced) throw this.err(`Subgraph is out-of-sync with blockchain. it's url: ${this.graphUrl}`);
+      const diff = latestBock - BigInt(_meta.block.number);
+      const isSynced = diff <= 10; // Our graph is desynced if its behind for more than 10 blocks
+      if (!isSynced) {
+        this.clog(`Error: Subgraph is ${diff} blocks behind.`);
+      }
       return isSynced;
     } catch (e) {
       throw this.err('Graph is not responding. ', e);
@@ -122,14 +144,8 @@ export class SubgraphSource extends AbstractSource {
       return newJobs;
     }
     try {
-      const { jobs } = await this.query(
-        this.graphUrl,
-        `{
-          jobs {
-            ${this.queries.jobsQuery}
-          }
-      }`,
-      );
+      const res = await this.query(this.subgraphUrl, QUERY_ALL_JOBS);
+      const { jobs } = res;
       jobs.forEach(job => {
         const newJob = context._buildNewJob({
           name: 'RegisterJob',
@@ -139,7 +155,7 @@ export class SubgraphSource extends AbstractSource {
             jobKey: job.id,
           },
         });
-        const lensJob = this.addLensFieldsToJob(job);
+        const lensJob = this.addLensFieldsToJobs(job);
         newJob.applyJob({
           ...lensJob,
           owner: lensJob.owner,
@@ -158,7 +174,7 @@ export class SubgraphSource extends AbstractSource {
    * But we already hale all the data
    * @param graphData
    */
-  addLensFieldsToJob(graphData) {
+  private addLensFieldsToJobs(graphData) {
     const lensFields: any = {};
     // setting an owner
     lensFields.owner = utils.getAddress(this._checkNullAddress(graphData.owner, true, 'id'));
@@ -202,12 +218,16 @@ export class SubgraphSource extends AbstractSource {
     return lensFields;
   }
 
+  public async addLensFieldsToNewJob(newJob: LightJob | RandaoJob) {
+    return this.blockchainSource.addLensFieldsToNewJob(newJob);
+  }
+
   /**
    * Gets job owner's balances from subgraph
    * @param context - agent context
    * @param jobOwnersSet - array of jobOwners addresses
    */
-  async getOwnersBalances(context, jobOwnersSet: Set<string>): Promise<Map<string, BigNumber>> {
+  public async getOwnersBalances(context, jobOwnersSet: Set<string>): Promise<Map<string, BigNumber>> {
     let result = new Map<string, BigNumber>();
     try {
       const graphIsFine = await this.isGraphOk();
@@ -216,14 +236,7 @@ export class SubgraphSource extends AbstractSource {
         return result;
       }
 
-      const { jobOwners } = await this.query(
-        this.graphUrl,
-        `{
-          jobOwners {
-            ${this.queries.jobOwnersQuery}
-          }
-      }`,
-      );
+      const { jobOwners } = await this.query(this.subgraphUrl, QUERY_JOB_OWNERS);
       jobOwners.forEach(JobOwner => {
         if (jobOwnersSet.has(JobOwner.id)) {
           // we only need job owners which have jobs

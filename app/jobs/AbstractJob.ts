@@ -138,18 +138,9 @@ export abstract class AbstractJob {
     }
   }
 
-  // HANDLERS (applies and resubscribes). Required for an already active jobs.
+  // APPLIERS (only applies, but doesn't resubscribe).
 
-  public async handleUpdateEvent(updateEvent: Event) {
-    await this.unwatch();
-
-    this.applyUpdateEvent(updateEvent);
-
-    await this.watch();
-  }
-
-  // APPLIERS (only applies, but doesn't resubscribe). Required for a job initialization.
-
+  // TODO: deprecate
   public applyUpdateEvent(event: Event): boolean {
     this.assertEvent(event, 'JobUpdate');
 
@@ -191,6 +182,7 @@ export abstract class AbstractJob {
     this.owner = job.owner;
     this.details = job.details;
     this.config = job.config;
+    this.jobLevelMinKeeperCvp = job.jobLevelMinKeeperCvp;
 
     this._afterApplyJob(job);
     return true;
@@ -387,6 +379,7 @@ export abstract class AbstractJob {
 
   private calculateMaxFeePerGas(): bigint {
     const baseFee = this.agent.getNetwork().getBaseFee();
+    // TODO: maxBaseFee supported by lightjob, not by randao
     const jobConfigMaxFee = BigInt(this.details.maxBaseFeeGwei) * BigInt(1e9);
 
     console.log({ baseFee, max: jobConfigMaxFee });
@@ -422,6 +415,7 @@ export abstract class AbstractJob {
       },
       jobKey,
       tx,
+      // TODO: not sure still need them
       creditsAvailable: this.getCreditsAvailable(),
       fixedCompensation: this.getFixedReward(),
       ppmCompensation: this.details.rewardPct,
