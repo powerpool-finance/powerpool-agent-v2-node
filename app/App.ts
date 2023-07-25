@@ -16,11 +16,11 @@ function clog(...args: any[]) {
   console.log(`>>> ${nowTimeString()} >>> App:`, ...args);
 }
 
-let unhandledExceptionsStrictMode = false;
-
 export class App {
   private readonly networks: { [key: string]: Network };
   private readonly config: Config;
+
+  public unhandledExceptionsStrictMode = false;
 
   constructor() {
     this.networks = {};
@@ -119,7 +119,7 @@ export class App {
         config.strict.basic = all;
         config.strict.unhandled = all;
         config.strict.estimations = all;
-        unhandledExceptionsStrictMode = all;
+        this.unhandledExceptionsStrictMode = all;
         anyStrict = true;
       } else {
         config.strict.all = false;
@@ -127,7 +127,7 @@ export class App {
         config.strict.unhandled = !!config.strict.unhandled;
         config.strict.estimations = !!config.strict.estimations || !!config.strict['estimation'];
 
-        unhandledExceptionsStrictMode = !!config.strict.unhandled;
+        this.unhandledExceptionsStrictMode = !!config.strict.unhandled;
 
         anyStrict = config.strict.basic || config.strict.unhandled || config.strict.estimations;
       }

@@ -1,8 +1,10 @@
-import {App} from "./App";
+import { App } from './App';
+
+let app: App;
 
 (async function () {
   console.log(`PowerPool Agent Node version: ${process.env.npm_package_version}`);
-  const app = new App();
+  app = new App();
   await app.start();
 })().catch(error => {
   console.error(error);
@@ -14,7 +16,7 @@ process.on('unhandledRejection', function (error: Error, _promise) {
   const msg = `Unhandled Rejection, reason: ${error}`;
   console.log(error.stack);
 
-  if (unhandledExceptionsStrictMode) {
+  if (app && app.unhandledExceptionsStrictMode) {
     console.log('Stopping the app with a code (1) since the "unhandledExceptionsStrictMode" is ON.');
     process.exit(1);
   }
