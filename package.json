@@ -2,10 +2,10 @@
   "name": "powerpool-agent-v2-node",
   "version": "0.3.0",
   "description": "PowerPool Agent V2 Keeper Node",
-  "main": "app/App.ts",
+  "main": "app/Run.ts",
   "scripts": {
     "build": "tsc",
-    "start": "ts-node app/App.ts",
+    "start": "ts-node app/Run.ts",
     "lint": "eslint --ext .ts app/",
     "lint:fix": "eslint --fix --ext .ts app/",
     "test": " NODE_OPTIONS=\"--loader ts-node/esm\" mocha tests/testRawJobParser.test.ts"
