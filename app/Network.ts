@@ -46,6 +46,8 @@ export class Network {
   private multicall: ContractWrapper | undefined;
   private externalLens: ContractWrapper | undefined;
   private averageBlockTimeSeconds: number;
+  private externalLensAddress: string;
+  private multicall2Address: string;
   private flashbotsAddress: string;
   private flashbotsPass: string;
   private flashbotsRpc: string;
@@ -80,7 +82,9 @@ export class Network {
     this.flashbotsAddress = networkConfig?.flashbots?.address;
     this.flashbotsPass = networkConfig?.flashbots?.pass;
 
-    this.averageBlockTimeSeconds = getAverageBlockTime(name);
+    this.averageBlockTimeSeconds = networkConfig.average_block_time || getAverageBlockTime(name);
+    this.externalLensAddress = networkConfig.external_lens || getExternalLensAddress(name, null, null);
+    this.multicall2Address = networkConfig.multicall2 || getMulticall2Address(name);
     this.newBlockEventEmitter = new EventEmitter();
 
     this.newBlockNotifications = new Map();
@@ -98,7 +102,10 @@ export class Network {
     // TODO: get type & AgentConfig
     for (const [address, agentConfig] of Object.entries(this.networkConfig.agents)) {
       const checksummedAddress = toChecksummedAddress(address);
-      const [version, strategy] = getAgentVersionAndType(checksummedAddress, this.name);
+      let { version, strategy } = agentConfig;
+      if (!version || !strategy) {
+        [version, strategy] = getAgentVersionAndType(checksummedAddress, this.name);
+      }
       let agent;
 
       if (version === '2.3.0' && strategy === 'randao') {
@@ -240,12 +247,9 @@ export class Network {
     }
 
     this.provider = new ethers.providers.WebSocketProvider(this.rpc);
-    this.multicall = this.contractWrapperFactory.build(getMulticall2Address(this.name), getMulticall2Abi());
+    this.multicall = this.contractWrapperFactory.build(this.multicall2Address, getMulticall2Abi());
     // TODO: initialize this after we know agent version and strategy
-    this.externalLens = this.contractWrapperFactory.build(
-      getExternalLensAddress(this.name, null, null),
-      getExternalLensAbi(),
-    );
+    this.externalLens = this.contractWrapperFactory.build(this.externalLensAddress, getExternalLensAbi());
 
     try {
       const lastBlock = await this.provider.getBlockNumber();

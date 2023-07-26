@@ -21,6 +21,8 @@ export interface AgentConfig {
   deployed_at?: number;
   data_source?: string;
   graph_url?: string;
+  version?: string;
+  strategy?: string;
 }
 
 export interface NetworkConfig {
@@ -33,6 +35,9 @@ export interface NetworkConfig {
   };
   max_priority_fee_per_gas?: number;
   agents: { [key: string]: AgentConfig };
+  average_block_time?: number;
+  external_lens?: string;
+  multicall2?: string;
 }
 
 export interface SourceConfig {
