@@ -15,7 +15,7 @@ import {
   getMulticall2Address,
 } from './ConfigGetters.js';
 import { getExternalLensAbi, getMulticall2Abi } from './services/AbiService.js';
-import { nowMs, nowS, nowTimeString, toChecksummedAddress } from './Utils.js';
+import { nowTimeString, toChecksummedAddress } from './Utils.js';
 import { EthersContractWrapperFactory } from './clients/EthersContractWrapperFactory.js';
 import EventEmitter from 'events';
 import { AgentRandao_2_3_0 } from './agents/Agent.2.3.0.randao.js';
@@ -120,6 +120,14 @@ export class Network {
     }
   }
 
+  public nowS(): number {
+    return Math.floor(+new Date() / 1000);
+  }
+
+  public nowMs(): number {
+    return +new Date();
+  }
+
   public exitIfStrictTopic(topic) {
     this.app.exitIfStrictTopic(topic);
   }
@@ -201,7 +209,7 @@ export class Network {
       };
     });
     const timeoutCallbacks = {};
-    const nowSeconds = nowS();
+    const nowSeconds = this.nowS();
     for (const [key, jobData] of Object.entries(this.timeoutData)) {
       timeoutCallbacks[key] = {
         callbackAt: jobData.triggerCallbackAfter,
@@ -270,9 +278,9 @@ export class Network {
     }
 
     this.provider.on('block', async blockNumber => {
-      const before = nowMs();
+      const before = this.nowMs();
       const block = await this.provider.getBlock(blockNumber);
-      const fetchBlockDelay = nowMs() - before;
+      const fetchBlockDelay = this.nowMs() - before;
 
       this.latestBaseFee = BigInt(block.baseFeePerGas.toString());
       this.latestBlockNumber = BigInt(block.number.toString());
@@ -382,7 +390,7 @@ export class Network {
       'SET Timeout',
       key,
       `at: ${triggerCallbackAfter}`,
-      `now: ${nowS()}, in: ${triggerCallbackAfter - nowS()}`,
+      `now: ${this.nowS()}, in: ${triggerCallbackAfter - this.nowS()}`,
     );
     this.timeoutData[key] = {
       triggerCallbackAfter,

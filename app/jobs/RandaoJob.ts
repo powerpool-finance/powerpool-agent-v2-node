@@ -1,5 +1,5 @@
 import { AbstractJob } from './AbstractJob.js';
-import { nowS, nowTimeString } from '../Utils.js';
+import { nowTimeString } from '../Utils.js';
 import { EmptyTxNotMinedInBlockCallback, EventWrapper, GetJobResponse, IAgent, IRandaoAgent } from '../Types.js';
 
 export class RandaoJob extends AbstractJob {
@@ -50,7 +50,7 @@ export class RandaoJob extends AbstractJob {
     let canInitiateSlashingIn = 0;
     if (this.t1) {
       const period1 = (this.agent as IRandaoAgent).getPeriod1Duration();
-      const now = nowS();
+      const now = this.agent.nowS();
       canInitiateSlashingIn = this.t1 + period1 - now;
     }
     const obj = Object.assign(super.getStatusObjectForApi(), {
@@ -220,7 +220,7 @@ export class RandaoJob extends AbstractJob {
   }
 
   private _getCurrentPeriodIntervalJob(): number {
-    const now = nowS();
+    const now = this.agent.nowS();
 
     if (now < this.details.lastExecutionAt + this.details.intervalSeconds) {
       return 0;
@@ -243,7 +243,7 @@ export class RandaoJob extends AbstractJob {
   }
 
   private _getCurrentPeriodResolverJob(): number {
-    const now = nowS();
+    const now = this.agent.nowS();
 
     if (this.slashingPossibleAfter === 0) {
       return 0;
@@ -327,14 +327,14 @@ export class RandaoJob extends AbstractJob {
       // executeSlashing
     } else if (
       this.slashingPossibleAfter > 0 &&
-      nowS() > this.slashingPossibleAfter &&
+      this.agent.nowS() > this.slashingPossibleAfter &&
       this.reservedSlasherId == this.agent.getKeeperId()
     ) {
       console.log(`Need execute slashing bn=${triggeredByBlockNumber}`);
       await this.executeResolverJob(invokeCalldata);
       // initiateSlashing
     } else {
-      const now = nowS();
+      const now = this.agent.nowS();
       const latestBlock = this.agent.getNetwork().getLatestBlockNumber();
       const period1 = (this.agent as IRandaoAgent).getPeriod1Duration();
 

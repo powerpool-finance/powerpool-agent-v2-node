@@ -359,4 +359,8 @@ export interface IAgent {
   addJobToBlacklist(jobKey);
 
   getIsAgentUp(): boolean;
+
+  nowS(): number;
+
+  nowMs(): number;
 }
