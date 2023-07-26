@@ -15,14 +15,6 @@ export function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms, []));
 }
 
-export function nowS(): number {
-  return Math.floor(+new Date() / 1000);
-}
-
-export function nowMs(): number {
-  return +new Date();
-}
-
 export function nowTimeString(): string {
   return new Date().toISOString().substring(11, 24);
 }

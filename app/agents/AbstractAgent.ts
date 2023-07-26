@@ -13,7 +13,7 @@ import {
 import { BigNumber, ethers, Wallet } from 'ethers';
 import { getEncryptedJson } from '../services/KeyService.js';
 import { BN_ZERO, DEFAULT_SYNC_FROM_CHAINS } from '../Constants.js';
-import { nowMs, nowTimeString, weiValueToEth } from '../Utils.js';
+import { nowTimeString, weiValueToEth } from '../Utils.js';
 import { FlashbotsExecutor } from '../executors/FlashbotsExecutor.js';
 import { PGAExecutor } from '../executors/PGAExecutor.js';
 import { getAgentDefaultSyncFromSafe } from '../ConfigGetters.js';
@@ -296,6 +296,14 @@ export abstract class AbstractAgent implements IAgent {
     return this.network;
   }
 
+  public nowS(): number {
+    return this.network.nowS();
+  }
+
+  public nowMs(): number {
+    return this.network.nowMs();
+  }
+
   public getAddress(): string {
     return this.address;
   }
@@ -505,7 +513,7 @@ export abstract class AbstractAgent implements IAgent {
 
   protected async _sendNonExecuteTransaction(envelope: TxEnvelope) {
     await this.populateTxExtraFields(envelope.tx);
-    return this.executor.push(`other-tx-type/${nowMs()}`, envelope);
+    return this.executor.push(`other-tx-type/${this.nowMs()}`, envelope);
   }
 
   protected activateOrTerminateAgentIfRequired() {
