@@ -8,25 +8,32 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const files = fs.readdirSync(path.resolve(__dirname, '../../keys'));
-const v3Objects = {};
-for (const file of files) {
-  if (!file.startsWith('.')) {
-    const _path = path.resolve(__dirname, `../../keys/${file}`);
-    const string = fs.readFileSync(_path).toString();
-    let data = JSON.parse(string);
-    if (typeof data === 'string' && data.includes('version')) {
-      data = JSON.parse(data);
-    }
-    if ('address' in data && data.address.length === 40) {
-      v3Objects[`0x${data.address}`] = JSON.stringify(data);
-    } else {
-      throw new Error(`KeysService: Invalid key object in file ${_path}`);
+let v3Objects;
+function readKeys() {
+  const files = fs.readdirSync(path.resolve(__dirname, '../../keys'));
+
+  v3Objects = {};
+  for (const file of files) {
+    if (!file.startsWith('.')) {
+      const _path = path.resolve(__dirname, `../../keys/${file}`);
+      const string = fs.readFileSync(_path).toString();
+      let data = JSON.parse(string);
+      if (typeof data === 'string' && data.includes('version')) {
+        data = JSON.parse(data);
+      }
+      if ('address' in data && data.address.length === 40) {
+        v3Objects[`0x${data.address}`] = JSON.stringify(data);
+      } else {
+        throw new Error(`KeysService: Invalid key object in file ${_path}`);
+      }
     }
   }
 }
 
 export function getEncryptedJson(address: string): string {
+  if (!v3Objects) {
+    readKeys();
+  }
   address = address.toLowerCase();
   if (!(address in v3Objects)) {
     throw new Error(
