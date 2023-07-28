@@ -1,8 +1,8 @@
-import { App } from './App';
+import { App } from './App.js';
 import YAML from 'yamljs';
 import fs from 'fs';
 import path, { dirname } from 'path';
-import { AgentConfig, Config, NetworkConfig } from './Types';
+import { AgentConfig, Config, NetworkConfig } from './Types.js';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);

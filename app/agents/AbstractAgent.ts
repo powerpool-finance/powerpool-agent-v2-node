@@ -66,7 +66,9 @@ export abstract class AbstractAgent implements IAgent {
   abstract _getSupportedAgentVersions(): string[];
 
   protected toString(): string {
-    return `(network: ${this.network.getName()}, address: ${this.address})`;
+    return `(network: ${this.network.getName()}, address: ${this.address}, keeperId: ${
+      this.keeperId || 'Fetching...'
+    })`;
   }
 
   protected clog(...args: unknown[]) {
@@ -193,8 +195,6 @@ export abstract class AbstractAgent implements IAgent {
     console.timeLog(label);
     this.workerSigner.connect(this.getNetwork().getProvider());
 
-    this.clog('Worker address:', this.workerSigner.address);
-
     switch (this.executorType) {
       case 'flashbots':
         // eslint-disable-next-line no-case-declarations
@@ -237,6 +237,10 @@ export abstract class AbstractAgent implements IAgent {
     const keeperConfig = await this.contract.ethCall('getKeeper', [this.keeperId]);
     this.myStake = keeperConfig.currentStake;
     this.myKeeperIsActive = keeperConfig.isActive;
+
+    this.clog(
+      `My Keeper Details: (keeperId=${this.keeperId},workerAddress=${this.workerSigner.address},stake=${this.myStake},isActive=${this.myKeeperIsActive})`,
+    );
 
     if (this.workerSigner.address != keeperConfig.worker) {
       throw this.err(
