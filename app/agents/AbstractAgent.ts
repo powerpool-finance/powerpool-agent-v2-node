@@ -170,12 +170,12 @@ export abstract class AbstractAgent implements IAgent {
 
     // Ensure version matches
     // TODO: extract check
-    const version = await this.contract.ethCall('VERSION');
+    const version = await this.queryContractVersion();
     if (!this._getSupportedAgentVersions().includes(version)) {
       throw this.err(`Invalid version: ${version}`);
     }
 
-    this.keeperId = parseInt(await this.contract.ethCall('workerKeeperIds', [this.keyAddress]));
+    this.keeperId = await this.queryKeeperId(this.keyAddress);
     if (this.keeperId < 1) {
       throw this.err(`Worker address '${this.keyAddress}' is not assigned  to any keeper`);
     }
@@ -234,7 +234,7 @@ export abstract class AbstractAgent implements IAgent {
         throw this.err(`Invalid executor type: '${this.executorType}'. Only 'flashbots' and 'pga' are supported.`);
     }
 
-    const keeperConfig = await this.contract.ethCall('getKeeper', [this.keeperId]);
+    const keeperConfig = await this.queryKeeperDetails(this.keeperId);
     this.myStake = keeperConfig.currentStake;
     this.myKeeperIsActive = keeperConfig.isActive;
 
@@ -249,7 +249,7 @@ export abstract class AbstractAgent implements IAgent {
     }
 
     // Task #1
-    const agentConfig = await this.contract.ethCall('getConfig');
+    const agentConfig = await this.queryAgentConfig();
     this.minKeeperCvp = agentConfig.minKeeperCvp_;
     if (keeperConfig.currentStake.lt(agentConfig.minKeeperCvp_)) {
       throw this.err(
@@ -540,6 +540,22 @@ export abstract class AbstractAgent implements IAgent {
 
   abstract _afterInitializeListeners(blockNumber: number);
 
+  private async queryAgentConfig(): Promise<any> {
+    return this.contract.ethCall('getConfig');
+  }
+
+  private async queryContractVersion(): Promise<string> {
+    return this.contract.ethCall('VERSION');
+  }
+
+  private async queryKeeperId(workerAddress: string): Promise<number> {
+    return parseInt(await this.contract.ethCall('workerKeeperIds', [workerAddress]));
+  }
+
+  private async queryKeeperDetails(keeperId: number): Promise<any> {
+    return await this.contract.ethCall('getKeeper', [keeperId]);
+  }
+
   protected initializeListeners(blockNumber: number) {
     // Job events
     this.contract.on('DepositJobCredits', event => {
@@ -668,7 +684,7 @@ export abstract class AbstractAgent implements IAgent {
       );
 
       const job = this.jobs.get(jobKey);
-      const binJob = await this.network.getJobRawBytes32(this.address, jobKey);
+      const binJob = await this.network.queryLensJobsRawBytes32(this.address, jobKey);
       job.applyBinJobData(binJob);
       job.watch();
     });

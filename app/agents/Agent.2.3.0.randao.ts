@@ -44,7 +44,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
   }
 
   protected async _beforeResyncAllJobs() {
-    const rdConfig = await this.contract.ethCall('getRdConfig', []);
+    const rdConfig = await this.queryAgentRdConfig();
     this.slashingEpochBlocks = rdConfig.slashingEpochBlocks;
     this.period1 = rdConfig.period1;
     this.period2 = rdConfig.period2;
@@ -66,7 +66,10 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
   }
 
   public async amINextSlasher(jobKey: string): Promise<boolean> {
-    const { nextBlockSlasherId } = await this.getNetwork().getJobBytes32AndNextBlockSlasherId(this.address, jobKey);
+    const { nextBlockSlasherId } = await this.getNetwork().queryLensJobBytes32AndNextBlockSlasherId(
+      this.address,
+      jobKey,
+    );
 
     return nextBlockSlasherId === this.getKeeperId();
   }
@@ -74,7 +77,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
   public async getJobBytes32AndNextBlockSlasherId(
     jobKey: string,
   ): Promise<LensGetJobBytes32AndNextBlockSlasherIdResponse> {
-    return this.getNetwork().getJobBytes32AndNextBlockSlasherId(this.address, jobKey);
+    return this.getNetwork().queryLensJobBytes32AndNextBlockSlasherId(this.address, jobKey);
   }
 
   public unregisterJobSlashingTimeout(jobKey: string) {
@@ -184,6 +187,10 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
     await this._sendNonExecuteTransaction(envelope);
   }
 
+  private async queryAgentRdConfig(): Promise<any> {
+    return this.contract.ethCall('getRdConfig', []);
+  }
+
   _afterInitializeListeners() {
     this.contract.on('ExecutionReverted', event => {
       const { assignedKeeperId, actualKeeperId, compensation, executionReturndata, jobKey } = event.args;
@@ -219,7 +226,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       const job = this.jobs.get(jobKey) as RandaoJob;
       const shouldUpdateBinJob = job.applyKeeperAssigned(parseInt(keeperTo));
       if (shouldUpdateBinJob) {
-        const binJob = await this.network.getJobRawBytes32(this.address, jobKey);
+        const binJob = await this.network.queryLensJobsRawBytes32(this.address, jobKey);
         this.clog('Updating binJob to', binJob);
         job.applyBinJobData(binJob);
       }

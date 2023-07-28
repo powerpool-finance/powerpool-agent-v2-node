@@ -235,19 +235,6 @@ export class Network {
     };
   }
 
-  public async getJobRawBytes32(agent: string, jobKey: string): Promise<string> {
-    const res = await this.externalLens.ethCall('getJobsRawBytes32', [agent, [jobKey]]);
-    return res.results[0];
-  }
-
-  public async getJobBytes32AndNextBlockSlasherId(
-    agent: string,
-    jobKey: string,
-  ): Promise<LensGetJobBytes32AndNextBlockSlasherIdResponse> {
-    const res = await this.externalLens.ethCall('getJobBytes32AndNextBlockSlasherId', [agent, jobKey]);
-    return { binJob: res.binJob, nextBlockSlasherId: res.nextBlockSlasherId.toNumber() };
-  }
-
   public async init() {
     if (this.agents.length === 0) {
       this.clog(`Ignoring '${this.getName()}' network setup as it has no agents configured.`);
@@ -345,7 +332,7 @@ export class Network {
       return;
     }
 
-    const results = await this.multicall.ethCallStatic('tryAggregate', [false, resolversToCall]);
+    const results = await this.queryPollResolvers(false, resolversToCall);
     let jobsToExecute = 0;
 
     for (let i = 0; i < results.length; i++) {
@@ -416,5 +403,22 @@ export class Network {
   public unregisterResolver(key: string) {
     this._validateKeyLength(key, 'resolver');
     delete this.resolverJobData[key];
+  }
+
+  public async queryPollResolvers(bl: boolean, resolversToCall: any[]): Promise<any> {
+    return this.multicall.ethCallStatic('tryAggregate', [false, resolversToCall]);
+  }
+
+  public async queryLensJobsRawBytes32(agent: string, jobKey: string): Promise<string> {
+    const res = await this.externalLens.ethCall('getJobsRawBytes32', [agent, [jobKey]]);
+    return res.results[0];
+  }
+
+  public async queryLensJobBytes32AndNextBlockSlasherId(
+    agent: string,
+    jobKey: string,
+  ): Promise<LensGetJobBytes32AndNextBlockSlasherIdResponse> {
+    const res = await this.externalLens.ethCall('getJobBytes32AndNextBlockSlasherId', [agent, jobKey]);
+    return { binJob: res.binJob, nextBlockSlasherId: res.nextBlockSlasherId.toNumber() };
   }
 }
