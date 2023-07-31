@@ -5,6 +5,8 @@ import { initApi } from './Api.js';
 import { getAgentVersionAndType } from './ConfigGetters.js';
 import { AgentRandao_2_3_0 } from './agents/Agent.2.3.0.randao.js';
 import { AgentLight_2_2_0 } from './agents/Agent.2.2.0.light.js';
+import { SubgraphSource } from './dataSources/SubgraphSource.js';
+import { BlockchainSource } from './dataSources/BlockchainSource.js';
 
 function clog(...args: any[]) {
   console.log(`>>> ${nowTimeString()} >>> App:`, ...args);
@@ -123,6 +125,18 @@ export class App {
     const inits = [];
     for (const network of Object.values(this.networks)) {
       inits.push(network.init());
+
+      for (const agent of network.getAgents()) {
+        let dataSource;
+        if (agent.dataSourceType === 'subgraph') {
+          dataSource = new SubgraphSource(network, agent, agent.subgraphUrl);
+        } else if (agent.dataSourceType === 'blockchain') {
+          dataSource = new BlockchainSource(network, agent);
+        } else {
+          throw new Error(`App: missing dataSource for agent ${agent.address}`);
+        }
+        await agent.init(network, dataSource);
+      }
     }
     clog('Waiting for all networks to be initialized...');
     try {

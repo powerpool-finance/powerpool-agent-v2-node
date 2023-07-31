@@ -2,10 +2,13 @@ import { BigNumber, ethers } from 'ethers';
 import { Network } from './Network';
 import { Contract } from 'web3-eth-contract';
 import { WebsocketProvider } from 'web3-core';
+import { RandaoJob } from './jobs/RandaoJob';
+import { LightJob } from './jobs/LightJob';
 
 export type AvailableNetworkNames = 'mainnet' | 'bsc' | 'polygon' | 'goerli';
 export type ExecutorType = 'flashbots' | 'pga';
 export type Strategy = 'randao' | 'light';
+export type DataSourceType = 'blockchain' | 'subgraph';
 
 export enum CALLDATA_SOURCE {
   SELECTOR,
@@ -21,7 +24,7 @@ export interface AgentConfig {
   accrue_reward?: boolean;
   deployed_at?: number;
   data_source?: string;
-  graph_url?: string;
+  subgraph_url?: string;
   version?: string;
   strategy?: Strategy;
 }
@@ -320,9 +323,17 @@ export interface IRandaoAgent extends IAgent {
   ): void;
 }
 
+export interface IDataSource {
+  getRegisteredJobs(_context): Promise<Map<string, RandaoJob | LightJob>>;
+  getOwnersBalances(context, jobOwnersSet: Set<string>): Promise<Map<string, BigNumber>>;
+  addLensFieldsToNewJob(newJobs: RandaoJob | LightJob): void;
+}
+
 export interface IAgent {
   readonly executorType: ExecutorType;
   readonly address: string;
+  readonly subgraphUrl: string;
+  readonly dataSourceType: DataSourceType;
 
   getNetwork(): Network;
 
@@ -341,7 +352,7 @@ export interface IAgent {
   getJobsCount(): { total: number; interval: number; resolver: number };
 
   // METHODS
-  init(network: Network): void;
+  init(network: Network, dataSource: IDataSource): void;
 
   registerIntervalJobExecution(jobKey: string, timestamp: number, callback: (calldata) => void);
 

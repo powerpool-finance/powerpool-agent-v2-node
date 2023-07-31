@@ -5,7 +5,7 @@
   "main": "app/Run.ts",
   "scripts": {
     "build": "tsc",
-    "start": "ts-node app/Run.ts",
+    "start": "ts-node app/Cli.ts",
     "lint": "eslint --ext .ts app/",
     "lint:fix": "eslint --fix --ext .ts app/",
     "test": "mocha tests/**/*.test.ts"

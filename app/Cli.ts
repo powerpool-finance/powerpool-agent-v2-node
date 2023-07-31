@@ -25,7 +25,7 @@ let app: App;
     const networkRpc = process.env.NETWORK_RPC;
     const agentAddress = process.env.AGENT_ADDRESS;
     const dataSource = process.env.DATA_SOURCE;
-    const graphUrl = process.env.GRAPH_URL;
+    const subgraphUrl = process.env.SUBGRAPH_URL;
     const keeperAddress = process.env.KEEPER_WORKER_ADDRESS;
     const keyPassword = process.env.KEYPASSWORD || '';
     const acceptMaxBaseFeeLimit = process.env.ACCEPT_MAX_BASE_FEE_LIMIT === 'true';
@@ -43,7 +43,7 @@ let app: App;
     if (!keyPassword) {
       throw new Error('ENV Config: Missing KEYPASSWORD value');
     }
-    if (dataSource === 'subgraph' && !graphUrl) {
+    if (dataSource === 'subgraph' && !subgraphUrl) {
       throw new Error('ENV CONFIG: On order to use subgraph as data source, you must define GRAPH_URL');
     }
     const agentConfig: AgentConfig = {
@@ -54,7 +54,7 @@ let app: App;
       keeper_worker_address: keeperAddress,
       key_pass: keyPassword,
       data_source: dataSource,
-      graph_url: graphUrl,
+      subgraph_url: subgraphUrl,
     };
 
     const netConfig: NetworkConfig = {

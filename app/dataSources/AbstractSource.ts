@@ -1,10 +1,10 @@
 import { Network } from '../Network';
-import { IAgent } from '../Types';
+import { IAgent, IDataSource } from '../Types';
 import { RandaoJob } from '../jobs/RandaoJob';
 import { LightJob } from '../jobs/LightJob';
 import { BigNumber } from 'ethers';
 
-export abstract class AbstractSource {
+export abstract class AbstractSource implements IDataSource {
   protected type: string;
   protected network: Network;
   protected agent: IAgent;

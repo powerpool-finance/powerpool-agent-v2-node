@@ -2,12 +2,13 @@ import { Network } from '../Network';
 import {
   AgentConfig,
   ContractWrapper,
+  DataSourceType,
   EventWrapper,
   Executor,
   ExecutorType,
   IAgent,
+  IDataSource,
   Resolver,
-  SourceConfig,
   TxEnvelope,
 } from '../Types.js';
 import { BigNumber, ethers, Wallet } from 'ethers';
@@ -20,8 +21,6 @@ import { getAgentDefaultSyncFromSafe } from '../ConfigGetters.js';
 import { LightJob } from '../jobs/LightJob.js';
 import { RandaoJob } from '../jobs/RandaoJob.js';
 import { AbstractJob } from '../jobs/AbstractJob';
-import { BlockchainSource } from '../dataSources/BlockchainSource.js';
-import { SubgraphSource } from '../dataSources/SubgraphSource.js';
 
 // const FLAG_ACCEPT_MAX_BASE_FEE_LIMIT = 1;
 const FLAG_ACCRUE_REWARD = 2;
@@ -34,8 +33,9 @@ export abstract class AbstractAgent implements IAgent {
   protected network: Network;
   public keeperId: number;
   protected contract: ContractWrapper;
-  private sourceConfig: SourceConfig;
-  private dataSource: BlockchainSource | SubgraphSource;
+  public readonly subgraphUrl: string;
+  public readonly dataSourceType: DataSourceType;
+  public dataSource: IDataSource;
   private workerSigner: ethers.Wallet;
   private executor: Executor;
 
@@ -91,17 +91,29 @@ export abstract class AbstractAgent implements IAgent {
     this.address = address;
     this.networkName = networkName;
     this.executorType = agentConfig.executor;
-    this.sourceConfig = {
-      dataSource: agentConfig.data_source,
-      graphUrl: agentConfig.graph_url,
-    };
 
     this.keeperConfig = 0;
     this.blacklistedJobs = new Set();
 
     // Check if all data for subgraph is provided
-    if (this.sourceConfig.dataSource === 'subgraph' && !this.sourceConfig.graphUrl) {
-      throw new Error('Please set graph_url if you want to proceed with subgraph data_source');
+    if (agentConfig.data_source) {
+      if (agentConfig.data_source === 'subgraph') {
+        if (!agentConfig.subgraph_url) {
+          throw new Error(
+            "Please set 'subgraph_url' if you want to proceed with {'data_source': 'subgraph'}. Notice that 'graph_url' is deprecated so please change it to 'subgraph_url'.",
+          );
+        }
+        this.dataSourceType = 'subgraph';
+        this.subgraphUrl = agentConfig.subgraph_url;
+      } else if (agentConfig.data_source === 'blockchain') {
+        this.dataSourceType = 'blockchain';
+      } else {
+        throw this.err(
+          `Invalid agent data_source: ${agentConfig.data_source}. Can be either 'blockchain' or 'subgraph'.`,
+        );
+      }
+    } else {
+      this.dataSourceType = 'blockchain';
     }
 
     if (
@@ -147,8 +159,9 @@ export abstract class AbstractAgent implements IAgent {
     this.clog('Sync from', this.fullSyncFrom);
   }
 
-  public async init(network: Network) {
+  public async init(network: Network, dataSource: IDataSource) {
     this.network = network;
+    this.dataSource = dataSource;
 
     await this._beforeInit();
 
@@ -158,13 +171,6 @@ export abstract class AbstractAgent implements IAgent {
 
     // TODO: remove unused
     this.network.getNewBlockEventEmitter().on('newBlock', this.newBlockEventHandler.bind(this));
-
-    // setting data source
-    if (this.sourceConfig.dataSource === 'subgraph') {
-      this.dataSource = new SubgraphSource(this.network, this, this.sourceConfig.graphUrl);
-    } else {
-      this.dataSource = new BlockchainSource(this.network, this);
-    }
 
     // Ensure version matches
     // TODO: extract check
@@ -302,6 +308,14 @@ export abstract class AbstractAgent implements IAgent {
     return this.network;
   }
 
+  public getExecutor(): Executor {
+    return this.executor;
+  }
+
+  public getDataSource(): IDataSource {
+    return this.dataSource;
+  }
+
   public nowS(): number {
     return this.network.nowS();
   }
@@ -373,7 +387,8 @@ export abstract class AbstractAgent implements IAgent {
       minKeeperCvp: weiValueToEth(this.minKeeperCvp),
       accrueReward: this.accrueReward,
       acceptMaxBaseFeeLimit: this.acceptMaxBaseFeeLimit,
-      dataSource: this.sourceConfig,
+      subgraphUrl: this.subgraphUrl,
+      dataSourceType: this.dataSourceType,
       jobsCounter: this.getJobsCount(),
       executor: this.executor?.getStatusObjectForApi(),
 

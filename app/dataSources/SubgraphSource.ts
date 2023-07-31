@@ -6,9 +6,9 @@ import { LightJob } from '../jobs/LightJob';
 import { Network } from '../Network';
 import { IAgent } from '../Types';
 import { BigNumber, utils } from 'ethers';
-import { nowTimeString } from '../Utils.js';
+import { nowTimeString, toChecksummedAddress } from '../Utils.js';
 
-const QUERY_ALL_JOBS = `{
+export const QUERY_ALL_JOBS = `{
   jobs(first: 1000) {
     id
     active
@@ -47,7 +47,7 @@ const QUERY_ALL_JOBS = `{
   }
 }`;
 
-const QUERY_META = `{
+export const QUERY_META = `{
   _meta {
     block {
       number
@@ -55,7 +55,7 @@ const QUERY_META = `{
   }
 }`;
 
-const QUERY_JOB_OWNERS = `{
+export const QUERY_JOB_OWNERS = `{
   jobOwners {
     id
     credits
@@ -140,6 +140,7 @@ export class SubgraphSource extends AbstractSource {
     let newJobs = new Map<string, RandaoJob | LightJob>();
     const graphIsFine = await this.isGraphOk();
     if (!graphIsFine) {
+      this.clog('Subgraph is not ok, falling back to the blockchain datasource.');
       newJobs = await this.blockchainSource.getRegisteredJobs(context);
       return newJobs;
     }
@@ -232,16 +233,14 @@ export class SubgraphSource extends AbstractSource {
     try {
       const graphIsFine = await this.isGraphOk();
       if (!graphIsFine) {
+        this.clog('Subgraph is not ok, falling back to the blockchain datasource.');
         result = await this.blockchainSource.getOwnersBalances(context, jobOwnersSet);
         return result;
       }
 
       const { jobOwners } = await this.query(this.subgraphUrl, QUERY_JOB_OWNERS);
       jobOwners.forEach(JobOwner => {
-        if (jobOwnersSet.has(JobOwner.id)) {
-          // we only need job owners which have jobs
-          result.set(JobOwner.id, BigNumber.from(JobOwner.credits));
-        }
+        result.set(toChecksummedAddress(JobOwner.id), BigNumber.from(JobOwner.credits));
       });
     } catch (e) {
       throw this.err(e);

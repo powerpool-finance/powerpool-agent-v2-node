@@ -25,6 +25,7 @@ interface TimeoutWithCallback {
 }
 
 export class Network {
+  private initialized: boolean;
   private app: App;
   private readonly name: string;
   private readonly networkConfig: NetworkConfig;
@@ -63,6 +64,7 @@ export class Network {
   }
 
   constructor(name: string, networkConfig: NetworkConfig, app: App, agents: IAgent[]) {
+    this.initialized = false;
     this.app = app;
     this.name = name;
     this.rpc = networkConfig.rpc;
@@ -116,6 +118,10 @@ export class Network {
 
   public getChainId(): number {
     return this.chainId;
+  }
+
+  public getAgents(): IAgent[] {
+    return this.agents;
   }
 
   public getAgent(agentAddress: string): IAgent {
@@ -211,6 +217,11 @@ export class Network {
   }
 
   public async init() {
+    if (this.initialized) {
+      throw this.err('Already initialized');
+    }
+    this.initialized = true;
+
     if (this.agents.length === 0) {
       this.clog(`Ignoring '${this.getName()}' network setup as it has no agents configured.`);
       return;
@@ -232,10 +243,6 @@ export class Network {
     }
 
     this.chainId = await this.queryNetworkId();
-
-    for (const agent of this.agents) {
-      await agent.init(this);
-    }
 
     this.clog('✅ Network initialization done!');
   }
