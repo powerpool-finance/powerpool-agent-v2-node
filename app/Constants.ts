@@ -135,6 +135,7 @@ export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {
   mainnet: 12,
   sepolia: 12,
   goerli: 12,
+  testnet: 5,
 };
 
 // export const FLAG_ACCEPT_MAX_BASE_FEE_LIMIT = 0x01;

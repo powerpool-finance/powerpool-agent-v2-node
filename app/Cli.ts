@@ -47,6 +47,7 @@ let app: App;
       throw new Error('ENV CONFIG: On order to use subgraph as data source, you must define GRAPH_URL');
     }
     const agentConfig: AgentConfig = {
+      strategy: undefined,
       accept_max_base_fee_limit: acceptMaxBaseFeeLimit,
       accrue_reward: accrueReward,
       executor: 'pga',

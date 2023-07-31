@@ -1,14 +1,17 @@
-import { Config, AllNetworksConfig } from './Types';
+import { Config, AllNetworksConfig, IAgent, AgentConfig } from './Types';
 import { Network } from './Network.js';
-import { nowTimeString } from './Utils.js';
+import { nowTimeString, toChecksummedAddress } from './Utils.js';
 import { initApi } from './Api.js';
+import { getAgentVersionAndType } from './ConfigGetters.js';
+import { AgentRandao_2_3_0 } from './agents/Agent.2.3.0.randao.js';
+import { AgentLight_2_2_0 } from './agents/Agent.2.2.0.light.js';
 
 function clog(...args: any[]) {
   console.log(`>>> ${nowTimeString()} >>> App:`, ...args);
 }
 
 export class App {
-  private readonly networks: { [key: string]: Network };
+  private networks: { [key: string]: Network };
   private readonly config: Config;
 
   public unhandledExceptionsStrictMode = false;
@@ -65,27 +68,61 @@ export class App {
       console.log('WARNING: "basic" and "estimations" strict mode options are not supported yet.');
     }
 
-    console.log(config.networks);
     this.config = config;
   }
 
   public async start() {
-    // const config: Config = TOML.parse(fs.readFileSync(path.resolve(__dirname, '../config/main.toml')).toString()) as any;
-
-    await this.initNetworks(this.config.networks);
+    const networks = this.buildNetworks(this.config.networks);
+    await this.initNetworks(networks);
   }
 
-  private async initNetworks(allNetworkConfigs: AllNetworksConfig) {
-    clog('Network initialization start...');
-    const inits = [];
+  public buildNetworks(allNetworkConfigs: AllNetworksConfig): { [netName: string]: Network } {
+    const networks: { [netName: string]: Network } = {};
+
     for (const [netName, netConfig] of Object.entries(allNetworkConfigs.details)) {
       if (allNetworkConfigs.enabled.includes(netName)) {
-        const network = new Network(netName, netConfig, this);
-        inits.push(network.init());
-        this.networks[netName] = network;
+        const agents = this.buildAgents(netName, netConfig.agents);
+        networks[netName] = new Network(netName, netConfig, this, agents);
       } else {
         clog('Skipping', netName, 'network...');
       }
+    }
+
+    return networks;
+  }
+
+  public buildAgents(networkName: string, agentsConfig: { [key: string]: AgentConfig }): IAgent[] {
+    const agents = [];
+    // TODO: get type & AgentConfig
+    for (const [address, agentConfig] of Object.entries(agentsConfig)) {
+      const checksummedAddress = toChecksummedAddress(address);
+      let { version, strategy } = agentConfig;
+      if (!version || !strategy) {
+        [version, strategy] = getAgentVersionAndType(checksummedAddress, networkName);
+      }
+      let agent;
+
+      if (version === '2.3.0' && strategy === 'randao') {
+        agent = new AgentRandao_2_3_0(checksummedAddress, agentConfig, networkName);
+      } else if (version === '2.2.0' && strategy === 'light') {
+        agent = new AgentLight_2_2_0(checksummedAddress, agentConfig, networkName);
+      } else {
+        throw new Error(
+          `App: Not supported agent version/strategy: network=${networkName},version=${version},strategy=${strategy}`,
+        );
+      }
+
+      agents.push(agent);
+    }
+    return agents;
+  }
+
+  public async initNetworks(networks: { [netName: string]: Network }) {
+    this.networks = networks;
+    clog('Network initialization start...');
+    const inits = [];
+    for (const network of Object.values(this.networks)) {
+      inits.push(network.init());
     }
     clog('Waiting for all networks to be initialized...');
     try {

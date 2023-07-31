@@ -111,7 +111,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
 
   async selfUnassignFromJob(jobKey: string) {
     this.clog('Executing Self-Unassign');
-    const calldata = this.contract.encodeABI('releaseJob', [jobKey]);
+    const calldata = this.encodeABI('releaseJob', [jobKey]);
     const tx = {
       to: this.getAddress(),
 
@@ -156,7 +156,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
     executorCallbacks: ExecutorCallbacks,
   ) {
     // jobAddress, jobId, myKeeperId, useResolver, jobCalldata
-    const calldata = this.contract.encodeABI('initiateKeeperSlashing', [
+    const calldata = this.encodeABI('initiateKeeperSlashing', [
       jobAddress,
       jobId,
       this.getKeeperId(),
@@ -191,8 +191,12 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
     return this.contract.ethCall('getRdConfig', []);
   }
 
+  private encodeABI(method: string, args: any[]): string {
+    return this.contract.encodeABI(method, args);
+  }
+
   _afterInitializeListeners() {
-    this.contract.on('ExecutionReverted', event => {
+    this.on('ExecutionReverted', event => {
       const { assignedKeeperId, actualKeeperId, compensation, executionReturndata, jobKey } = event.args;
 
       this.clog(
@@ -216,7 +220,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       // The keeper was unassigned earlier with JobKeeperChanged event, thus no need to call watch() here
     });
 
-    this.contract.on(['JobKeeperChanged'], async event => {
+    this.on(['JobKeeperChanged'], async event => {
       const { keeperFrom, keeperTo, jobKey } = event.args;
 
       this.clog(
@@ -234,7 +238,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       job.watch();
     });
 
-    this.contract.on('SetRdConfig', event => {
+    this.on('SetRdConfig', event => {
       const { slashingEpochBlocks, period1, period2, slashingFeeFixedCVP, slashingFeeBps, jobMinCreditsFinney } =
         event.args[0];
 
@@ -250,7 +254,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       this.startAllJobs();
     });
 
-    this.contract.on('InitiateSlashing', event => {
+    this.on('InitiateSlashing', event => {
       const { jobKey, jobSlashingPossibleAfter, slasherKeeperId, useResolver } = event.args;
 
       this.clog(
@@ -261,7 +265,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       job.applyInitiateSlashing(jobSlashingPossibleAfter, slasherKeeperId);
     });
 
-    this.contract.on('SlashKeeper', event => {
+    this.on('SlashKeeper', event => {
       const { jobKey, assignedKeeperId, actualKeeperId, fixedSlashAmount, dynamicSlashAmount, slashAmountMissing } =
         event.args;
 

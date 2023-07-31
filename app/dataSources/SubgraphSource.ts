@@ -4,7 +4,7 @@ import { BlockchainSource } from './BlockchainSource.js';
 import { RandaoJob } from '../jobs/RandaoJob';
 import { LightJob } from '../jobs/LightJob';
 import { Network } from '../Network';
-import { ContractWrapper } from '../Types';
+import { IAgent } from '../Types';
 import { BigNumber, utils } from 'ethers';
 import { nowTimeString } from '../Utils.js';
 
@@ -81,12 +81,12 @@ export class SubgraphSource extends AbstractSource {
     return new Error(`SubgraphDataSourceError${this.toString()}: ${args.join(' ')}`);
   }
 
-  constructor(network: Network, contract: ContractWrapper, graphUrl: string) {
-    super(network, contract);
+  constructor(network: Network, agent: IAgent, graphUrl: string) {
+    super(network, agent);
     this.type = 'subgraph';
     this.subgraphUrl = graphUrl;
 
-    this.blockchainSource = new BlockchainSource(network, contract);
+    this.blockchainSource = new BlockchainSource(network, agent);
   }
 
   /**

@@ -5,6 +5,7 @@ import { WebsocketProvider } from 'web3-core';
 
 export type AvailableNetworkNames = 'mainnet' | 'bsc' | 'polygon' | 'goerli';
 export type ExecutorType = 'flashbots' | 'pga';
+export type Strategy = 'randao' | 'light';
 
 export enum CALLDATA_SOURCE {
   SELECTOR,
@@ -22,7 +23,7 @@ export interface AgentConfig {
   data_source?: string;
   graph_url?: string;
   version?: string;
-  strategy?: string;
+  strategy?: Strategy;
 }
 
 export interface NetworkConfig {
@@ -297,7 +298,7 @@ export function EmptyTxNotMinedInBlockCallback(
 export interface AgentHardcodedConfig {
   deployedAt: number;
   version: string;
-  strategy: string;
+  strategy: Strategy;
   subgraph?: string;
 }
 
@@ -340,7 +341,7 @@ export interface IAgent {
   getJobsCount(): { total: number; interval: number; resolver: number };
 
   // METHODS
-  init(): void;
+  init(network: Network): void;
 
   registerIntervalJobExecution(jobKey: string, timestamp: number, callback: (calldata) => void);
 
@@ -359,6 +360,8 @@ export interface IAgent {
   addJobToBlacklist(jobKey);
 
   getIsAgentUp(): boolean;
+
+  queryPastEvents(eventName: string, from: number, to: number): Promise<any>;
 
   nowS(): number;
 
