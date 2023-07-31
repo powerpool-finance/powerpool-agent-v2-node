@@ -254,15 +254,15 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       this.startAllJobs();
     });
 
-    this.on('InitiateSlashing', event => {
+    this.on('InitiateKeeperSlashing', event => {
       const { jobKey, jobSlashingPossibleAfter, slasherKeeperId, useResolver } = event.args;
 
       this.clog(
-        `'InitiateSlashing' event 🔈: (block=${event.blockNumber},jobKey=${jobKey},jobSlashingPossibleAfter=${jobSlashingPossibleAfter},slasherKeeperId=${slasherKeeperId},useResolver=${useResolver})`,
+        `'InitiateKeeperSlashing' event 🔈: (block=${event.blockNumber},jobKey=${jobKey},jobSlashingPossibleAfter=${jobSlashingPossibleAfter},slasherKeeperId=${slasherKeeperId},useResolver=${useResolver})`,
       );
 
       const job = this.jobs.get(jobKey) as RandaoJob;
-      job.applyInitiateSlashing(jobSlashingPossibleAfter, slasherKeeperId);
+      job.applyInitiateKeeperSlashing(jobSlashingPossibleAfter, slasherKeeperId);
     });
 
     this.on('SlashKeeper', event => {
