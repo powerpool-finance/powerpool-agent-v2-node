@@ -15,6 +15,7 @@ function clog(...args: any[]) {
 export class App {
   private networks: { [key: string]: Network };
   private readonly config: Config;
+  private stopApi: () => void;
 
   public unhandledExceptionsStrictMode = false;
 
@@ -26,7 +27,7 @@ export class App {
       if (typeof config.api === 'number') {
         port = config.api;
       }
-      initApi(this, port);
+      this.stopApi = initApi(this, port);
     }
 
     // Override all
@@ -149,12 +150,15 @@ export class App {
     clog('Networks initialization done!');
   }
 
-  public stop() {
+  public async stop() {
     clog('Stopping the app...');
-    for (const network of Object.values(this.networks)) {
-      network.stop();
+    if (this.networks) {
+      for (const network of Object.values(this.networks)) {
+        network.stop();
+      }
+      this.networks = null;
     }
-    this.networks = null;
+    await this.stopApi();
 
     clog('The app has stopped successfully...');
   }

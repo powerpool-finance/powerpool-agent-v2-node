@@ -99,9 +99,9 @@ process.on('unhandledRejection', function (error: Error, _promise) {
   console.log(msg);
 });
 
-process.on('SIGINT', function () {
+process.on('SIGINT', async function () {
   console.log('Cli.ts: Caught interrupt signal');
-  app?.stop();
+  await app?.stop();
 
   process.exit(1);
 });

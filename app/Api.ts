@@ -3,7 +3,7 @@ import { BigNumber } from 'ethers';
 import { App } from './App.js';
 import { toChecksummedAddress } from './Utils.js';
 
-export function initApi(app: App, port: number) {
+export function initApi(app: App, port: number): () => void {
   const fastify = Fastify({
     logger: false,
   });
@@ -68,4 +68,8 @@ export function initApi(app: App, port: number) {
     if (err) throw err;
     // Server is now listening on ${address}
   });
+
+  return async function stop() {
+    return fastify.close();
+  };
 }
