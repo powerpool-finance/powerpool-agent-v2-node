@@ -201,6 +201,7 @@ export interface ContractWrapperFactory {
   getDefaultProvider(): ethers.providers.BaseProvider | object;
   getLatestBlockNumber(): Promise<number>;
   build(addressOrName: string, contractInterface: ethers.ContractInterface): ContractWrapper;
+  stop();
 }
 
 export interface ErrorWrapper {

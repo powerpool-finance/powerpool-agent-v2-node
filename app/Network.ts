@@ -247,6 +247,13 @@ export class Network {
     this.clog('✅ Network initialization done!');
   }
 
+  public stop() {
+    this.provider?.removeAllListeners();
+    this.contractWrapperFactory?.stop();
+    this.provider = null;
+    this.agents = null;
+  }
+
   private async _onNewBlockCallback(blockNumber) {
     const before = this.nowMs();
     const block = await this.queryBlock(blockNumber);

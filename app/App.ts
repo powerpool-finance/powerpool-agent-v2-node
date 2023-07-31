@@ -149,6 +149,16 @@ export class App {
     clog('Networks initialization done!');
   }
 
+  public stop() {
+    clog('Stopping the app...');
+    for (const network of Object.values(this.networks)) {
+      network.stop();
+    }
+    this.networks = null;
+
+    clog('The app has stopped successfully...');
+  }
+
   public exitIfStrictTopic(topic) {
     if (this.isStrict(topic)) {
       console.log(`Exiting the app due to a strict mode for topic "${topic}"...`);

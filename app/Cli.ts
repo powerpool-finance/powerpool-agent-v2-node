@@ -83,7 +83,7 @@ let app: App;
   await app.start();
 })().catch(error => {
   console.error(error);
-  console.log('Run.ts: Unexpected error. Stopping the app with a code (1).');
+  console.log('Cli.ts: Unexpected error. Stopping the app with a code (1).');
   process.exit(1);
 });
 
@@ -92,9 +92,16 @@ process.on('unhandledRejection', function (error: Error, _promise) {
   console.log(error.stack);
 
   if (app && app.unhandledExceptionsStrictMode) {
-    console.log('Stopping the app with a code (1) since the "unhandledExceptionsStrictMode" is ON.');
+    console.log('Cli.ts: Stopping the app with a code (1) since the "unhandledExceptionsStrictMode" is ON.');
     process.exit(1);
   }
 
   console.log(msg);
+});
+
+process.on('SIGINT', function () {
+  console.log('Cli.ts: Caught interrupt signal');
+  app?.stop();
+
+  process.exit(1);
 });

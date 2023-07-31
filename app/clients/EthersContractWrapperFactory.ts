@@ -7,7 +7,7 @@ import { Fragment } from '@ethersproject/abi/src.ts/fragments';
 export class EthersContractWrapperFactory implements ContractWrapperFactory {
   private readonly primaryEndpoint: string;
   private readonly wsCallTimeout: number;
-  private readonly provider: ethers.providers.BaseProvider;
+  private provider: ethers.providers.BaseProvider;
 
   constructor(wsRpcEndpoints: string[], wsTimeout) {
     if (wsRpcEndpoints.length === 0) {
@@ -43,9 +43,16 @@ export class EthersContractWrapperFactory implements ContractWrapperFactory {
     return this.provider;
   }
 
-  build(addressOrName: string, contractInterface: ReadonlyArray<Fragment>): ContractWrapper {
+  public build(addressOrName: string, contractInterface: ReadonlyArray<Fragment>): ContractWrapper {
     const providers = new Map<string, ethers.providers.BaseProvider>();
     providers.set(this.primaryEndpoint, this.getDefaultProvider());
     return new EthersContract(addressOrName, contractInterface, this.primaryEndpoint, providers, this.wsCallTimeout);
+  }
+
+  public stop() {
+    if (this.provider) {
+      this.provider.removeAllListeners();
+      this.provider = null;
+    }
   }
 }
