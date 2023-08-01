@@ -1,7 +1,7 @@
 #!/bin/bash
 
 while true; do
-    ts-node app/Run.ts "$@"
+    ts-node app/Cli.ts "$@"
     EXIT_CODE=$?
 
     if [ $EXIT_CODE -eq 2 ] || [ $EXIT_CODE -eq 0 ]; then

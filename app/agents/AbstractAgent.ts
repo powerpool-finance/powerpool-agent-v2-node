@@ -2,39 +2,40 @@ import { Network } from '../Network';
 import {
   AgentConfig,
   ContractWrapper,
+  DataSourceType,
   EventWrapper,
   Executor,
   ExecutorType,
   IAgent,
+  IDataSource,
   Resolver,
-  SourceConfig,
   TxEnvelope,
 } from '../Types.js';
 import { BigNumber, ethers, Wallet } from 'ethers';
 import { getEncryptedJson } from '../services/KeyService.js';
 import { BN_ZERO, DEFAULT_SYNC_FROM_CHAINS } from '../Constants.js';
-import { nowTimeString, weiValueToEth } from '../Utils.js';
+import { nowTimeString, toChecksummedAddress, weiValueToEth } from '../Utils.js';
 import { FlashbotsExecutor } from '../executors/FlashbotsExecutor.js';
 import { PGAExecutor } from '../executors/PGAExecutor.js';
 import { getAgentDefaultSyncFromSafe } from '../ConfigGetters.js';
 import { LightJob } from '../jobs/LightJob.js';
 import { RandaoJob } from '../jobs/RandaoJob.js';
 import { AbstractJob } from '../jobs/AbstractJob';
-import { BlockchainSource } from '../dataSources/BlockchainSource.js';
-import { SubgraphSource } from '../dataSources/SubgraphSource.js';
 
-const FLAG_ACCEPT_MAX_BASE_FEE_LIMIT = 1;
+// const FLAG_ACCEPT_MAX_BASE_FEE_LIMIT = 1;
 const FLAG_ACCRUE_REWARD = 2;
 const BIG_NUMBER_1E18 = BigNumber.from(10).pow(18);
 
 export abstract class AbstractAgent implements IAgent {
   public readonly executorType: ExecutorType;
   public readonly address: string;
+  private readonly networkName: string;
   protected network: Network;
   public keeperId: number;
   protected contract: ContractWrapper;
-  private sourceConfig: SourceConfig;
-  private dataSource: BlockchainSource | SubgraphSource;
+  public readonly subgraphUrl: string;
+  public readonly dataSourceType: DataSourceType;
+  public dataSource: IDataSource;
   private workerSigner: ethers.Wallet;
   private executor: Executor;
 
@@ -66,7 +67,7 @@ export abstract class AbstractAgent implements IAgent {
   abstract _getSupportedAgentVersions(): string[];
 
   protected toString(): string {
-    return `(network: ${this.network.getName()}, address: ${this.address})`;
+    return `(network: ${this.networkName}, address: ${this.address}, keeperId: ${this.keeperId || 'Fetching...'})`;
   }
 
   protected clog(...args: unknown[]) {
@@ -83,24 +84,36 @@ export abstract class AbstractAgent implements IAgent {
 
   protected _afterExecuteEvent(_job: AbstractJob) {}
 
-  constructor(address: string, agentConfig: AgentConfig, network: Network) {
+  constructor(address: string, agentConfig: AgentConfig, networkName: string) {
     this.jobs = new Map();
     this.ownerBalances = new Map();
     this.ownerJobs = new Map();
     this.address = address;
-    this.network = network;
+    this.networkName = networkName;
     this.executorType = agentConfig.executor;
-    this.sourceConfig = {
-      dataSource: agentConfig.data_source,
-      graphUrl: agentConfig.graph_url,
-    };
 
     this.keeperConfig = 0;
     this.blacklistedJobs = new Set();
 
     // Check if all data for subgraph is provided
-    if (this.sourceConfig.dataSource === 'subgraph' && !this.sourceConfig.graphUrl) {
-      throw new Error('Please set graph_url if you want to proceed with subgraph data_source');
+    if (agentConfig.data_source) {
+      if (agentConfig.data_source === 'subgraph') {
+        if (!agentConfig.subgraph_url) {
+          throw new Error(
+            "Please set 'subgraph_url' if you want to proceed with {'data_source': 'subgraph'}. Notice that 'graph_url' is deprecated so please change it to 'subgraph_url'.",
+          );
+        }
+        this.dataSourceType = 'subgraph';
+        this.subgraphUrl = agentConfig.subgraph_url;
+      } else if (agentConfig.data_source === 'blockchain') {
+        this.dataSourceType = 'blockchain';
+      } else {
+        throw this.err(
+          `Invalid agent data_source: ${agentConfig.data_source}. Can be either 'blockchain' or 'subgraph'.`,
+        );
+      }
+    } else {
+      this.dataSourceType = 'blockchain';
     }
 
     if (
@@ -109,32 +122,28 @@ export abstract class AbstractAgent implements IAgent {
       agentConfig.keeper_worker_address.length === 0
     ) {
       throw this.err(
-        `Missing keeper_worker_address for agent: (network=${this.network.getName()},address=${
-          this.address
-        },keeper_address_value=${agentConfig.keeper_worker_address})`,
+        `Missing keeper_worker_address for agent: (network=${networkName},address=${this.address},keeper_address_value=${agentConfig.keeper_worker_address})`,
       );
     }
 
     if (!('key_pass' in agentConfig) || !agentConfig.key_pass || agentConfig.key_pass.length === 0) {
       throw this.err(
-        `Missing key_pass for agent: (network=${this.network.getName()},address=${this.address},key_pass_value=${
-          agentConfig.key_pass
-        })`,
+        `Missing key_pass for agent: (network=${networkName},address=${this.address},key_pass_value=${agentConfig.key_pass})`,
       );
     }
 
     this.keyAddress = ethers.utils.getAddress(agentConfig.keeper_worker_address);
     this.keyPass = agentConfig.key_pass;
 
-    // acceptMaxBaseFeeLimit
-    if ('accept_max_base_fee_limit' in agentConfig) {
-      this.acceptMaxBaseFeeLimit = !!agentConfig.accept_max_base_fee_limit;
-      if (this.acceptMaxBaseFeeLimit) {
-        this.keeperConfig = this.keeperConfig | FLAG_ACCEPT_MAX_BASE_FEE_LIMIT;
-      }
-    } else {
-      this.acceptMaxBaseFeeLimit = false;
-    }
+    // TODO: move acceptMaxBaseFeeLimit logic to Light agent only
+    // if ('accept_max_base_fee_limit' in agentConfig) {
+    //   this.acceptMaxBaseFeeLimit = !!agentConfig.accept_max_base_fee_limit;
+    //   if (this.acceptMaxBaseFeeLimit) {
+    //     this.keeperConfig = this.keeperConfig | FLAG_ACCEPT_MAX_BASE_FEE_LIMIT;
+    //   }
+    // } else {
+    //   this.acceptMaxBaseFeeLimit = false;
+    // }
 
     // accrueReward
     this.accrueReward = !!agentConfig.accrue_reward;
@@ -142,58 +151,40 @@ export abstract class AbstractAgent implements IAgent {
       this.keeperConfig = this.keeperConfig | FLAG_ACCRUE_REWARD;
     }
 
-    this.network.getNewBlockEventEmitter().on('newBlock', this.newBlockEventHandler.bind(this));
-
     this.fullSyncFrom =
       agentConfig.deployed_at ||
-      getAgentDefaultSyncFromSafe(this.address, this.network.getName()) ||
-      DEFAULT_SYNC_FROM_CHAINS[this.network.getName()] ||
+      getAgentDefaultSyncFromSafe(this.address, networkName) ||
+      DEFAULT_SYNC_FROM_CHAINS[networkName] ||
       0;
     this.clog('Sync from', this.fullSyncFrom);
   }
 
-  public async init() {
+  public async init(network: Network, dataSource: IDataSource) {
+    this.network = network;
+    this.dataSource = dataSource;
+
     await this._beforeInit();
 
     if (!this.contract) {
       throw this.err('Constructor not initialized');
     }
 
-    // setting data source
-    if (this.sourceConfig.dataSource === 'subgraph') {
-      this.dataSource = new SubgraphSource(this.network, this.contract, this.sourceConfig.graphUrl);
-    } else {
-      this.dataSource = new BlockchainSource(this.network, this.contract);
-    }
+    // TODO: remove unused
+    this.network.getNewBlockEventEmitter().on('newBlock', this.newBlockEventHandler.bind(this));
 
     // Ensure version matches
     // TODO: extract check
-    const version = await this.contract.ethCall('VERSION');
+    const version = await this.queryContractVersion();
     if (!this._getSupportedAgentVersions().includes(version)) {
       throw this.err(`Invalid version: ${version}`);
     }
 
-    this.keeperId = parseInt(await this.contract.ethCall('workerKeeperIds', [this.keyAddress]));
+    this.keeperId = await this.queryKeeperId(this.keyAddress);
     if (this.keeperId < 1) {
       throw this.err(`Worker address '${this.keyAddress}' is not assigned  to any keeper`);
     }
 
-    const keyString = getEncryptedJson(this.keyAddress);
-    if (!keyString) {
-      throw this.err(`Empty JSON key for address ${this.keyAddress}`);
-    }
-
-    const label = `${this.keyAddress} worker key decryption time:`;
-    console.time(label);
-    try {
-      this.workerSigner = await ethers.Wallet.fromEncryptedJson(keyString, this.keyPass);
-    } catch (e) {
-      throw this.err(`Error decrypting JSON key for address ${this.keyAddress}`, e);
-    }
-    console.timeLog(label);
-    this.workerSigner.connect(this.getNetwork().getProvider());
-
-    this.clog('Worker address:', this.workerSigner.address);
+    await this.initKeeperWorkerKey();
 
     switch (this.executorType) {
       case 'flashbots':
@@ -234,18 +225,22 @@ export abstract class AbstractAgent implements IAgent {
         throw this.err(`Invalid executor type: '${this.executorType}'. Only 'flashbots' and 'pga' are supported.`);
     }
 
-    const keeperConfig = await this.contract.ethCall('getKeeper', [this.keeperId]);
+    const keeperConfig = await this.queryKeeperDetails(this.keeperId);
     this.myStake = keeperConfig.currentStake;
     this.myKeeperIsActive = keeperConfig.isActive;
 
-    if (this.workerSigner.address != keeperConfig.worker) {
+    if (toChecksummedAddress(this.workerSigner.address) !== toChecksummedAddress(keeperConfig.worker)) {
       throw this.err(
         `The worker address for the keeper #${this.keeperId} stored on chain (${keeperConfig.worker}) doesn't match the one specified in config (${this.workerSigner.address}).`,
       );
     }
 
+    this.clog(
+      `My Keeper Details: (keeperId=${this.keeperId},workerAddress=${keeperConfig.worker},stake=${this.myStake},isActive=${this.myKeeperIsActive})`,
+    );
+
     // Task #1
-    const agentConfig = await this.contract.ethCall('getConfig');
+    const agentConfig = await this.queryAgentConfig();
     this.minKeeperCvp = agentConfig.minKeeperCvp_;
     if (keeperConfig.currentStake.lt(agentConfig.minKeeperCvp_)) {
       throw this.err(
@@ -254,7 +249,7 @@ export abstract class AbstractAgent implements IAgent {
         )} CVP (actual) < ${this.minKeeperCvp.div(BIG_NUMBER_1E18)} CVP (required).`,
       );
     }
-    this.clog(`Keeper deposit: (current=${keeperConfig.currentStake},min=${this.minKeeperCvp})`);
+    this.clog(`Keeper stake: (current=${keeperConfig.currentStake},min=${this.minKeeperCvp})`);
     // TODO: track agent SetAgentParams
     // TODO: assert the keeper has enough CVP for a job
     // TODO: set event listener for the global contract change
@@ -272,6 +267,23 @@ export abstract class AbstractAgent implements IAgent {
 
     await this._afterInit();
     this.clog('✅ Agent initialization done!');
+  }
+
+  private async initKeeperWorkerKey() {
+    const keyString = getEncryptedJson(this.keyAddress);
+    if (!keyString) {
+      throw this.err(`Empty JSON key for address ${this.keyAddress}`);
+    }
+
+    const label = `${this.keyAddress} worker key decryption time:`;
+    console.time(label);
+    try {
+      this.workerSigner = await ethers.Wallet.fromEncryptedJson(keyString, this.keyPass);
+    } catch (e) {
+      throw this.err(`Error decrypting JSON key for address ${this.keyAddress}`, e);
+    }
+    console.timeLog(label);
+    this.workerSigner.connect(this.getNetwork().getProvider());
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -294,6 +306,14 @@ export abstract class AbstractAgent implements IAgent {
 
   public getNetwork(): Network {
     return this.network;
+  }
+
+  public getExecutor(): Executor {
+    return this.executor;
+  }
+
+  public getDataSource(): IDataSource {
+    return this.dataSource;
   }
 
   public nowS(): number {
@@ -367,7 +387,8 @@ export abstract class AbstractAgent implements IAgent {
       minKeeperCvp: weiValueToEth(this.minKeeperCvp),
       accrueReward: this.accrueReward,
       acceptMaxBaseFeeLimit: this.acceptMaxBaseFeeLimit,
-      dataSource: this.sourceConfig,
+      subgraphUrl: this.subgraphUrl,
+      dataSourceType: this.dataSourceType,
       jobsCounter: this.getJobsCount(),
       executor: this.executor?.getStatusObjectForApi(),
 
@@ -536,9 +557,33 @@ export abstract class AbstractAgent implements IAgent {
 
   abstract _afterInitializeListeners(blockNumber: number);
 
+  private async queryAgentConfig(): Promise<any> {
+    return this.contract.ethCall('getConfig');
+  }
+
+  private async queryContractVersion(): Promise<string> {
+    return this.contract.ethCall('VERSION');
+  }
+
+  private async queryKeeperId(workerAddress: string): Promise<number> {
+    return parseInt(await this.contract.ethCall('workerKeeperIds', [workerAddress]));
+  }
+
+  private async queryKeeperDetails(keeperId: number): Promise<any> {
+    return await this.contract.ethCall('getKeeper', [keeperId]);
+  }
+
+  public async queryPastEvents(eventName: string, from: number, to: number): Promise<any> {
+    return this.contract.getPastEvents(eventName, from, to);
+  }
+
+  protected on(eventName: string | string[], callback: (event: any) => void) {
+    this.contract.on(eventName, callback);
+  }
+
   protected initializeListeners(blockNumber: number) {
     // Job events
-    this.contract.on('DepositJobCredits', event => {
+    this.on('DepositJobCredits', event => {
       const { jobKey, amount, fee } = event.args;
 
       this.clog(`'DepositJobCredits' event: (block=${event.blockNumber},jobKey=${jobKey},amount=${amount},fee=${fee})`);
@@ -552,7 +597,7 @@ export abstract class AbstractAgent implements IAgent {
       job.watch();
     });
 
-    this.contract.on('WithdrawJobCredits', event => {
+    this.on('WithdrawJobCredits', event => {
       const { jobKey, amount } = event.args;
 
       this.clog(`'WithdrawJobCredits' event: (block=${event.blockNumber},jobKey=${jobKey},amount=${amount})`);
@@ -562,7 +607,7 @@ export abstract class AbstractAgent implements IAgent {
       job.watch();
     });
 
-    this.contract.on('DepositJobOwnerCredits', event => {
+    this.on('DepositJobOwnerCredits', event => {
       const { jobOwner, amount, fee } = event.args;
 
       this.clog(
@@ -583,7 +628,7 @@ export abstract class AbstractAgent implements IAgent {
       }
     });
 
-    this.contract.on('WithdrawJobOwnerCredits', event => {
+    this.on('WithdrawJobOwnerCredits', event => {
       const { jobOwner, amount } = event.args;
 
       this.clog(`'WithdrawJobOwnerCredits' event: (block=${event.blockNumber},jobOwner=${jobOwner},amount=${amount})`);
@@ -602,7 +647,7 @@ export abstract class AbstractAgent implements IAgent {
       }
     });
 
-    this.contract.on('AcceptJobTransfer', event => {
+    this.on('AcceptJobTransfer', event => {
       const { jobKey_, to_: ownerAfter } = event.args;
 
       this.clog(`'AcceptJobTransfer' event: (block=${event.blockNumber},jobKey_=${jobKey_},to_=${ownerAfter})`);
@@ -620,7 +665,7 @@ export abstract class AbstractAgent implements IAgent {
       job.watch();
     });
 
-    this.contract.on('JobUpdate', event => {
+    this.on('JobUpdate', event => {
       const { jobKey, maxBaseFeeGwei, rewardPct, fixedReward, jobMinCvp, intervalSeconds } = event.args;
 
       this.clog(
@@ -632,7 +677,7 @@ export abstract class AbstractAgent implements IAgent {
       job.watch();
     });
 
-    this.contract.on('SetJobPreDefinedCalldata', event => {
+    this.on('SetJobPreDefinedCalldata', event => {
       const { jobKey, preDefinedCalldata } = event.args;
 
       this.clog(
@@ -644,7 +689,7 @@ export abstract class AbstractAgent implements IAgent {
       job.watch();
     });
 
-    this.contract.on('SetJobResolver', event => {
+    this.on('SetJobResolver', event => {
       const { jobKey, resolverAddress, resolverCalldata } = event.args;
 
       this.clog(
@@ -656,7 +701,7 @@ export abstract class AbstractAgent implements IAgent {
       job.watch();
     });
 
-    this.contract.on('SetJobConfig', async event => {
+    this.on('SetJobConfig', async event => {
       const { jobKey, isActive_, useJobOwnerCredits_, assertResolverSelector_ } = event.args;
 
       this.clog(
@@ -664,12 +709,12 @@ export abstract class AbstractAgent implements IAgent {
       );
 
       const job = this.jobs.get(jobKey);
-      const binJob = await this.network.getJobRawBytes32(this.address, jobKey);
+      const binJob = await this.network.queryLensJobsRawBytes32(this.address, jobKey);
       job.applyBinJobData(binJob);
       job.watch();
     });
 
-    this.contract.on('RegisterJob', async event => {
+    this.on('RegisterJob', async event => {
       const { jobKey, jobAddress, jobId, owner, params } = event.args;
 
       this.clog(
@@ -681,7 +726,7 @@ export abstract class AbstractAgent implements IAgent {
       await this.addJob(event);
     });
 
-    this.contract.on('Execute', event => {
+    this.on('Execute', event => {
       const { jobKey, job: jobAddress, keeperId, gasUsed, baseFee, gasPrice, compensation, binJobAfter } = event.args;
 
       this.clog(
@@ -711,7 +756,7 @@ export abstract class AbstractAgent implements IAgent {
     });
 
     // Agent events
-    this.contract.on('SetAgentParams', event => {
+    this.on('SetAgentParams', event => {
       const { minKeeperCvp_, timeoutSeconds_, feePct_ } = event.args;
 
       this.clog(
@@ -723,7 +768,7 @@ export abstract class AbstractAgent implements IAgent {
     });
 
     // Keeper events
-    this.contract.on('Stake', event => {
+    this.on('Stake', event => {
       const { keeperId, amount } = event.args;
       if (this.keeperId == keeperId) {
         this.clog(`Stake for a keeperId ${keeperId}. Amount of stake is ${amount}.`);
@@ -734,7 +779,7 @@ export abstract class AbstractAgent implements IAgent {
       }
     });
 
-    this.contract.on('InitiateRedeem', event => {
+    this.on('InitiateRedeem', event => {
       const { keeperId, redeemAmount } = event.args;
       if (this.keeperId == keeperId) {
         this.clog(`Redeem from a keeperId ${keeperId}. Amount of redeem is ${redeemAmount}.`);
@@ -745,7 +790,7 @@ export abstract class AbstractAgent implements IAgent {
       }
     });
 
-    this.contract.on('DisableKeeper', event => {
+    this.on('DisableKeeper', event => {
       const keeperId = event.args[0];
       if (this.keeperId == keeperId) {
         this.clog(`Keeper with id ${keeperId} is disabled.`);
@@ -755,7 +800,7 @@ export abstract class AbstractAgent implements IAgent {
       }
     });
 
-    this.contract.on('FinalizeKeeperActivation', event => {
+    this.on('FinalizeKeeperActivation', event => {
       const keeperId = event.args[0];
       if (this.keeperId == keeperId) {
         this.clog(`Keeper with id ${keeperId} is enabled.`);

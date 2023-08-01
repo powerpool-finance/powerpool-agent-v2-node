@@ -44,7 +44,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
   }
 
   protected async _beforeResyncAllJobs() {
-    const rdConfig = await this.contract.ethCall('getRdConfig', []);
+    const rdConfig = await this.queryAgentRdConfig();
     this.slashingEpochBlocks = rdConfig.slashingEpochBlocks;
     this.period1 = rdConfig.period1;
     this.period2 = rdConfig.period2;
@@ -66,7 +66,10 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
   }
 
   public async amINextSlasher(jobKey: string): Promise<boolean> {
-    const { nextBlockSlasherId } = await this.getNetwork().getJobBytes32AndNextBlockSlasherId(this.address, jobKey);
+    const { nextBlockSlasherId } = await this.getNetwork().queryLensJobBytes32AndNextBlockSlasherId(
+      this.address,
+      jobKey,
+    );
 
     return nextBlockSlasherId === this.getKeeperId();
   }
@@ -74,7 +77,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
   public async getJobBytes32AndNextBlockSlasherId(
     jobKey: string,
   ): Promise<LensGetJobBytes32AndNextBlockSlasherIdResponse> {
-    return this.getNetwork().getJobBytes32AndNextBlockSlasherId(this.address, jobKey);
+    return this.getNetwork().queryLensJobBytes32AndNextBlockSlasherId(this.address, jobKey);
   }
 
   public unregisterJobSlashingTimeout(jobKey: string) {
@@ -108,7 +111,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
 
   async selfUnassignFromJob(jobKey: string) {
     this.clog('Executing Self-Unassign');
-    const calldata = this.contract.encodeABI('releaseJob', [jobKey]);
+    const calldata = this.encodeABI('releaseJob', [jobKey]);
     const tx = {
       to: this.getAddress(),
 
@@ -153,7 +156,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
     executorCallbacks: ExecutorCallbacks,
   ) {
     // jobAddress, jobId, myKeeperId, useResolver, jobCalldata
-    const calldata = this.contract.encodeABI('initiateKeeperSlashing', [
+    const calldata = this.encodeABI('initiateKeeperSlashing', [
       jobAddress,
       jobId,
       this.getKeeperId(),
@@ -184,8 +187,16 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
     await this._sendNonExecuteTransaction(envelope);
   }
 
+  private async queryAgentRdConfig(): Promise<any> {
+    return this.contract.ethCall('getRdConfig', []);
+  }
+
+  private encodeABI(method: string, args: any[]): string {
+    return this.contract.encodeABI(method, args);
+  }
+
   _afterInitializeListeners() {
-    this.contract.on('ExecutionReverted', event => {
+    this.on('ExecutionReverted', event => {
       const { assignedKeeperId, actualKeeperId, compensation, executionReturndata, jobKey } = event.args;
 
       this.clog(
@@ -209,7 +220,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       // The keeper was unassigned earlier with JobKeeperChanged event, thus no need to call watch() here
     });
 
-    this.contract.on(['JobKeeperChanged'], async event => {
+    this.on(['JobKeeperChanged'], async event => {
       const { keeperFrom, keeperTo, jobKey } = event.args;
 
       this.clog(
@@ -219,7 +230,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       const job = this.jobs.get(jobKey) as RandaoJob;
       const shouldUpdateBinJob = job.applyKeeperAssigned(parseInt(keeperTo));
       if (shouldUpdateBinJob) {
-        const binJob = await this.network.getJobRawBytes32(this.address, jobKey);
+        const binJob = await this.network.queryLensJobsRawBytes32(this.address, jobKey);
         this.clog('Updating binJob to', binJob);
         job.applyBinJobData(binJob);
       }
@@ -227,7 +238,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       job.watch();
     });
 
-    this.contract.on('SetRdConfig', event => {
+    this.on('SetRdConfig', event => {
       const { slashingEpochBlocks, period1, period2, slashingFeeFixedCVP, slashingFeeBps, jobMinCreditsFinney } =
         event.args[0];
 
@@ -243,18 +254,18 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       this.startAllJobs();
     });
 
-    this.contract.on('InitiateSlashing', event => {
+    this.on('InitiateKeeperSlashing', event => {
       const { jobKey, jobSlashingPossibleAfter, slasherKeeperId, useResolver } = event.args;
 
       this.clog(
-        `'InitiateSlashing' event 🔈: (block=${event.blockNumber},jobKey=${jobKey},jobSlashingPossibleAfter=${jobSlashingPossibleAfter},slasherKeeperId=${slasherKeeperId},useResolver=${useResolver})`,
+        `'InitiateKeeperSlashing' event 🔈: (block=${event.blockNumber},jobKey=${jobKey},jobSlashingPossibleAfter=${jobSlashingPossibleAfter},slasherKeeperId=${slasherKeeperId},useResolver=${useResolver})`,
       );
 
       const job = this.jobs.get(jobKey) as RandaoJob;
-      job.applyInitiateSlashing(jobSlashingPossibleAfter, slasherKeeperId);
+      job.applyInitiateKeeperSlashing(jobSlashingPossibleAfter, slasherKeeperId);
     });
 
-    this.contract.on('SlashKeeper', event => {
+    this.on('SlashKeeper', event => {
       const { jobKey, assignedKeeperId, actualKeeperId, fixedSlashAmount, dynamicSlashAmount, slashAmountMissing } =
         event.args;
 

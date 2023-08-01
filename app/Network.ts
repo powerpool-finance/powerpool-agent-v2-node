@@ -1,5 +1,4 @@
 import {
-  ClientWrapper,
   ContractWrapper,
   ContractWrapperFactory,
   IAgent,
@@ -8,18 +7,11 @@ import {
   Resolver,
 } from './Types.js';
 import { ethers } from 'ethers';
-import {
-  getAgentVersionAndType,
-  getAverageBlockTime,
-  getExternalLensAddress,
-  getMulticall2Address,
-} from './ConfigGetters.js';
+import { getAverageBlockTime, getExternalLensAddress, getMulticall2Address } from './ConfigGetters.js';
 import { getExternalLensAbi, getMulticall2Abi } from './services/AbiService.js';
-import { nowTimeString, toChecksummedAddress } from './Utils.js';
+import { nowTimeString } from './Utils.js';
 import { EthersContractWrapperFactory } from './clients/EthersContractWrapperFactory.js';
 import EventEmitter from 'events';
-import { AgentRandao_2_3_0 } from './agents/Agent.2.3.0.randao.js';
-import { AgentLight_2_2_0 } from './agents/Agent.2.2.0.light.js';
 import { App } from './App';
 
 interface ResolverJobWithCallback {
@@ -33,12 +25,12 @@ interface TimeoutWithCallback {
 }
 
 export class Network {
+  private initialized: boolean;
   private app: App;
   private readonly name: string;
   private readonly networkConfig: NetworkConfig;
   private readonly rpc: string;
   private chainId: number;
-  private client: ClientWrapper | undefined;
   private provider: ethers.providers.WebSocketProvider | undefined;
   private agents: IAgent[];
   private resolverJobData: { [key: string]: ResolverJobWithCallback };
@@ -71,12 +63,13 @@ export class Network {
     return new Error(`NetworkError${this.toString()}: ${args.join(' ')}`);
   }
 
-  constructor(name: string, networkConfig: NetworkConfig, app: App) {
+  constructor(name: string, networkConfig: NetworkConfig, app: App, agents: IAgent[]) {
+    this.initialized = false;
     this.app = app;
     this.name = name;
-    this.contractWrapperFactory = new EthersContractWrapperFactory([networkConfig.rpc], networkConfig.ws_timeout);
     this.rpc = networkConfig.rpc;
     this.networkConfig = networkConfig;
+    this.agents = agents;
 
     this.flashbotsRpc = networkConfig?.flashbots?.rpc;
     this.flashbotsAddress = networkConfig?.flashbots?.address;
@@ -97,27 +90,6 @@ export class Network {
 
     this.resolverJobData = {};
     this.timeoutData = {};
-    this.agents = [];
-
-    // TODO: get type & AgentConfig
-    for (const [address, agentConfig] of Object.entries(this.networkConfig.agents)) {
-      const checksummedAddress = toChecksummedAddress(address);
-      let { version, strategy } = agentConfig;
-      if (!version || !strategy) {
-        [version, strategy] = getAgentVersionAndType(checksummedAddress, this.name);
-      }
-      let agent;
-
-      if (version === '2.3.0' && strategy === 'randao') {
-        agent = new AgentRandao_2_3_0(checksummedAddress, agentConfig, this);
-      } else if (version === '2.2.0' && strategy === 'light') {
-        agent = new AgentLight_2_2_0(checksummedAddress, agentConfig, this);
-      } else {
-        throw this.err(`Not supported agent version/strategy: version=${version},strategy=${strategy}`);
-      }
-
-      this.agents.push(agent);
-    }
   }
 
   public nowS(): number {
@@ -146,6 +118,10 @@ export class Network {
 
   public getChainId(): number {
     return this.chainId;
+  }
+
+  public getAgents(): IAgent[] {
+    return this.agents;
   }
 
   public getAgent(agentAddress: string): IAgent {
@@ -180,10 +156,6 @@ export class Network {
 
   public getProvider(): ethers.providers.WebSocketProvider {
     return this.provider;
-  }
-
-  public async queryGasPrice(): Promise<number> {
-    return (await this.provider.getGasPrice()).toNumber();
   }
 
   public getBaseFee(): bigint {
@@ -235,81 +207,84 @@ export class Network {
     };
   }
 
-  public async getJobRawBytes32(agent: string, jobKey: string): Promise<string> {
-    const res = await this.externalLens.ethCall('getJobsRawBytes32', [agent, [jobKey]]);
-    return res.results[0];
-  }
-
-  public async getJobBytes32AndNextBlockSlasherId(
-    agent: string,
-    jobKey: string,
-  ): Promise<LensGetJobBytes32AndNextBlockSlasherIdResponse> {
-    const res = await this.externalLens.ethCall('getJobBytes32AndNextBlockSlasherId', [agent, jobKey]);
-    return { binJob: res.binJob, nextBlockSlasherId: res.nextBlockSlasherId.toNumber() };
+  private initProvider() {
+    this.provider = new ethers.providers.WebSocketProvider(this.rpc);
+    this.contractWrapperFactory = new EthersContractWrapperFactory([this.rpc], this.networkConfig.ws_timeout);
+    this.multicall = this.contractWrapperFactory.build(this.multicall2Address, getMulticall2Abi());
+    // TODO: initialize this after we know agent version and strategy
+    this.externalLens = this.contractWrapperFactory.build(this.externalLensAddress, getExternalLensAbi());
+    this.provider.on('block', this._onNewBlockCallback.bind(this));
   }
 
   public async init() {
+    if (this.initialized) {
+      throw this.err('Already initialized');
+    }
+    this.initialized = true;
+
     if (this.agents.length === 0) {
       this.clog(`Ignoring '${this.getName()}' network setup as it has no agents configured.`);
       return;
     }
 
-    this.provider = new ethers.providers.WebSocketProvider(this.rpc);
-    this.multicall = this.contractWrapperFactory.build(this.multicall2Address, getMulticall2Abi());
-    // TODO: initialize this after we know agent version and strategy
-    this.externalLens = this.contractWrapperFactory.build(this.externalLensAddress, getExternalLensAbi());
+    this.initProvider();
 
     try {
-      const lastBlock = await this.provider.getBlockNumber();
-      this.clog(`The network '${this.getName()}' has been initialized. The last block number: ${lastBlock}`);
+      const latestBlock = await this.queryLatestBlock();
+
+      this.latestBaseFee = BigInt(latestBlock.baseFeePerGas.toString());
+      this.latestBlockNumber = BigInt(latestBlock.number.toString());
+      this.latestBlockTimestamp = BigInt(latestBlock.timestamp.toString());
+      this.clog(
+        `The network '${this.getName()}' has been initialized. The last block number: ${this.latestBlockNumber}`,
+      );
     } catch (e) {
       throw this.err(`Can't init '${this.getName()}' using '${this.rpc}': ${e}`);
     }
 
-    this.chainId = (await this.provider.getNetwork()).chainId;
+    this.chainId = await this.queryNetworkId();
 
-    const latestBlock = await this.provider.getBlock('latest');
-    this.latestBaseFee = BigInt(latestBlock.baseFeePerGas.toString());
-    this.latestBlockNumber = BigInt(latestBlock.number.toString());
-    this.latestBlockTimestamp = BigInt(latestBlock.timestamp.toString());
+    this.clog('✅ Network initialization done!');
+  }
 
-    for (const agent of this.agents) {
-      await agent.init();
-    }
+  public stop() {
+    this.provider?.removeAllListeners();
+    this.contractWrapperFactory?.stop();
+    this.provider = null;
+    this.agents = null;
+  }
 
-    this.provider.on('block', async blockNumber => {
-      const before = this.nowMs();
-      const block = await this.provider.getBlock(blockNumber);
-      const fetchBlockDelay = this.nowMs() - before;
+  private async _onNewBlockCallback(blockNumber) {
+    const before = this.nowMs();
+    const block = await this.queryBlock(blockNumber);
+    const fetchBlockDelay = this.nowMs() - before;
 
-      this.latestBaseFee = BigInt(block.baseFeePerGas.toString());
-      this.latestBlockNumber = BigInt(block.number.toString());
-      this.latestBlockTimestamp = BigInt(block.timestamp.toString());
+    this.latestBaseFee = BigInt(block.baseFeePerGas.toString());
+    this.latestBlockNumber = BigInt(block.number.toString());
+    this.latestBlockTimestamp = BigInt(block.timestamp.toString());
 
-      this.newBlockEventEmitter.emit('newBlock', block.timestamp);
+    this.newBlockEventEmitter.emit('newBlock', block.timestamp);
 
-      if (this.newBlockNotifications.has(blockNumber)) {
-        const emittedBlockHashes = this.newBlockNotifications.get(blockNumber);
-        if (emittedBlockHashes && !emittedBlockHashes.has(block.hash)) {
-          emittedBlockHashes.add(block.hash);
-          this.walkThroughTheJobs(blockNumber, block.timestamp);
-        }
-      } else {
-        this.newBlockNotifications.set(blockNumber, new Set([block.hash]));
+    if (this.newBlockNotifications.has(blockNumber)) {
+      const emittedBlockHashes = this.newBlockNotifications.get(blockNumber);
+      if (emittedBlockHashes && !emittedBlockHashes.has(block.hash)) {
+        emittedBlockHashes.add(block.hash);
         this.walkThroughTheJobs(blockNumber, block.timestamp);
       }
-      this.clog(
-        `🧱 New block: (number=${blockNumber},timestamp=${block.timestamp},hash=${block.hash},txCount=${block.transactions.length},baseFee=${block.baseFeePerGas},fetchDelayMs=${fetchBlockDelay})`,
-      );
-    });
-    this.clog('✅ Network initialization done!');
+    } else {
+      this.newBlockNotifications.set(blockNumber, new Set([block.hash]));
+      this.walkThroughTheJobs(blockNumber, block.timestamp);
+    }
+    this.clog(
+      `🧱 New block: (number=${blockNumber},timestamp=${block.timestamp},hash=${block.hash},txCount=${block.transactions.length},baseFee=${block.baseFeePerGas},fetchDelayMs=${fetchBlockDelay})`,
+    );
   }
 
   public getNewBlockEventEmitter(): EventEmitter {
     return this.newBlockEventEmitter;
   }
 
-  private async walkThroughTheJobs(blockNumber: number, blockTimestamp: number) {
+  private walkThroughTheJobs(blockNumber: number, blockTimestamp: number) {
     this.triggerIntervalCallbacks(blockNumber, blockTimestamp);
     this.callResolversAndTriggerCallbacks(blockNumber);
   }
@@ -345,7 +320,7 @@ export class Network {
       return;
     }
 
-    const results = await this.multicall.ethCallStatic('tryAggregate', [false, resolversToCall]);
+    const results = await this.queryPollResolvers(false, resolversToCall);
     let jobsToExecute = 0;
 
     for (let i = 0; i < results.length; i++) {
@@ -416,5 +391,46 @@ export class Network {
   public unregisterResolver(key: string) {
     this._validateKeyLength(key, 'resolver');
     delete this.resolverJobData[key];
+  }
+
+  public async queryGasPrice(): Promise<number> {
+    return (await this.provider.getGasPrice()).toNumber();
+  }
+
+  public async queryBlock(number): Promise<ethers.providers.Block> {
+    return this.provider.getBlock(number);
+  }
+
+  public async queryLatestBlock(): Promise<ethers.providers.Block> {
+    return this.provider.getBlock('latest');
+  }
+
+  public async queryNetworkId(): Promise<number> {
+    return (await this.provider.getNetwork()).chainId;
+  }
+
+  public async queryPollResolvers(bl: boolean, resolversToCall: any[]): Promise<any> {
+    return this.multicall.ethCallStatic('tryAggregate', [false, resolversToCall]);
+  }
+
+  public async queryLensJobsRawBytes32(agent: string, jobKey: string): Promise<string> {
+    const res = await this.externalLens.ethCall('getJobsRawBytes32', [agent, [jobKey]]);
+    return res.results[0];
+  }
+
+  public async queryLensJobs(agent: string, jobKeys: string[]): Promise<any> {
+    return this.externalLens.ethCall('getJobs', [agent, jobKeys]);
+  }
+
+  public async queryLensOwnerBalances(agent: string, owners: string[]): Promise<any> {
+    return this.externalLens.ethCall('getOwnerBalances', [agent, owners]);
+  }
+
+  public async queryLensJobBytes32AndNextBlockSlasherId(
+    agent: string,
+    jobKey: string,
+  ): Promise<LensGetJobBytes32AndNextBlockSlasherIdResponse> {
+    const res = await this.externalLens.ethCall('getJobBytes32AndNextBlockSlasherId', [agent, jobKey]);
+    return { binJob: res.binJob, nextBlockSlasherId: res.nextBlockSlasherId.toNumber() };
   }
 }

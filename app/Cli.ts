@@ -1,8 +1,8 @@
-import { App } from './App';
+import { App } from './App.js';
 import YAML from 'yamljs';
 import fs from 'fs';
 import path, { dirname } from 'path';
-import { AgentConfig, Config, NetworkConfig } from './Types';
+import { AgentConfig, Config, NetworkConfig } from './Types.js';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -25,7 +25,7 @@ let app: App;
     const networkRpc = process.env.NETWORK_RPC;
     const agentAddress = process.env.AGENT_ADDRESS;
     const dataSource = process.env.DATA_SOURCE;
-    const graphUrl = process.env.GRAPH_URL;
+    const subgraphUrl = process.env.SUBGRAPH_URL;
     const keeperAddress = process.env.KEEPER_WORKER_ADDRESS;
     const keyPassword = process.env.KEYPASSWORD || '';
     const acceptMaxBaseFeeLimit = process.env.ACCEPT_MAX_BASE_FEE_LIMIT === 'true';
@@ -43,17 +43,18 @@ let app: App;
     if (!keyPassword) {
       throw new Error('ENV Config: Missing KEYPASSWORD value');
     }
-    if (dataSource === 'subgraph' && !graphUrl) {
+    if (dataSource === 'subgraph' && !subgraphUrl) {
       throw new Error('ENV CONFIG: On order to use subgraph as data source, you must define GRAPH_URL');
     }
     const agentConfig: AgentConfig = {
+      strategy: undefined,
       accept_max_base_fee_limit: acceptMaxBaseFeeLimit,
       accrue_reward: accrueReward,
       executor: 'pga',
       keeper_worker_address: keeperAddress,
       key_pass: keyPassword,
       data_source: dataSource,
-      graph_url: graphUrl,
+      subgraph_url: subgraphUrl,
     };
 
     const netConfig: NetworkConfig = {
@@ -82,7 +83,7 @@ let app: App;
   await app.start();
 })().catch(error => {
   console.error(error);
-  console.log('Run.ts: Unexpected error. Stopping the app with a code (1).');
+  console.log('Cli.ts: Unexpected error. Stopping the app with a code (1).');
   process.exit(1);
 });
 
@@ -91,9 +92,16 @@ process.on('unhandledRejection', function (error: Error, _promise) {
   console.log(error.stack);
 
   if (app && app.unhandledExceptionsStrictMode) {
-    console.log('Stopping the app with a code (1) since the "unhandledExceptionsStrictMode" is ON.');
+    console.log('Cli.ts: Stopping the app with a code (1) since the "unhandledExceptionsStrictMode" is ON.');
     process.exit(1);
   }
 
   console.log(msg);
+});
+
+process.on('SIGINT', async function () {
+  console.log('Cli.ts: Caught interrupt signal');
+  await app?.stop();
+
+  process.exit(1);
 });

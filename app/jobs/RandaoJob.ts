@@ -94,7 +94,7 @@ export class RandaoJob extends AbstractJob {
     return false;
   }
 
-  public applyInitiateSlashing(jobSlashingPossibleAfter: number, slasherKeeperId: number) {
+  public applyInitiateKeeperSlashing(jobSlashingPossibleAfter: number, slasherKeeperId: number) {
     this.slashingPossibleAfter = jobSlashingPossibleAfter;
     this.reservedSlasherId = slasherKeeperId;
   }

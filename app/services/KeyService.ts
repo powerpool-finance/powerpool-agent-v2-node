@@ -31,7 +31,7 @@ function readKeys() {
 }
 
 export function getEncryptedJson(address: string): string {
-  if (!v3Objects) {
+  if (process.env.FORCE_READ_KEYS || !v3Objects) {
     readKeys();
   }
   address = address.toLowerCase();

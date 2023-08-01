@@ -1,4 +1,4 @@
-import { parseRawJob } from '../app/Utils.js';
+import { parseRawJob } from '../../app/Utils.js';
 import { assert } from 'chai';
 
 const JOB1 = '0x6308d07800012c0100000000006e000a000000002386f2383cdbcd0000000005';

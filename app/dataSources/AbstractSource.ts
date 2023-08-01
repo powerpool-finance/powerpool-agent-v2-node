@@ -1,20 +1,20 @@
 import { Network } from '../Network';
-import { ContractWrapper } from '../Types';
+import { IAgent, IDataSource } from '../Types';
 import { RandaoJob } from '../jobs/RandaoJob';
 import { LightJob } from '../jobs/LightJob';
 import { BigNumber } from 'ethers';
 
-export abstract class AbstractSource {
+export abstract class AbstractSource implements IDataSource {
   protected type: string;
   protected network: Network;
-  protected contract: ContractWrapper;
+  protected agent: IAgent;
 
-  protected constructor(network: Network, contract: ContractWrapper) {
+  protected constructor(network: Network, agent: IAgent) {
     this.network = network;
-    this.contract = contract;
+    this.agent = agent;
 
-    if (!this.contract) {
-      throw this._err('Missing contract argument');
+    if (!this.agent) {
+      throw this._err('Missing agent argument');
     }
 
     if (!this.network) {

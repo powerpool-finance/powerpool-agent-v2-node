@@ -4,7 +4,7 @@ import {
   EXTERNAL_LENS_CONTRACTS_2_3_0,
   MULTICALL_CONTRACTS,
 } from './Constants.js';
-import { AgentHardcodedConfig } from './Types';
+import { AgentHardcodedConfig, Strategy } from './Types';
 
 export function getMulticall2Address(networkName: string) {
   if (networkName in MULTICALL_CONTRACTS) {
@@ -23,7 +23,7 @@ export function getExternalLensAddress(networkName: string, _version: string, _s
   }
 }
 
-export function getAgentVersionAndType(agentAddress: string, networkName: string): [string, string] {
+export function getAgentVersionAndType(agentAddress: string, networkName: string): [string, Strategy] {
   const agentConfig = getAgentConfig(agentAddress, networkName);
   return [agentConfig.version, agentConfig.strategy];
 }

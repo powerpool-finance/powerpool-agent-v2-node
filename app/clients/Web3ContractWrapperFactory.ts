@@ -50,7 +50,9 @@ export class Web3ContractWrapperFactory implements ContractWrapperFactory {
     return this.web3;
   }
 
-  build(addressOrName: string, contractInterface: ReadonlyArray<Fragment>): ContractWrapper {
+  public build(addressOrName: string, contractInterface: ReadonlyArray<Fragment>): ContractWrapper {
     return new Web3Contract(addressOrName, contractInterface, this.getWeb3());
   }
+
+  public stop() {}
 }

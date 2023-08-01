@@ -2,7 +2,7 @@ import { AbstractSource } from './AbstractSource.js';
 import { RandaoJob } from '../jobs/RandaoJob';
 import { LightJob } from '../jobs/LightJob';
 import { Network } from '../Network';
-import { ContractWrapper } from '../Types';
+import { IAgent } from '../Types';
 import { BigNumber } from 'ethers';
 import { parseConfig } from '../Utils.js';
 
@@ -10,8 +10,8 @@ import { parseConfig } from '../Utils.js';
  * This class used for fetching data directly from blockchain
  */
 export class BlockchainSource extends AbstractSource {
-  constructor(network: Network, contract: ContractWrapper) {
-    super(network, contract);
+  constructor(network: Network, agent: IAgent) {
+    super(network, agent);
     this.type = 'blockchain';
   }
 
@@ -25,7 +25,8 @@ export class BlockchainSource extends AbstractSource {
    */
   async getRegisteredJobs(context): Promise<Map<string, RandaoJob | LightJob>> {
     const latestBock = this.network.getLatestBlockNumber();
-    const registerLogs = await this.contract.getPastEvents('RegisterJob', context.fullSyncFrom, Number(latestBock));
+    console.log('todo: check not null', { latestBock });
+    const registerLogs = await this.agent.queryPastEvents('RegisterJob', context.fullSyncFrom, Number(latestBock));
     const newJobs = new Map<string, RandaoJob | LightJob>();
     for (const event of registerLogs) {
       newJobs.set(event.args.jobKey, context._buildNewJob(event));
@@ -43,9 +44,7 @@ export class BlockchainSource extends AbstractSource {
    */
   async getOwnersBalances(context, jobOwnersSet: Set<string>): Promise<Map<string, BigNumber>> {
     const jobOwnersArray = Array.from(jobOwnersSet);
-    const res = await this.network
-      .getExternalLensContract()
-      .ethCall('getOwnerBalances', [context.address, jobOwnersArray]);
+    const res = await this.network.queryLensOwnerBalances(context.address, jobOwnersArray);
     const jobOwnerBalances: Array<BigNumber> = res.results;
     const result = new Map<string, BigNumber>();
     for (let i = 0; i < jobOwnersArray.length; i++) {
@@ -58,13 +57,10 @@ export class BlockchainSource extends AbstractSource {
    * Fetch additional fields from lens contract and call apply job
    *
    * @param newJobs - jobs fetched from createJob event. Instance of RandaoJob | LightJob. Is Map structure.
-   * @param address - agent contract address
    */
   private async addLensFieldsToJobs(newJobs: Map<string, RandaoJob | LightJob>) {
     const jobKeys = Array.from(newJobs.keys());
-    const { results } = await this.network
-      .getExternalLensContract()
-      .ethCall('getJobs', [this.contract.address, jobKeys]);
+    const { results } = await this.network.queryLensJobs(this.agent.address, jobKeys);
 
     jobKeys.forEach((jobKey, index) => {
       const newJob = newJobs.get(jobKeys[index]);
