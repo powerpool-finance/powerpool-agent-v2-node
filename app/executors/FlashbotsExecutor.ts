@@ -8,6 +8,7 @@ import {
   RelayResponseError,
 } from '@flashbots/ethers-provider-bundle';
 import { AbstractExecutor } from './AbstractExecutor.js';
+import { printSolidityCustomError } from './ExecutorUtils.js';
 
 export class FlashbotsExecutor extends AbstractExecutor implements Executor {
   private fbRpc: string;
@@ -46,7 +47,7 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
 
   public async init() {
     this.fbProvider = await FlashbotsBundleProvider.create(
-      this.genericProvider,
+      this.genericProvider as ethers.providers.BaseProvider,
       this.fbSigner,
       this.fbRpc,
       this.networkName,
@@ -54,7 +55,7 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
     );
   }
 
-  public push(key: string, envelope: TxEnvelope) {
+  public async push(key: string, envelope: TxEnvelope) {
     if (!this.fbProvider) {
       throw this.err('Flashbots Provider misconfigured');
     }
@@ -73,7 +74,7 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
       let txSimulation;
       try {
         txSimulation = await this.genericProvider.call(tx);
-        this.printSolidityCustomError(txSimulation, tx.data as string);
+        printSolidityCustomError(this.clog, this.agentContract.decodeError, txSimulation, tx.data as string);
       } catch (e) {
         this.clog('TX node simulation error', e);
       }
