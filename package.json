@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "ts-node app/Cli.ts",
     "lint": "eslint --ext .ts app/",
-    "lint:fix": "eslint --fix --ext .ts app/",
+    "lint:fix": "eslint --fix --ext .ts app/ tests/",
     "test": "mocha tests/**/*.test.ts"
   },
   "author": "PowerPool",
@@ -28,6 +28,7 @@
     "@types/chai": "^4.3.3",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.0.4",
+    "@types/sinon": "^10.0.16",
     "@typescript-eslint/eslint-plugin": "^5.30.6",
     "@typescript-eslint/parser": "^5.30.6",
     "chai": "^4.3.6",
