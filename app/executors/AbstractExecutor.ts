@@ -51,7 +51,11 @@ export abstract class AbstractExecutor {
       this.currentTxEnvelope = tx;
       this.queueTxs.delete(this.currentTxKey);
 
-      await this.process(tx);
+      try {
+        await this.process(tx);
+      } catch (e) {
+        this.clog('Error:', e);
+      }
 
       this.currentTxKey = null;
       this.currentTxEnvelope = null;

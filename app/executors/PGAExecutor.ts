@@ -50,7 +50,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
         envelope.executorCallbacks.txEstimationFailed(e, tx.data as string);
         return;
       }
-      printSolidityCustomError(this.clog, this.agentContract.decodeError, txSimulation, tx.data as string);
+      printSolidityCustomError(this.clog.bind(this), this.agentContract.decodeError, txSimulation, tx.data as string);
 
       // This callback could trigger an error which will be caught by unhandledExceptionHandler
       envelope.executorCallbacks.txEstimationFailed(e, tx.data as string);
