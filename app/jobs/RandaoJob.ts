@@ -1,6 +1,6 @@
 import { AbstractJob } from './AbstractJob.js';
-import { nowTimeString } from '../Utils.js';
 import { EmptyTxNotMinedInBlockCallback, EventWrapper, GetJobResponse, IAgent, IRandaoAgent } from '../Types.js';
+import logger from '../services/Logger.js';
 
 export class RandaoJob extends AbstractJob {
   private BLACKLIST_ESTIMATIONS_LIMIT = 5;
@@ -13,8 +13,8 @@ export class RandaoJob extends AbstractJob {
   private _initiateSlashingPending: boolean;
   private failedInitiateSlashingEstimationsInARow: number;
 
-  protected clog(...args) {
-    console.log(`>>> ${nowTimeString()} >>> RandaoJob${this.toString()}:`, ...args);
+  protected clog(level: string, ...args) {
+    logger.log(level, `RandaoJob${this.toString()}: ${args.join(' ')}`);
   }
   protected err(...args): Error {
     return new Error(`RandaoJobError${this.toString()}: ${args.join(' ')}`);
@@ -27,22 +27,22 @@ export class RandaoJob extends AbstractJob {
   }
 
   private _lockSelfUnassign() {
-    this.clog('_lockSelfUnassign()');
+    this.clog('debug', '_lockSelfUnassign()');
     this._selfUnassignPending = true;
   }
 
   private _unlockSelfUnassign() {
-    this.clog('_releaseSelfUnassign()');
+    this.clog('debug', '_releaseSelfUnassign()');
     this._selfUnassignPending = false;
   }
 
   private _lockInitiateSlashing() {
-    this.clog('_lockInitiateSlashing()');
+    this.clog('debug', '_lockInitiateSlashing()');
     this._initiateSlashingPending = true;
   }
 
   private _unlockInitiateSlashing() {
-    this.clog('_unlockInitiateSlashing()');
+    this.clog('debug', '_unlockInitiateSlashing()');
     this._initiateSlashingPending = false;
   }
 
@@ -81,7 +81,7 @@ export class RandaoJob extends AbstractJob {
 
   // true if it should update binJob
   public applyKeeperAssigned(keeperId: number): boolean {
-    this.clog(this.key, 'keeperID update ✅✅✅✅✅✅✅✅✅✅✅✅✅', this.assignedKeeperId, '->', keeperId);
+    this.clog('info', 'keeperID update:', this.assignedKeeperId, '->', keeperId);
     if (keeperId === 0) {
       this._unlockSelfUnassign();
     }
@@ -134,11 +134,12 @@ export class RandaoJob extends AbstractJob {
 
   protected _beforeJobWatch(): boolean {
     if (this.assignedKeeperId === 0) {
-      this.clog('_beforeJobWatch(): assignedKeeper is 0');
+      this.clog('debug', '_beforeJobWatch(): assignedKeeper is 0');
       return false;
     }
     if (this.getCreditsAvailable() <= (this.agent as IRandaoAgent).getJobMinCredits()) {
       this.clog(
+        'warn',
         `_beforeJobWatch(): Scheduling self-unassign due insufficient credits (required=${(
           this.agent as IRandaoAgent
         ).getJobMinCredits()},available=${this.getCreditsAvailable()}`,
@@ -153,7 +154,7 @@ export class RandaoJob extends AbstractJob {
 
   private _selfUnassign(): void {
     if (this._selfUnassignPending) {
-      this.clog('Self-Unassign is already pending...');
+      this.clog('debug', 'Self-Unassign is already pending...');
       return;
     }
     if (this.assignedKeeperId !== this.agent.getKeeperId()) {
@@ -187,20 +188,20 @@ export class RandaoJob extends AbstractJob {
 
   private async initiateSlashing(resolverCalldata) {
     const txEstimationFailed = () => {
-      this.clog('InitiateSlashing() estimation failed');
+      this.clog('error', 'InitiateSlashing() estimation failed');
       this.exitIfStrictTopic('estimations');
       this._initiateSlashingIncrementFailedCounter();
     };
     const txExecutionFailed = () => {
-      this.clog('InitiateSlashing() execution failed');
+      this.clog('error', 'InitiateSlashing() execution failed');
       this.exitIfStrictTopic('executions');
       this._initiateSlashingIncrementFailedCounter();
     };
     if (this._initiateSlashingPending) {
-      this.clog('Slashing is already pending...');
+      this.clog('debug', 'Slashing is already pending...');
       return;
     } else {
-      this.clog('initiateSlashing()');
+      this.clog('info', 'initiateSlashing()');
       this._lockInitiateSlashing();
     }
     return (this.agent as IRandaoAgent).initiateKeeperSlashing(this.address, this.id, this.key, resolverCalldata, {
@@ -287,7 +288,7 @@ export class RandaoJob extends AbstractJob {
 
   protected _executeTxEstimationFailed(_txData: string): void {
     if (this._getCurrentPeriod() === 3) {
-      this.clog('Scheduling self-unassign since the current period is #3...');
+      this.clog('info', 'Scheduling self-unassign since the current period is #3...');
       this._selfUnassign();
       this.watch();
       return;
@@ -330,7 +331,7 @@ export class RandaoJob extends AbstractJob {
       this.agent.nowS() > this.slashingPossibleAfter &&
       this.reservedSlasherId == this.agent.getKeeperId()
     ) {
-      console.log(`Need execute slashing bn=${triggeredByBlockNumber}`);
+      this.clog('debug', `Need execute slashing bn=${triggeredByBlockNumber}`);
       await this.executeResolverJob(invokeCalldata);
       // initiateSlashing
     } else {
@@ -343,14 +344,20 @@ export class RandaoJob extends AbstractJob {
 
       // reset t1 & b1 if the bn is more than two blocks behind
       if (this.bn + 2n < latestBlock) {
-        console.log(`Resetting counter, bn=${triggeredByBlockNumber}`);
+        this.clog('debug', `Resetting counter, bn=${triggeredByBlockNumber}`);
         this.t1 = this.tn;
         this.b1 = this.bn;
       }
 
       if (this.t1) {
         const left = this.t1 + period1 - now;
-        console.log('Can initiate slashing after', left, { t1: this.t1, period1, now }, `bn=${triggeredByBlockNumber}`);
+        this.clog(
+          'debug',
+          'Can initiate slashing after',
+          left,
+          JSON.stringify({ t1: this.t1, period1, now }),
+          `bn=${triggeredByBlockNumber}`,
+        );
       }
 
       // if can slash
@@ -358,11 +365,11 @@ export class RandaoJob extends AbstractJob {
         if (await (this.agent as IRandaoAgent).amINextSlasher(this.key)) {
           await this.initiateSlashing(invokeCalldata);
         } else {
-          this.clog("😟 Can't initiate slashing, i'm not the next block slasher");
+          this.clog('debug', "😟 Can't initiate slashing, i'm not the next block slasher");
         }
       } else {
         if (this.t1 === 0) {
-          this.clog(`Initiate resolver slashing counter bn=${triggeredByBlockNumber}`);
+          this.clog('debug', `Initiate resolver slashing counter bn=${triggeredByBlockNumber}`);
           this.t1 = Number(this.agent.getNetwork().getLatestBlockTimestamp());
           this.b1 = latestBlock;
         }
@@ -371,7 +378,9 @@ export class RandaoJob extends AbstractJob {
   }
 
   protected async intervalJobAvailableCallback(blockNumber: number) {
-    console.log(
+    // TODO: remove
+    this.clog(
+      'debug',
       '@@@ available, assigned/me/matches',
       this.key,
       this.assignedKeeperId,
@@ -379,17 +388,25 @@ export class RandaoJob extends AbstractJob {
       this.assignedKeeperId === this.agent.getKeeperId(),
     );
     if (this.assignedKeeperId === this.agent.getKeeperId()) {
-      console.log('job callback', this.key, blockNumber, {
-        assigned: this.assignedKeeperId,
-        me: this.agent.getKeeperId(),
-      });
+      this.clog(
+        'debug',
+        'job callback',
+        this.key,
+        blockNumber,
+        JSON.stringify({
+          assigned: this.assignedKeeperId,
+          me: this.agent.getKeeperId(),
+        }),
+      );
       this.agent.unregisterIntervalJobExecution(this.key);
       return this.executeTx(this.key, await this.buildTx(this.buildIntervalCalldata()));
     }
   }
 
   private async intervalJobSlashingAvailableCallback(_blockNumber: number) {
-    console.log(
+    // TODO: remove
+    this.clog(
+      'debug',
       '@@@ slashing, assigned/me/matches',
       this.key,
       this.assignedKeeperId,
@@ -402,16 +419,14 @@ export class RandaoJob extends AbstractJob {
       this.key,
     );
 
-    console.log('@@@ slashing, next slasher', this.key, nextBlockSlasherId);
-
     this.applyBinJobData(binJob);
     if (this.agent.getKeeperId() === this.assignedKeeperId) {
-      this.clog('Wont slash mine job', { nextBlockSlasherId, me: this.agent.getKeeperId() });
+      this.clog('debug', 'Wont slash mine job', JSON.stringify({ nextBlockSlasherId, me: this.agent.getKeeperId() }));
     } else if (this.agent.getKeeperId() === nextBlockSlasherId) {
       this.unwatch();
       return this.executeTx(this.key, await this.buildTx(this.buildIntervalCalldata()));
     } else {
-      this.clog('Slasher is not me', { nextBlockSlasherId, me: this.agent.getKeeperId() });
+      this.clog('debug', 'Slasher is not me', JSON.stringify({ nextBlockSlasherId, me: this.agent.getKeeperId() }));
     }
   }
 }

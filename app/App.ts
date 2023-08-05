@@ -1,16 +1,13 @@
 import { Config, AllNetworksConfig, IAgent, AgentConfig } from './Types';
 import { Network } from './Network.js';
-import { nowTimeString, toChecksummedAddress } from './Utils.js';
+import { toChecksummedAddress } from './Utils.js';
 import { initApi } from './Api.js';
 import { getAgentVersionAndType } from './ConfigGetters.js';
 import { AgentRandao_2_3_0 } from './agents/Agent.2.3.0.randao.js';
 import { AgentLight_2_2_0 } from './agents/Agent.2.2.0.light.js';
 import { SubgraphSource } from './dataSources/SubgraphSource.js';
 import { BlockchainSource } from './dataSources/BlockchainSource.js';
-
-function clog(...args: any[]) {
-  console.log(`>>> ${nowTimeString()} >>> App:`, ...args);
-}
+import logger from './services/Logger.js';
 
 export class App {
   private networks: { [key: string]: Network };
@@ -67,8 +64,8 @@ export class App {
     }
 
     if (anyStrict) {
-      console.log({ strictMode: config.strict });
-      console.log('WARNING: "basic" and "estimations" strict mode options are not supported yet.');
+      logger.warn('App: WARNING: "basic" and "estimations" strict mode options are not supported yet.');
+      logger.warn(`App: Strict mode enabled: ${JSON.stringify({ strictMode: config.strict })}`);
     }
 
     this.config = config;
@@ -87,7 +84,7 @@ export class App {
         const agents = this.buildAgents(netName, netConfig.agents);
         networks[netName] = new Network(netName, netConfig, this, agents);
       } else {
-        clog('Skipping', netName, 'network...');
+        logger.debug(`App: Skipping ${netName} network...`);
       }
     }
 
@@ -122,7 +119,7 @@ export class App {
 
   public async initNetworks(networks: { [netName: string]: Network }) {
     this.networks = networks;
-    clog('Network initialization start...');
+    logger.debug('App: Network initialization start...');
     const inits = [];
     for (const network of Object.values(this.networks)) {
       inits.push(network.init());
@@ -139,19 +136,18 @@ export class App {
         await agent.init(network, dataSource);
       }
     }
-    clog('Waiting for all networks to be initialized...');
+    logger.debug('App: Waiting for all networks to be initialized...');
     try {
       await Promise.all(inits);
     } catch (e) {
-      console.log(e);
-      clog('Networks initialization failed');
+      logger.error(`App: Networks initialization failed ${e}`);
       process.exit(1);
     }
-    clog('Networks initialization done!');
+    logger.info('App: Networks initialization done!');
   }
 
   public async stop() {
-    clog('Stopping the app...');
+    logger.warn('App: Stopping the app...');
     if (this.networks) {
       for (const network of Object.values(this.networks)) {
         network.stop();
@@ -160,12 +156,12 @@ export class App {
     }
     await this.stopApi();
 
-    clog('The app has stopped successfully...');
+    logger.warn('App: The App has stopped successfully...');
   }
 
   public exitIfStrictTopic(topic) {
     if (this.isStrict(topic)) {
-      console.log(`Exiting the app due to a strict mode for topic "${topic}"...`);
+      logger.warn(`App: Exiting the app due to a strict mode for topic "${topic}"...`);
       process.exit(1);
     }
   }

@@ -25,7 +25,7 @@ export class BlockchainSource extends AbstractSource {
    */
   async getRegisteredJobs(context): Promise<Map<string, RandaoJob | LightJob>> {
     const latestBock = this.network.getLatestBlockNumber();
-    console.log('todo: check not null', { latestBock });
+    // TODO: check latestBlock not null
     const registerLogs = await this.agent.queryPastEvents('RegisterJob', context.fullSyncFrom, Number(latestBock));
     const newJobs = new Map<string, RandaoJob | LightJob>();
     for (const event of registerLogs) {

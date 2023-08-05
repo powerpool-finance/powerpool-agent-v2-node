@@ -1,9 +1,10 @@
 import { ethers } from 'ethers';
-import { nowTimeString, sleep } from '../Utils.js';
+import { sleep } from '../Utils.js';
 import { ContractWrapper, ErrorWrapper, EventWrapper, WrapperListener } from '../Types.js';
 import { Result, Fragment, ErrorFragment, FunctionFragment, EventFragment } from 'ethers/lib/utils.js';
 import EventEmitter from 'events';
 import { QueueEmitter } from '../services/QueueEmitter.js';
+import logger from '../services/Logger.js';
 
 // DANGER: DOES NOT support method override
 export class EthersContract implements ContractWrapper {
@@ -113,8 +114,8 @@ export class EthersContract implements ContractWrapper {
     return `EthersContract: (rpc=${this.primaryEndpoint})`;
   }
 
-  private clog(...args: any[]) {
-    console.log(`>>> ${nowTimeString()} >>> Network${this.toString()}:`, ...args);
+  private clog(level: string, ...args: any[]) {
+    logger.log(level, `EthersContract${this.toString()}: ${args.join(' ')}`);
   }
 
   private err(...args: any[]): Error {
@@ -167,12 +168,15 @@ export class EthersContract implements ContractWrapper {
         clearTimeout(timeout);
         return filterFunctionResultObject(res);
       } catch (e) {
-        this.clog(`Error(attempt=${this.attempts - errorCounter}/${
-          this.attempts
-        }) querying method '${method}' with arguments ${JSON.stringify(args)} and overrides ${JSON.stringify(
-          overrides,
-        )}:
-${e.message}: ${Error().stack}`);
+        this.clog(
+          'error',
+          `Error executing a ethCall(): (attempt=${this.attempts - errorCounter}/${
+            this.attempts
+          }): querying method '${method}' with arguments ${JSON.stringify(args)} and overrides ${JSON.stringify(
+            overrides,
+          )}:
+${e.message}: ${Error().stack}`,
+        );
         clearTimeout(timeout);
         await sleep(this.attemptTimeoutSeconds * 1000);
       }
@@ -209,7 +213,7 @@ ${e.message}: ${Error().stack}`);
       this.eventEmitter.on(eventName, async (...args) => {
         const done = args.pop();
         const event = args[args.length - 1];
-        console.log('Event Emitted ⚽️⚽️⚽️', event.transactionHash, event.logIndex, eventName);
+        logger.log('debug', 'Event Emitted ⚽️⚽️⚽️', event.transactionHash, event.logIndex, eventName);
         const onlyFields = filterFunctionResultObject(event.args);
         await eventEmittedCallback({
           name: eventName,

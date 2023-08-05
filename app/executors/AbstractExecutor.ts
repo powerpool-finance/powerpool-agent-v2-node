@@ -23,7 +23,7 @@ export abstract class AbstractExecutor {
     this.queueTxs = new Map();
   }
 
-  protected abstract clog(...args: any[]);
+  protected abstract clog(level: string, ...args: any[]);
   protected abstract err(...args: any[]);
   protected abstract process(tx: TxEnvelope);
 
@@ -39,7 +39,7 @@ export abstract class AbstractExecutor {
 
   protected async processIfRequired() {
     if (this.queueHandlerLock) {
-      this.clog('Queue handler is already launched');
+      this.clog('debug', 'Queue handler is already launched');
       return;
     }
 
@@ -54,7 +54,7 @@ export abstract class AbstractExecutor {
       try {
         await this.process(tx);
       } catch (e) {
-        this.clog('Error:', e);
+        this.clog('error', 'process(tx) error:', e);
       }
 
       this.currentTxKey = null;
@@ -97,7 +97,10 @@ export abstract class AbstractExecutor {
       throw this.err('Missing txNotMinedInBlock callback');
     }
     this.queueTxs.set(key, envelope);
-    this.clog(`📥 Enqueueing ${JSON.stringify(envelope.tx)}. The total queue length is now ${this.queue.length}...`);
+    this.clog(
+      'debug',
+      `📥 Enqueueing ${JSON.stringify(envelope.tx)}. The total queue length is now ${this.queue.length}...`,
+    );
 
     // WARNING: async func call
     return this.processIfRequired();
@@ -105,17 +108,19 @@ export abstract class AbstractExecutor {
 
   protected queueLock() {
     if (this.queueHandlerLock) {
-      throw this.err('The queue is already locked');
+      this.clog('debug', 'The queue is already locked');
+      return;
     }
-    this.clog('🔐 Locking queue...');
+    this.clog('debug', '🔐 Locking queue...');
     this.queueHandlerLock = true;
   }
 
   protected unlockQueue() {
     if (!this.queueHandlerLock) {
-      throw this.err('The queue is NOT locked');
+      this.clog('debug', 'The queue is NOT locked');
+      return;
     }
-    this.clog('🔓 Unlocking queue...');
+    this.clog('debug', '🔓 Unlocking queue...');
     this.queueHandlerLock = false;
   }
 }

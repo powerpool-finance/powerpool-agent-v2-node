@@ -1,8 +1,8 @@
 import { ethers } from 'ethers';
 import { ContractWrapper, ContractWrapperFactory } from '../Types.js';
 import { EthersContract } from './EthersContract.js';
-import { nowTimeString } from '../Utils.js';
 import { Fragment } from '@ethersproject/abi/src.ts/fragments';
+import logger from '../services/Logger.js';
 
 export class EthersContractWrapperFactory implements ContractWrapperFactory {
   private readonly primaryEndpoint: string;
@@ -16,7 +16,7 @@ export class EthersContractWrapperFactory implements ContractWrapperFactory {
     const [primaryEndpoint] = wsRpcEndpoints;
     this.primaryEndpoint = primaryEndpoint;
     this.wsCallTimeout = wsTimeout;
-    console.log({ primaryEndpoint });
+    this.clog('info', 'Contract factory initialized');
     this.provider = new ethers.providers.WebSocketProvider(primaryEndpoint);
   }
 
@@ -24,8 +24,8 @@ export class EthersContractWrapperFactory implements ContractWrapperFactory {
     return `EthersClient: (rpc=${this.primaryEndpoint})`;
   }
 
-  private clog(...args) {
-    console.log(`>>> ${nowTimeString()} >>> Network${this.toString()}:`, ...args);
+  private clog(level: string, ...args) {
+    logger.log(level, `EthersContractFactory${this.toString()}:`, ...args);
   }
 
   private err(...args): Error {
