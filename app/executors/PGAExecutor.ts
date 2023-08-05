@@ -2,6 +2,8 @@ import { ContractWrapper, Executor, TxEnvelope } from '../Types.js';
 import { ethers, utils } from 'ethers';
 import { nowTimeString } from '../Utils.js';
 import { AbstractExecutor } from './AbstractExecutor.js';
+import { printSolidityCustomError } from './ExecutorUtils.js';
+
 export class PGAExecutor extends AbstractExecutor implements Executor {
   private toString(): string {
     return `(network: ${this.networkName})`;
@@ -29,13 +31,10 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  public init() {}
-
-  public push(key: string, envelope: TxEnvelope) {
+  public init() {
     if (!this.workerSigner) {
       throw this.err('Worker signer misconfigured');
     }
-    super.push(key, envelope);
   }
 
   protected async process(envelope: TxEnvelope) {
@@ -43,12 +42,18 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
     let gasLimitEstimation;
     try {
       gasLimitEstimation = await this.genericProvider.estimateGas(tx);
-    } catch (_) {
-      const txSimulation = await this.genericProvider.call(tx);
-      this.printSolidityCustomError(txSimulation, tx.data as string);
+    } catch (e) {
+      let txSimulation;
+      try {
+        txSimulation = await this.genericProvider.call(tx);
+      } catch (e) {
+        envelope.executorCallbacks.txEstimationFailed(e, tx.data as string);
+        return;
+      }
+      printSolidityCustomError(this.clog.bind(this), this.agentContract.decodeError, txSimulation, tx.data as string);
 
       // This callback could trigger an error which will be caught by unhandledExceptionHandler
-      envelope.executorCallbacks.txEstimationFailed(tx.data as string);
+      envelope.executorCallbacks.txEstimationFailed(e, tx.data as string);
 
       // force execute (only for debug)
       if (true) {
@@ -63,6 +68,9 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       return;
     } finally {
       tx.nonce = await this.genericProvider.getTransactionCount(this.workerSigner.address);
+    }
+    if (!gasLimitEstimation) {
+      throw this.err(`gasLimitEstimation is not set: ${gasLimitEstimation}`);
     }
     tx.gasLimit = gasLimitEstimation.mul(40).div(10);
 
@@ -81,7 +89,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       );
     } catch (e) {
       // This callback could trigger an error which will be caught by unhandledExceptionHandler
-      envelope.executorCallbacks.txExecutionFailed(tx.data as string);
+      envelope.executorCallbacks.txExecutionFailed(e, tx.data as string);
     }
     // TODO: setTimeout with .call(tx), send cancel tx (eth transfer) with a higher gas price
   }

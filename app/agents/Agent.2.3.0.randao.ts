@@ -179,10 +179,6 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       executorCallbacks,
       jobKey,
       tx,
-      creditsAvailable: BigInt(0),
-      fixedCompensation: BigInt(0),
-      ppmCompensation: 0,
-      minTimestamp: 0,
     };
     await this._sendNonExecuteTransaction(envelope);
   }

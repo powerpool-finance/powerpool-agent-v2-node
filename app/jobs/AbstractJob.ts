@@ -406,7 +406,7 @@ export abstract class AbstractJob {
     return BigInt(balanceAvailable.toString());
   }
 
-  protected async executeTx(jobKey: string, tx: ethers.UnsignedTransaction, minTimestamp = 0) {
+  protected async executeTx(jobKey: string, tx: ethers.UnsignedTransaction) {
     return this.agent.sendTxEnvelope({
       executorCallbacks: {
         txEstimationFailed: this._executeTxEstimationFailed.bind(this),
@@ -415,11 +415,6 @@ export abstract class AbstractJob {
       },
       jobKey,
       tx,
-      // TODO: not sure still need them
-      creditsAvailable: this.getCreditsAvailable(),
-      fixedCompensation: this.getFixedReward(),
-      ppmCompensation: this.details.rewardPct,
-      minTimestamp,
     });
   }
 

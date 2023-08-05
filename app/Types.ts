@@ -269,19 +269,12 @@ export interface TxGasUpdate {
 export interface TxEnvelope {
   jobKey: string;
   tx: ethers.UnsignedTransaction;
-
   executorCallbacks: ExecutorCallbacks;
-
-  // TODO: get rid of the fields below
-  creditsAvailable: bigint;
-  fixedCompensation: bigint;
-  ppmCompensation: number;
-  minTimestamp?: number;
 }
 
 export interface ExecutorCallbacks {
-  txEstimationFailed: (error) => void;
-  txExecutionFailed: (error) => void;
+  txEstimationFailed: (error, Error) => void;
+  txExecutionFailed: (error, Error) => void;
   txNotMinedInBlock: TxNotMinedInBlockCallback;
 }
 
