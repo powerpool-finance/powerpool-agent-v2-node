@@ -145,7 +145,7 @@ export abstract class AbstractJob {
     this.assertEvent(event, 'JobUpdate');
 
     const args: UpdateJobEventArgs = event.args as never;
-    this.clog('JobUpdateEvent: params, args (TODO: ensure types match):', this.details, args);
+    this.clog('debug', 'JobUpdateEvent: params, args (TODO: ensure types match):', this.details, args);
 
     let requiresRestart = false;
 
@@ -289,10 +289,10 @@ export abstract class AbstractJob {
   }
 
   public unwatch() {
-    this.clog('unwatch()');
+    this.clog('debug', 'unwatch()');
     switch (this.getJobType()) {
       case JobType.IntervalResolver:
-        this.clog('Deprecated job type: IntervalResolver');
+        this.clog('error', 'Deprecated job type: IntervalResolver');
         break;
       case JobType.Resolver:
         this._unwatchResolverJob();
@@ -308,26 +308,26 @@ export abstract class AbstractJob {
   public watch() {
     this.unwatch();
 
-    this.clog('watch()');
+    this.clog('debug', 'watch()');
 
     if (!this.config) {
       throw this.err('Job.watch(): Cant read the jobs config');
     }
     if (this.initializing) {
-      this.clog('Ignoring watch(): Job still initializing...');
+      this.clog('debug', 'Ignoring watch(): Job still initializing...');
       return;
     }
 
     if (!this.agent.getIsAgentUp()) {
-      this.clog(`Agent with keeperId ${this.agent.getKeeperId()} is currently disabled. Can't watch job`);
+      this.clog('info', `Agent with keeperId ${this.agent.getKeeperId()} is currently disabled. Can't watch job`);
       return;
     }
     if (this.agent.isJobBlacklisted(this.key)) {
-      this.clog('Ignoring a blacklisted job');
+      this.clog('debug', 'Ignoring a blacklisted job');
       return;
     }
     if (!this.config.isActive) {
-      this.clog('Ignoring a disabled job');
+      this.clog('debug', 'Ignoring a disabled job');
       return;
     }
 
@@ -337,7 +337,7 @@ export abstract class AbstractJob {
 
     switch (this.getJobType()) {
       case JobType.IntervalResolver:
-        this.clog('Deprecated job type: IntervalResolver');
+        this.clog('error', 'Deprecated job type: IntervalResolver');
         break;
       case JobType.Resolver:
         this._watchResolverJob();
@@ -382,7 +382,7 @@ export abstract class AbstractJob {
     // TODO: maxBaseFee supported by lightjob, not by randao
     const jobConfigMaxFee = BigInt(this.details.maxBaseFeeGwei) * BigInt(1e9);
 
-    console.log({ baseFee, max: jobConfigMaxFee });
+    // console.log({ baseFee, max: jobConfigMaxFee });
 
     if (jobConfigMaxFee < baseFee) {
       return 0n;

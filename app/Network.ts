@@ -9,10 +9,10 @@ import {
 import { ethers } from 'ethers';
 import { getAverageBlockTime, getExternalLensAddress, getMulticall2Address } from './ConfigGetters.js';
 import { getExternalLensAbi, getMulticall2Abi } from './services/AbiService.js';
-import { nowTimeString } from './Utils.js';
 import { EthersContractWrapperFactory } from './clients/EthersContractWrapperFactory.js';
 import EventEmitter from 'events';
 import { App } from './App';
+import logger from './services/Logger.js';
 
 interface ResolverJobWithCallback {
   resolver: Resolver;
@@ -55,8 +55,8 @@ export class Network {
     return `(name: ${this.name}, rpc: ${this.rpc})`;
   }
 
-  private clog(...args: any[]) {
-    console.log(`>>> ${nowTimeString()} >>> Network${this.toString()}:`, ...args);
+  private clog(level: string, ...args: any[]) {
+    logger.log(level, `Network${this.toString()}: ${args.join(' ')}`);
   }
 
   private err(...args: any[]): Error {
@@ -223,7 +223,7 @@ export class Network {
     this.initialized = true;
 
     if (this.agents.length === 0) {
-      this.clog(`Ignoring '${this.getName()}' network setup as it has no agents configured.`);
+      this.clog('warning', `Ignoring '${this.getName()}' network setup as it has no agents configured.`);
       return;
     }
 
@@ -235,16 +235,16 @@ export class Network {
       this.latestBaseFee = BigInt(latestBlock.baseFeePerGas.toString());
       this.latestBlockNumber = BigInt(latestBlock.number.toString());
       this.latestBlockTimestamp = BigInt(latestBlock.timestamp.toString());
-      this.clog(
-        `The network '${this.getName()}' has been initialized. The last block number: ${this.latestBlockNumber}`,
-      );
     } catch (e) {
       throw this.err(`Can't init '${this.getName()}' using '${this.rpc}': ${e}`);
     }
 
     this.chainId = await this.queryNetworkId();
 
-    this.clog('✅ Network initialization done!');
+    this.clog(
+      'info',
+      `The network '${this.getName()}' has been initialized. The last block number: ${this.latestBlockNumber}`,
+    );
   }
 
   public stop() {
@@ -276,6 +276,7 @@ export class Network {
       this.walkThroughTheJobs(blockNumber, block.timestamp);
     }
     this.clog(
+      'info',
       `🧱 New block: (number=${blockNumber},timestamp=${block.timestamp},hash=${block.hash},txCount=${block.transactions.length},baseFee=${block.baseFeePerGas},fetchDelayMs=${fetchBlockDelay})`,
     );
   }
@@ -300,7 +301,7 @@ export class Network {
       }
     }
 
-    this.clog(`Block ${blockNumber} interval callbacks triggered: ${callbacksCalled}`);
+    this.clog('debug', `Block ${blockNumber} interval callbacks triggered: ${callbacksCalled}`);
   }
 
   private async callResolversAndTriggerCallbacks(blockNumber: number) {
@@ -336,6 +337,7 @@ export class Network {
     }
 
     this.clog(
+      'debug',
       `Block ${blockNumber} resolver estimation results: (resolversToCall=${resolversToCall.length},jobsToExecute=${jobsToExecute})`,
     );
   }
@@ -362,6 +364,7 @@ export class Network {
     this._validateKeyLength(key, 'interval');
     this._validateKeyNotInMap(key, this.timeoutData, 'interval');
     this.clog(
+      'debug',
       'SET Timeout',
       key,
       `at: ${triggerCallbackAfter}`,
@@ -374,7 +377,7 @@ export class Network {
   }
 
   public unregisterTimeout(key: string) {
-    this.clog('UNSET Timeout', key);
+    this.clog('debug', 'UNSET Timeout', key);
     this._validateKeyLength(key, 'interval');
     delete this.timeoutData[key];
   }

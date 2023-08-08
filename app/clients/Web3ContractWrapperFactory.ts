@@ -1,9 +1,9 @@
 import { ContractWrapper, ContractWrapperFactory } from '../Types.js';
 import { Web3Contract } from './Web3Contract.js';
-import { nowTimeString } from '../Utils.js';
 import { Fragment } from '@ethersproject/abi/src.ts/fragments';
 import Web3 from 'web3';
 import { WebsocketProvider } from 'web3-core';
+import logger from '../services/Logger.js';
 
 export class Web3ContractWrapperFactory implements ContractWrapperFactory {
   private readonly primaryEndpoint: string;
@@ -24,8 +24,8 @@ export class Web3ContractWrapperFactory implements ContractWrapperFactory {
     return `EthersClient: (rpc=${this.primaryEndpoint})`;
   }
 
-  private clog(...args) {
-    console.log(`>>> ${nowTimeString()} >>> Network${this.toString()}:`, ...args);
+  private clog(level, ...args) {
+    logger.log(level, `Web3ContractFactory${this.toString()}: ${args.join(' ')}`);
   }
 
   private err(...args): Error {

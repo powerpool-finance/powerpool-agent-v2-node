@@ -1,8 +1,8 @@
-import { nowTimeString } from '../Utils.js';
 import { ContractWrapper, ErrorWrapper } from '../Types.js';
 import { Contract } from 'web3-eth-contract';
 import Web3 from 'web3';
 import { WebsocketProvider } from 'web3-core';
+import logger from '../services/Logger.js';
 
 export class Web3Contract implements ContractWrapper {
   private primaryEndpoint: string;
@@ -25,8 +25,8 @@ export class Web3Contract implements ContractWrapper {
     return `EthersContract: (rpc=${this.primaryEndpoint})`;
   }
 
-  private clog(...args) {
-    console.log(`>>> ${nowTimeString()} >>> Network${this.toString()}:`, ...args);
+  private clog(level: string, ...args: any[]) {
+    logger.log(level, `Web3Contract${this.toString()}: ${args.join(' ')}`);
   }
 
   private err(...args): Error {
@@ -55,6 +55,7 @@ export class Web3Contract implements ContractWrapper {
         return this.contract[method](...args, overrides);
       } catch (e) {
         this.clog(
+          'error',
           `Error querying method '${method}' with arguments ${JSON.stringify(args)} and overrides ${overrides}: ${e}`,
         );
       }
@@ -82,7 +83,7 @@ export class Web3Contract implements ContractWrapper {
 
   on(eventName: string /*eventEmittedCallback: WrapperListener*/): ContractWrapper {
     this.contract.events[eventName]({}).on('data', () => {
-      console.log('got event', eventName);
+      // console.log('got event', eventName);
     });
     return this;
   }

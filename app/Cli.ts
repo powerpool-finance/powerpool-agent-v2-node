@@ -4,6 +4,7 @@ import fs from 'fs';
 import path, { dirname } from 'path';
 import { AgentConfig, Config, NetworkConfig } from './Types.js';
 import { fileURLToPath } from 'url';
+import logger from './services/Logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -11,16 +12,16 @@ const __dirname = dirname(__filename);
 let app: App;
 
 (async function () {
-  console.log(`PowerPool Agent Node version: ${process.env.npm_package_version}`);
+  logger.info(`PowerPool Agent Node version: ${process.env.npm_package_version}`);
 
   let config: Config;
 
   if (!process.env.NETWORK_NAME) {
     const configName = process.argv[2] ? process.argv[2].trim() : 'main';
-    console.log(`Reading configuration from ./config/${configName}.yaml ...`);
+    logger.info(`CLI: Reading configuration from ./config/${configName}.yaml ...`);
     config = YAML.parse(fs.readFileSync(path.resolve(__dirname, `../config/${configName}.yaml`)).toString()) as Config;
   } else {
-    console.log('NETWORK_NAME is found. Assuming configuration is done with ENV vars...');
+    logger.info('CLI: NETWORK_NAME is found. Assuming configuration is done with ENV vars...');
     const networkName = process.env.NETWORK_NAME;
     const networkRpc = process.env.NETWORK_RPC;
     const agentAddress = process.env.AGENT_ADDRESS;
@@ -82,25 +83,25 @@ let app: App;
   app = new App(config);
   await app.start();
 })().catch(error => {
-  console.error(error);
-  console.log('Cli.ts: Unexpected error. Stopping the app with a code (1).');
+  logger.error(error);
+  logger.info('CLI: Unexpected error. Stopping the app with a code (1).');
   process.exit(1);
 });
 
 process.on('unhandledRejection', function (error: Error, _promise) {
   const msg = `Unhandled Rejection, reason: ${error}`;
-  console.log(error.stack);
+  logger.error(error.stack);
 
   if (app && app.unhandledExceptionsStrictMode) {
-    console.log('Cli.ts: Stopping the app with a code (1) since the "unhandledExceptionsStrictMode" is ON.');
+    logger.info('CLI: Stopping the app with a code (1) since the "unhandledExceptionsStrictMode" is ON.');
     process.exit(1);
   }
 
-  console.log(msg);
+  logger.error(msg);
 });
 
 process.on('SIGINT', async function () {
-  console.log('Cli.ts: Caught interrupt signal');
+  console.log('CLI: Caught interrupt signal');
   await app?.stop();
 
   process.exit(1);

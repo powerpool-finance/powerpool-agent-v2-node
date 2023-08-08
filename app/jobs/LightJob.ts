@@ -1,9 +1,9 @@
 import { AbstractJob } from './AbstractJob.js';
-import { nowTimeString } from '../Utils.js';
+import logger from '../services/Logger.js';
 
 export class LightJob extends AbstractJob {
-  protected clog(...args) {
-    console.log(`>>> ${nowTimeString()} >>> LightJob${this.toString()}:`, ...args);
+  protected clog(level: string, ...args) {
+    logger.log(level, `LightJob${this.toString()}: ${args.join(' ')}`);
   }
   protected err(...args): Error {
     return new Error(`LightJobError${this.toString()}: ${args.join(' ')}`);
@@ -11,7 +11,7 @@ export class LightJob extends AbstractJob {
 
   protected _beforeJobWatch(): boolean {
     if (this.getCreditsAvailable() === 0n) {
-      this.clog('Ignoring a job with 0 credits');
+      this.clog('debug', 'Ignoring a job with 0 credits');
       return false;
     }
     return true;
