@@ -4,11 +4,12 @@ import {
   EmptyTxNotMinedInBlockCallback,
   ExecutorCallbacks,
   IRandaoAgent,
-  LensGetJobBytes32AndNextBlockSlasherIdResponse,
+  LensGetJobBytes32AndNextBlockSlasherIdResponse, TxGasUpdate,
 } from '../Types.js';
 import { RandaoJob } from '../jobs/RandaoJob.js';
 import { BI_10E15 } from '../Constants.js';
 import { AbstractJob } from '../jobs/AbstractJob.js';
+import {ethers} from "ethers";
 
 export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
   private slashingEpochBlocks: number;
@@ -132,11 +133,16 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       this.clog('Error: Self-Unassign releaseJob() execution failed');
       this.exitIfStrictTopic('executions');
     };
+    const txNotMinedInBlock = async (tx: ethers.UnsignedTransaction): Promise<TxGasUpdate> => {
+      //TODO: check resends count and max feePerGas
+      this.clog('Warning: txNotMinedInBlock');
+      this.exitIfStrictTopic('executions');
+    };
     const envelope = {
       executorCallbacks: {
         txEstimationFailed,
         txExecutionFailed,
-        txNotMinedInBlock: EmptyTxNotMinedInBlockCallback,
+        txNotMinedInBlock,
       },
       jobKey,
       tx,

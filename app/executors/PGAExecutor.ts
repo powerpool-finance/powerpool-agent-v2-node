@@ -61,7 +61,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       }
       return;
     } finally {
-      tx.nonce = await this.genericProvider.getTransactionCount(this.workerSigner.address);
+      tx.nonce = tx.nonce || await this.genericProvider.getTransactionCount(this.workerSigner.address);
     }
     if (!gasLimitEstimation) {
       throw this.err(`gasLimitEstimation is not set: ${gasLimitEstimation}`);
@@ -86,5 +86,14 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       envelope.executorCallbacks.txExecutionFailed(e, tx.data as string);
     }
     // TODO: setTimeout with .call(tx), send cancel tx (eth transfer) with a higher gas price
+
+    setTimeout(async () => {
+      // const signedTx = await this.workerSigner.signTransaction(tx);
+      const {maxPriorityFeePerGas, maxFeePerGas} = await envelope.executorCallbacks.txNotMinedInBlock(tx);
+      if (!maxFeePerGas || !maxPriorityFeePerGas) {
+        return;
+      }
+
+    }, 1000 * 60);
   }
 }

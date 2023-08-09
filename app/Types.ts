@@ -261,7 +261,7 @@ export interface ParsedRawJob {
 }
 
 export interface TxGasUpdate {
-  action: 'update' | 'replace';
+  action: 'ignore' | 'replace';
   newMax: number;
   newPriority: number;
 }
@@ -275,7 +275,7 @@ export interface TxEnvelope {
 export interface ExecutorCallbacks {
   txEstimationFailed: (error, Error) => void;
   txExecutionFailed: (error, Error) => void;
-  txNotMinedInBlock: TxNotMinedInBlockCallback;
+  txNotMinedInBlock: (tx: ethers.UnsignedTransaction) => Promise<TxGasUpdate>;
 }
 
 export type TxNotMinedInBlockCallback = (
