@@ -1,16 +1,16 @@
 import { ContractWrapper, Executor, TxEnvelope } from '../Types.js';
 import { ethers, utils } from 'ethers';
-import { nowTimeString } from '../Utils.js';
 import { AbstractExecutor } from './AbstractExecutor.js';
 import { printSolidityCustomError } from './ExecutorUtils.js';
+import logger from '../services/Logger.js';
 
 export class PGAExecutor extends AbstractExecutor implements Executor {
   private toString(): string {
     return `(network: ${this.networkName})`;
   }
 
-  protected clog(...args: any[]) {
-    console.log(`>>> ${nowTimeString()} >>> PGAExecutor${this.toString()}:`, ...args);
+  protected clog(level: string, ...args: any[]) {
+    logger.log(level, `PGAExecutor${this.toString()}: ${args.join(' ')}`);
   }
 
   protected err(...args: any[]): Error {
@@ -43,8 +43,14 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
     try {
       gasLimitEstimation = await this.genericProvider.estimateGas(tx);
     } catch (e) {
-      const txSimulation = await this.genericProvider.call(tx);
-      printSolidityCustomError(this.clog, this.agentContract.decodeError, txSimulation, tx.data as string);
+      let txSimulation;
+      try {
+        txSimulation = await this.genericProvider.call(tx);
+      } catch (e) {
+        envelope.executorCallbacks.txEstimationFailed(e, tx.data as string);
+        return;
+      }
+      printSolidityCustomError(this.clog.bind(this), this.agentContract.decodeError, txSimulation, tx.data as string);
 
       // This callback could trigger an error which will be caught by unhandledExceptionHandler
       envelope.executorCallbacks.txEstimationFailed(e, tx.data as string);
@@ -68,17 +74,18 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
     }
     tx.gasLimit = gasLimitEstimation.mul(40).div(10);
 
-    this.clog(`📝 Signing tx with calldata=${tx.data} ...`);
+    this.clog('debug', `📝 Signing tx with calldata=${tx.data} ...`);
     const signedTx = await this.workerSigner.signTransaction(tx);
 
     const txHash = utils.parseTransaction(signedTx).hash;
 
-    this.clog(`Tx ${txHash}: 📮 Sending to the mempool...`);
+    this.clog('debug', `Tx ${txHash}: 📮 Sending to the mempool...`);
     try {
       const sendRes = await this.genericProvider.sendTransaction(signedTx);
-      this.clog(`Tx ${txHash}: 🚬 Waiting for the tx to be mined...`);
+      this.clog('debug', `Tx ${txHash}: 🚬 Waiting for the tx to be mined...`);
       const res = await sendRes.wait(1);
       this.clog(
+        'debug',
         `Tx ${txHash}: ⛓ Successfully mined in block #${res.blockNumber} with nonce ${tx.nonce}. The queue length is: ${this.queue.length}.`,
       );
     } catch (e) {

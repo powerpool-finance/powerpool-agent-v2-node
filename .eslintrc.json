@@ -8,7 +8,7 @@
   "env": {
     "node": true,
     "mocha": true,
-    "es2020": true
+    "es2021": true
   },
   "globals": {
     "web3": true,

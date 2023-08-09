@@ -235,9 +235,8 @@ export interface EventWrapper {
 export type WrapperListener = (event: EventWrapper) => void;
 
 export enum JobType {
-  SelectorOrPDCalldata,
+  Interval,
   Resolver,
-  IntervalResolver,
 }
 
 export interface ParsedJobConfig {

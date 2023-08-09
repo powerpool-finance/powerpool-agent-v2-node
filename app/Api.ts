@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import { BigNumber } from 'ethers';
 import { App } from './App.js';
 import { toChecksummedAddress } from './Utils.js';
+import logger from './services/Logger.js';
 
 export function initApi(app: App, port: number): () => void {
   const fastify = Fastify({
@@ -64,7 +65,7 @@ export function initApi(app: App, port: number): () => void {
   });
 
   fastify.listen({ port: parseInt(process.env.API_PORT) || port }, (err, address) => {
-    console.log(`API Server listening on ${address}`);
+    logger.info(`API Server: Listening on ${address}`);
     if (err) throw err;
     // Server is now listening on ${address}
   });

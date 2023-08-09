@@ -16,36 +16,6 @@ import { encodeExecute, parseConfig, parseRawJob, toNumber, weiValueToEth, weiVa
 import { Network } from '../Network.js';
 import { BN_ZERO } from '../Constants.js';
 
-/**
- * Starts watching on:
- * - job init
- * - a new job registered (RegisterJob event)
- * - credits balance increased after being insufficient (raw update)
- *      (DepositJobCredits,DepositJobOwnerCredits events)
- * - job was transferred to a new owner with sufficient credit balance after being inactive (AcceptJobTransfer event)
- * - job activated (raw update) (SetJobConfig event)
- * - job triggered credits source and there is enough funds now (SetJobConfig event)
- * ***
- * * interval task starts a single timer with +1s timeout
- * * resolver tasks registers its callback on the network-level checker
- *
- * ==================
- * Stops watching on:
- * - job credits got lower a limit (raw update or owner's balance change)
- *      (Execute,WithdrawJobCredits,WithdrawJobOwnerCredits,WithdrawJobOwnerCredits events)
- * - job owner credits got lower than a limit
- * - job was disabled in config (raw update) (SetJobConfig event)
- * - job triggered credits source and there is no enough funds (SetJobConfig event)
- * ***
- * * interval task stops a timer
- * * resolver tasks deregisters its callback
- *
- * ==================
- * Restarts watching:
- * - interval changed (raw update) (JobUpdate event)
- * - pre-defined calldata changed (SetJobPreDefinedCalldata event)
- * - resolver calldata changed (SetJobResolver event)
- */
 export abstract class AbstractJob {
   protected address: string;
   protected id: number;
@@ -125,6 +95,7 @@ export abstract class AbstractJob {
     // NOTICE: this.details object remains uninitialized
   }
 
+  // TODO: move to light job
   private getFixedReward(): bigint {
     return BigInt(this.details.fixedReward) * 1000000000000000n;
   }
@@ -145,7 +116,7 @@ export abstract class AbstractJob {
     this.assertEvent(event, 'JobUpdate');
 
     const args: UpdateJobEventArgs = event.args as never;
-    this.clog('JobUpdateEvent: params, args (TODO: ensure types match):', this.details, args);
+    this.clog('debug', 'JobUpdateEvent: params, args (TODO: ensure types match):', this.details, args);
 
     let requiresRestart = false;
 
@@ -267,12 +238,6 @@ export abstract class AbstractJob {
     this.failedExecuteEstimationsInARow = 0;
   }
 
-  private assertType(title: string, type: string, value: any) {
-    if (typeof value !== type) {
-      throw this.err(`${title} not ${type}: (actualType=${typeof value},value=${value})`);
-    }
-  }
-
   public applyUpdate(
     maxBaseFeeGwei: number,
     rewardPct: number,
@@ -289,15 +254,12 @@ export abstract class AbstractJob {
   }
 
   public unwatch() {
-    this.clog('unwatch()');
+    this.clog('debug', 'unwatch()');
     switch (this.getJobType()) {
-      case JobType.IntervalResolver:
-        this.clog('Deprecated job type: IntervalResolver');
-        break;
       case JobType.Resolver:
         this._unwatchResolverJob();
         break;
-      case JobType.SelectorOrPDCalldata:
+      case JobType.Interval:
         this._unwatchIntervalJob();
         break;
       default:
@@ -308,26 +270,26 @@ export abstract class AbstractJob {
   public watch() {
     this.unwatch();
 
-    this.clog('watch()');
+    this.clog('debug', 'watch()');
 
     if (!this.config) {
       throw this.err('Job.watch(): Cant read the jobs config');
     }
     if (this.initializing) {
-      this.clog('Ignoring watch(): Job still initializing...');
+      this.clog('debug', 'Ignoring watch(): Job still initializing...');
       return;
     }
 
     if (!this.agent.getIsAgentUp()) {
-      this.clog(`Agent with keeperId ${this.agent.getKeeperId()} is currently disabled. Can't watch job`);
+      this.clog('info', `Agent with keeperId ${this.agent.getKeeperId()} is currently disabled. Can't watch job`);
       return;
     }
     if (this.agent.isJobBlacklisted(this.key)) {
-      this.clog('Ignoring a blacklisted job');
+      this.clog('debug', 'Ignoring a blacklisted job');
       return;
     }
     if (!this.config.isActive) {
-      this.clog('Ignoring a disabled job');
+      this.clog('debug', 'Ignoring a disabled job');
       return;
     }
 
@@ -336,13 +298,10 @@ export abstract class AbstractJob {
     }
 
     switch (this.getJobType()) {
-      case JobType.IntervalResolver:
-        this.clog('Deprecated job type: IntervalResolver');
-        break;
       case JobType.Resolver:
         this._watchResolverJob();
         break;
-      case JobType.SelectorOrPDCalldata:
+      case JobType.Interval:
         this._watchIntervalJob();
         break;
       default:
@@ -378,23 +337,23 @@ export abstract class AbstractJob {
   }
 
   private calculateMaxFeePerGas(): bigint {
-    const baseFee = this.agent.getNetwork().getBaseFee();
+    return this.agent.getNetwork().getBaseFee() * 3n;
     // TODO: maxBaseFee supported by lightjob, not by randao
-    const jobConfigMaxFee = BigInt(this.details.maxBaseFeeGwei) * BigInt(1e9);
+    // const jobConfigMaxFee = BigInt(this.details.maxBaseFeeGwei) * BigInt(1e9);
 
-    console.log({ baseFee, max: jobConfigMaxFee });
+    // console.log({ baseFee, max: jobConfigMaxFee });
 
-    if (jobConfigMaxFee < baseFee) {
-      return 0n;
-    }
+    // if (jobConfigMaxFee < baseFee) {
+    //   return 0n;
+    // }
 
     // TODO: set back to 2n when txNotMined callback is implemented
-    const currentDouble = baseFee * 3n;
-    if (currentDouble > jobConfigMaxFee) {
-      return jobConfigMaxFee;
-    } else {
-      return currentDouble;
-    }
+    // const currentDouble = baseFee * 3n;
+    // if (currentDouble > jobConfigMaxFee) {
+    //   return jobConfigMaxFee;
+    // } else {
+    //   return currentDouble;
+    // }
   }
 
   // 1 is 1 wei
@@ -440,28 +399,24 @@ export abstract class AbstractJob {
   }
 
   public getJobType(): JobType {
-    if (this.details.intervalSeconds > 0 && this.details.calldataSource === CALLDATA_SOURCE.RESOLVER) {
-      return JobType.IntervalResolver;
-    } else if (this.details.calldataSource === CALLDATA_SOURCE.RESOLVER) {
+    if (this.details.calldataSource === CALLDATA_SOURCE.RESOLVER) {
       return JobType.Resolver;
     } else if (
       this.details.calldataSource === CALLDATA_SOURCE.PRE_DEFINED_CALLDATA ||
       this.details.calldataSource === CALLDATA_SOURCE.SELECTOR
     ) {
-      return JobType.SelectorOrPDCalldata;
+      return JobType.Interval;
     } else {
       throw this.err('Invalid job type');
     }
   }
 
-  private getJobTypeString(): string {
+  public getJobTypeString(): string {
     switch (this.getJobType()) {
-      case JobType.IntervalResolver:
-        return 'IntervalResolver';
       case JobType.Resolver:
         return 'Resolver';
-      case JobType.SelectorOrPDCalldata:
-        return 'SelectorOrPDCalldata';
+      case JobType.Interval:
+        return 'Interval';
       default:
         throw this.err(`Invalid job type: ${this.getJobType()}`);
     }
@@ -498,14 +453,16 @@ export abstract class AbstractJob {
       id: this.id,
       owner: this.owner,
       active: this.isActive(),
+      initializing: this.initializing,
 
-      type: this.isIntervalJob() ? 'Interval' : 'Resolver',
+      type: this.getJobType(),
       calldataSource: this.getJobCalldataSourceString(),
       creditsAvailableWei: this.getCreditsAvailable(),
       creditsAvailableEth: weiValueToEth(this.getCreditsAvailable()),
       maxFeePerGasWei: this.calculateMaxFeePerGas(),
       maxFeePerGasGwei: weiValueToGwei(this.calculateMaxFeePerGas()),
       jobLevelMinKeeperCvp: this.jobLevelMinKeeperCvp,
+      preDefinedCalldata: this.preDefinedCalldata,
 
       config: this.config,
       details: this.details,

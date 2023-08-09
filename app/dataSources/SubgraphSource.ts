@@ -6,7 +6,8 @@ import { LightJob } from '../jobs/LightJob';
 import { Network } from '../Network';
 import { IAgent } from '../Types';
 import { BigNumber, utils } from 'ethers';
-import { nowTimeString, toChecksummedAddress } from '../Utils.js';
+import { toChecksummedAddress } from '../Utils.js';
+import logger from '../services/Logger.js';
 
 export const QUERY_ALL_JOBS = `{
   jobs(first: 1000) {
@@ -16,24 +17,16 @@ export const QUERY_ALL_JOBS = `{
     jobId
     assertResolverSelector
     credits
-    depositCount
     calldataSource
     fixedReward
-    executionCount
     jobSelector
     lastExecutionAt
-    maxBaseFeeGwei
     minKeeperCVP
     preDefinedCalldata
     intervalSeconds
     resolverAddress
     resolverCalldata
-    rewardPct
-    totalCompensations
-    totalExpenses
-    totalProfit
     useJobOwnerCredits
-    withdrawalCount
     owner {
       id
     }
@@ -73,8 +66,8 @@ export class SubgraphSource extends AbstractSource {
     return `(url: ${this.subgraphUrl})`;
   }
 
-  private clog(...args: unknown[]) {
-    console.log(`>>> ${nowTimeString()} >>> SubgraphDataSource${this.toString()}:`, ...args);
+  private clog(level: string, ...args: unknown[]) {
+    logger.log(level, `SubgraphDataSource${this.toString()}: ${args.join(' ')}`);
   }
 
   private err(...args: unknown[]): Error {
@@ -120,11 +113,12 @@ export class SubgraphSource extends AbstractSource {
       const diff = latestBock - BigInt(_meta.block.number);
       const isSynced = diff <= 10; // Our graph is desynced if its behind for more than 10 blocks
       if (!isSynced) {
-        this.clog(`Error: Subgraph is ${diff} blocks behind.`);
+        this.clog('error', `Subgraph is ${diff} blocks behind.`);
       }
       return isSynced;
     } catch (e) {
-      throw this.err('Graph is not responding. ', e);
+      this.clog('error', 'Graph meta query error:', e);
+      return false;
     }
   }
 
@@ -140,7 +134,7 @@ export class SubgraphSource extends AbstractSource {
     let newJobs = new Map<string, RandaoJob | LightJob>();
     const graphIsFine = await this.isGraphOk();
     if (!graphIsFine) {
-      this.clog('Subgraph is not ok, falling back to the blockchain datasource.');
+      this.clog('warn', 'Subgraph is not ok, falling back to the blockchain datasource.');
       newJobs = await this.blockchainSource.getRegisteredJobs(context);
       return newJobs;
     }
@@ -233,7 +227,7 @@ export class SubgraphSource extends AbstractSource {
     try {
       const graphIsFine = await this.isGraphOk();
       if (!graphIsFine) {
-        this.clog('Subgraph is not ok, falling back to the blockchain datasource.');
+        this.clog('warn', 'Subgraph is not ok, falling back to the blockchain datasource.');
         result = await this.blockchainSource.getOwnersBalances(context, jobOwnersSet);
         return result;
       }

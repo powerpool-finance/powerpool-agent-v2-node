@@ -87,8 +87,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
 
   public getPeriod1Duration(): number {
     if (typeof this.period1 !== 'number') {
-      console.log({ period1: this.period1 });
-      throw this.err('period1 is not a number');
+      throw this.err(`period1 is not a number: '${this.period1}'`);
     }
 
     return this.period1;
@@ -111,7 +110,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
   }
 
   async selfUnassignFromJob(jobKey: string) {
-    this.clog('Executing Self-Unassign');
+    this.clog('info', 'Executing Self-Unassign');
     const calldata = this.encodeABI('releaseJob', [jobKey]);
     const tx = {
       to: this.getAddress(),
@@ -125,12 +124,12 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       maxFeePerGas: (this.network.getBaseFee() * 2n).toString(),
     };
     await this.populateTxExtraFields(tx);
-    const txEstimationFailed = (): void => {
-      this.clog('Error: Self-Unassign releaseJob() estimation failed');
+    const txEstimationFailed = (error): void => {
+      this.clog('error', 'Error: Self-Unassign releaseJob() estimation failed', error);
       this.exitIfStrictTopic('estimations');
     };
-    const txExecutionFailed = (): void => {
-      this.clog('Error: Self-Unassign releaseJob() execution failed');
+    const txExecutionFailed = (error): void => {
+      this.clog('error', 'Error: Self-Unassign releaseJob() execution failed', error);
       this.exitIfStrictTopic('executions');
     };
     const txNotMinedInBlock = async (tx: ethers.UnsignedTransaction): Promise<TxGasUpdate> => {
@@ -202,6 +201,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       const { assignedKeeperId, actualKeeperId, compensation, executionReturndata, jobKey } = event.args;
 
       this.clog(
+        'debug',
         `'ExecutionReverted' event 🔈: (block=${event.blockNumber},jobKey=${jobKey},assignedKeeperId=${assignedKeeperId},actualKeeperId=${actualKeeperId},compensation=${compensation},executionReturndata=${executionReturndata})`,
       );
 
@@ -212,6 +212,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
         const ownerCreditsBefore = this.ownerBalances.get(job.getOwner());
         const ownerCreditsAfter = ownerCreditsBefore.sub(compensation);
         this.clog(
+          'debug',
           `Owner balance credited: (jobOwner=${job.getOwner()},amount=${compensation.toString()},before=${ownerCreditsBefore},after=${ownerCreditsAfter}`,
         );
         this.ownerBalances.set(job.getOwner(), ownerCreditsAfter);
@@ -226,6 +227,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       const { keeperFrom, keeperTo, jobKey } = event.args;
 
       this.clog(
+        'debug',
         `'JobKeeperChanged' event 🔈: (block=${event.blockNumber},jobKey=${jobKey},keeperFrom=${keeperFrom},keeperTo=${keeperTo})`,
       );
 
@@ -233,7 +235,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       const shouldUpdateBinJob = job.applyKeeperAssigned(parseInt(keeperTo));
       if (shouldUpdateBinJob) {
         const binJob = await this.network.queryLensJobsRawBytes32(this.address, jobKey);
-        this.clog('Updating binJob to', binJob);
+        this.clog('debug', 'Updating binJob to', binJob);
         job.applyBinJobData(binJob);
       }
       job.finalizeInitialization();
@@ -244,7 +246,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       const { slashingEpochBlocks, period1, period2, slashingFeeFixedCVP, slashingFeeBps, jobMinCreditsFinney } =
         event.args[0];
 
-      this.clog(`'SetRdConfig' event 🔈: (block=${event.blockNumber}. Restarting all the jobs...`);
+      this.clog('debug', `'SetRdConfig' event 🔈: (block=${event.blockNumber}. Restarting all the jobs...`);
 
       this.slashingEpochBlocks = slashingEpochBlocks;
       this.period1 = period1;
@@ -260,6 +262,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       const { jobKey, jobSlashingPossibleAfter, slasherKeeperId, useResolver } = event.args;
 
       this.clog(
+        'debug',
         `'InitiateKeeperSlashing' event 🔈: (block=${event.blockNumber},jobKey=${jobKey},jobSlashingPossibleAfter=${jobSlashingPossibleAfter},slasherKeeperId=${slasherKeeperId},useResolver=${useResolver})`,
       );
 
@@ -272,6 +275,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
         event.args;
 
       this.clog(
+        'debug',
         `'SlashKeeper' event 🔈: (block=${event.blockNumber},jobKey=${jobKey},assignedKeeperId=${assignedKeeperId},actualKeeperId=${actualKeeperId},fixedSlashAmount=${fixedSlashAmount},dynamicSlashAmount=${dynamicSlashAmount},slashAmountMissing=${slashAmountMissing})`,
       );
 
