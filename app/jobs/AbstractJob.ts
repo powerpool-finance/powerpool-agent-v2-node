@@ -1,6 +1,5 @@
 import {
   CALLDATA_SOURCE,
-  EmptyTxNotMinedInBlockCallback,
   EventWrapper,
   GetJobResponse,
   IAgent,
@@ -45,10 +44,11 @@ export abstract class AbstractJob {
   protected toString(): string {
     return `(network: ${this.networkName}, agent: ${this.agentAddress}, job: ${this.address}, id: ${this.id}, key: ${
       this.key
-    }, type: ${this.getJobTypeString()})`;
+    }, type: ${this.getJobTypeString()}, kid: ${this.agent.getKeeperId()})`;
   }
 
   protected _watchIntervalJob(): void {
+    this.clog('info', `Add watcher for interval job ${this.key}`);
     this.agent.registerIntervalJobExecution(
       this.key,
       this.nextExecutionTimestamp(),
@@ -57,6 +57,7 @@ export abstract class AbstractJob {
   }
 
   protected _watchResolverJob(): void {
+    this.clog('info', `Add watcher for resolver job ${this.key}`);
     this.agent.registerResolver(this.key, this.resolver, this.resolverSuccessCallback.bind(this));
   }
 
@@ -281,7 +282,7 @@ export abstract class AbstractJob {
     }
 
     if (!this.agent.getIsAgentUp()) {
-      this.clog('info', `Agent with keeperId ${this.agent.getKeeperId()} is currently disabled. Can't watch job`);
+      this.clog('info', "Agent is currently disabled. Can't watch job");
       return;
     }
     if (this.agent.isJobBlacklisted(this.key)) {
@@ -370,7 +371,7 @@ export abstract class AbstractJob {
       executorCallbacks: {
         txEstimationFailed: this._executeTxEstimationFailed.bind(this),
         txExecutionFailed: this._executeTxExecutionFailed.bind(this),
-        txNotMinedInBlock: EmptyTxNotMinedInBlockCallback,
+        txNotMinedInBlock: this.agent.txNotMinedInBlock.bind(this.agent),
       },
       jobKey,
       tx,

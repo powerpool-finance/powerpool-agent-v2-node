@@ -1,5 +1,5 @@
 import { AbstractJob } from './AbstractJob.js';
-import { EmptyTxNotMinedInBlockCallback, EventWrapper, GetJobResponse, IAgent, IRandaoAgent } from '../Types.js';
+import { EventWrapper, GetJobResponse, IAgent, IRandaoAgent } from '../Types.js';
 import logger from '../services/Logger.js';
 
 export class RandaoJob extends AbstractJob {
@@ -207,7 +207,7 @@ export class RandaoJob extends AbstractJob {
     return (this.agent as IRandaoAgent).initiateKeeperSlashing(this.address, this.id, this.key, resolverCalldata, {
       txEstimationFailed,
       txExecutionFailed,
-      txNotMinedInBlock: EmptyTxNotMinedInBlockCallback,
+      txNotMinedInBlock: this.agent.txNotMinedInBlock.bind(this.agent),
     });
   }
 

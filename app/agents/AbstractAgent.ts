@@ -10,6 +10,7 @@ import {
   IDataSource,
   Resolver,
   TxEnvelope,
+  TxGasUpdate,
 } from '../Types.js';
 import { BigNumber, ethers, Wallet } from 'ethers';
 import { getEncryptedJson } from '../services/KeyService.js';
@@ -466,6 +467,17 @@ export abstract class AbstractAgent implements IAgent {
     if (!this.ownerBalances.has(owner)) {
       this.ownerBalances.set(owner, BN_ZERO);
     }
+  }
+
+  async txNotMinedInBlock(tx: ethers.UnsignedTransaction): Promise<TxGasUpdate> {
+    //TODO: check resends count and max feePerGas
+    this.clog('Warning: txNotMinedInBlock', tx);
+    this.exitIfStrictTopic('executions');
+    return {
+      action: 'ignore',
+      newMax: 0,
+      newPriority: 0,
+    };
   }
 
   protected startAllJobs() {

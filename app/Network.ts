@@ -275,7 +275,7 @@ export class Network {
       this.newBlockNotifications.set(blockNumber, new Set([block.hash]));
       this.walkThroughTheJobs(blockNumber, block.timestamp);
     }
-    if (!process.env.TEST) {
+    if (process.env.NODE_ENV !== 'test') {
       this.clog(
         'info',
         `🧱 New block: (number=${blockNumber},timestamp=${block.timestamp},hash=${block.hash},txCount=${block.transactions.length},baseFee=${block.baseFeePerGas},fetchDelayMs=${fetchBlockDelay})`,
