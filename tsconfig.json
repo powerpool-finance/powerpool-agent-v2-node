@@ -11,6 +11,9 @@
     "preserveConstEnums": true,
     "resolveJsonModule": true
   },
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
   "ts-node": {
     "esm": true
   },

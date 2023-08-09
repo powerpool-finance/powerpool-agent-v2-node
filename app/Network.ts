@@ -198,8 +198,8 @@ export class Network {
       latestBlockTimestamp: this.getLatestBlockTimestamp(),
       getAverageBlockTime: this.averageBlockTimeSeconds,
       addresses: {
-        externalLens: this.externalLens.address,
-        multicall: this.multicall.address,
+        externalLens: this.externalLensAddress,
+        multicall: this.multicall2Address,
       },
       agents,
       timeoutCallbacks,

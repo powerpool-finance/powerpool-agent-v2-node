@@ -354,6 +354,9 @@ export abstract class AbstractAgent implements IAgent {
     return this.blacklistedJobs.has(jobKey);
   }
 
+  public getJob(jobKey: string): RandaoJob | LightJob | null {
+    return this.jobs.get(jobKey);
+  }
   public getJobsCount(): { total: number; interval: number; resolver: number } {
     const counters = {
       total: 0,
