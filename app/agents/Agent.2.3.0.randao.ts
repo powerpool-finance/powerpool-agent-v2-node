@@ -71,6 +71,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       this.address,
       jobKey,
     );
+    console.log('nextBlockSlasherId', nextBlockSlasherId);
 
     return nextBlockSlasherId === this.getKeeperId();
   }
