@@ -52,11 +52,13 @@ export abstract class AbstractExecutor {
       this.queueTxs.delete(this.currentTxKey);
 
       try {
+        this.clog('debug', `Process loop: Before handling tx (nonce=${envelope.tx.nonce}`);
         await this.process(envelope);
       } catch (e) {
         this.clog('error', 'process(txEnvelope) error:', e);
         envelope.executorCallbacks.txEstimationFailed(e, envelope.tx.data as string);
       }
+      this.clog('debug', `Process loop: After handling tx (nonce=${envelope.tx.nonce}`);
 
       this.currentTxKey = null;
       this.currentTxEnvelope = null;
