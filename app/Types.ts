@@ -277,7 +277,7 @@ export interface ExecutorCallbacks {
   txNotMinedInBlock: (tx: ethers.UnsignedTransaction) => Promise<TxGasUpdate>;
 }
 
-export function EmptyTxNotMinedInBlockCallback(tx: ethers.UnsignedTransaction): Promise<TxGasUpdate> {
+export function EmptyTxNotMinedInBlockCallback(_: ethers.UnsignedTransaction): Promise<TxGasUpdate> {
   return null;
 }
 

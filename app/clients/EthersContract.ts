@@ -2,9 +2,8 @@ import { ethers } from 'ethers';
 import { sleep } from '../Utils.js';
 import { ContractWrapper, ErrorWrapper, EventWrapper, WrapperListener } from '../Types.js';
 import { Result, Fragment, ErrorFragment, FunctionFragment, EventFragment } from 'ethers/lib/utils.js';
-import EventEmitter from 'events';
-import { QueueEmitter } from '../services/QueueEmitter.js';
 import logger from '../services/Logger.js';
+import QueueEmitter from '../services/QueueEmitter.js';
 
 // DANGER: DOES NOT support method override
 export class EthersContract implements ContractWrapper {
@@ -25,7 +24,7 @@ export class EthersContract implements ContractWrapper {
 
   // map<selector, ErrorFragment>
   private readonly abiErrorFragments: Map<string, ErrorFragment>;
-  private readonly eventEmitter: EventEmitter;
+  private readonly eventEmitter: QueueEmitter;
 
   constructor(
     addressOrName: string,
@@ -210,12 +209,10 @@ ${e.message}: ${Error().stack}`,
     }
 
     for (const eventName of eventNameList) {
-      this.eventEmitter.on(eventName, async (...args) => {
-        const done = args.pop();
-        const event = args[args.length - 1];
-        logger.log('debug', 'Event Emitted ⚽️⚽️⚽️', event.transactionHash, event.logIndex, eventName);
+      this.eventEmitter.on(eventName, async event => {
+        logger.log('debug', `Event Emitted ⚽️⚽️⚽️${event.transactionHash} ${event.logIndex} ${eventName}`);
         const onlyFields = filterFunctionResultObject(event.args);
-        await eventEmittedCallback({
+        return eventEmittedCallback({
           name: eventName,
           args: onlyFields,
           logIndex: event.logIndex,
@@ -223,7 +220,6 @@ ${e.message}: ${Error().stack}`,
           blockHash: event.blockHash,
           nativeEvent: {},
         });
-        done();
       });
     }
     return this;
