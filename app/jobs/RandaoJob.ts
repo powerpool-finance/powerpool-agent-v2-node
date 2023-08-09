@@ -65,9 +65,9 @@ export class RandaoJob extends AbstractJob {
         reservedSlasherId: this.reservedSlasherId,
         slashingPossibleAfter: this.slashingPossibleAfter,
         failedEstimationsInARow: this.failedExecuteEstimationsInARow,
-        _failedInitiateSlashingEstimationsInARow: this.failedInitiateSlashingEstimationsInARow,
-        _selfUnassignPending: !!this._selfUnassignPending,
-        _initiateSlashingPending: !!this._initiateSlashingPending,
+        failedInitiateSlashingEstimationsInARow: this.failedInitiateSlashingEstimationsInARow,
+        selfUnassignPending: !!this._selfUnassignPending,
+        initiateSlashingPending: !!this._initiateSlashingPending,
         canInitiateSlashingIn,
 
         createdAt: this.createdAt,
@@ -137,7 +137,7 @@ export class RandaoJob extends AbstractJob {
       this.clog('debug', '_beforeJobWatch(): assignedKeeper is 0');
       return false;
     }
-    if (this.getCreditsAvailable() <= (this.agent as IRandaoAgent).getJobMinCredits()) {
+    if (this.getCreditsAvailable() < (this.agent as IRandaoAgent).getJobMinCredits()) {
       this.clog(
         'warn',
         `_beforeJobWatch(): Scheduling self-unassign due insufficient credits (required=${(

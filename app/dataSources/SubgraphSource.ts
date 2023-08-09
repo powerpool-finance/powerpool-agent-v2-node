@@ -17,24 +17,16 @@ export const QUERY_ALL_JOBS = `{
     jobId
     assertResolverSelector
     credits
-    depositCount
     calldataSource
     fixedReward
-    executionCount
     jobSelector
     lastExecutionAt
-    maxBaseFeeGwei
     minKeeperCVP
     preDefinedCalldata
     intervalSeconds
     resolverAddress
     resolverCalldata
-    rewardPct
-    totalCompensations
-    totalExpenses
-    totalProfit
     useJobOwnerCredits
-    withdrawalCount
     owner {
       id
     }

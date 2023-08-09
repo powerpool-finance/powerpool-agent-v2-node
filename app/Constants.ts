@@ -146,6 +146,7 @@ export const BI_ZERO = BigInt(0);
 export const BN_10E9 = BigNumber.from('1000000000');
 export const BI_10E9 = BigInt('1000000000');
 export const BI_10E15 = BigInt(10) ** BigInt(15);
+export const BI_10E18 = BigInt(10) ** BigInt(18);
 export const CFG_ACTIVE = BigNumber.from(0x01);
 export const CFG_USE_JOB_OWNER_CREDITS = BigNumber.from(0x02);
 export const CFG_ASSERT_RESOLVER_SELECTOR = BigNumber.from(0x04);
