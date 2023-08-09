@@ -47,14 +47,15 @@ export abstract class AbstractExecutor {
 
     while (this.queue.length > 0) {
       this.currentTxKey = this.queue.shift();
-      const tx = this.queueTxs.get(this.currentTxKey);
-      this.currentTxEnvelope = tx;
+      const envelope = this.queueTxs.get(this.currentTxKey);
+      this.currentTxEnvelope = envelope;
       this.queueTxs.delete(this.currentTxKey);
 
       try {
-        await this.process(tx);
+        await this.process(envelope);
       } catch (e) {
-        this.clog('error', 'process(tx) error:', e);
+        this.clog('error', 'process(txEnvelope) error:', e);
+        envelope.executorCallbacks.txEstimationFailed(e, envelope.tx.data as string);
       }
 
       this.currentTxKey = null;
