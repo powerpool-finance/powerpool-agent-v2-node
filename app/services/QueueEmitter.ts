@@ -1,9 +1,11 @@
+import logger from '../services/Logger.js';
+
 export default class QueueEmitter {
   listenersByName = {};
   callbacksToExecute = [];
   executeInProcess = false;
 
-  async emit(name, value) {
+  emit(name, value) {
     (this.listenersByName[name] || []).forEach(callback => {
       this.callbacksToExecute.push({ name, value, callback });
     });
@@ -19,7 +21,7 @@ export default class QueueEmitter {
       try {
         await c.callback(c.value);
       } catch (e) {
-        console.error('QueueEmitter.execute error', JSON.stringify(c), e);
+        logger.error('QueueEmitter.execute error: ' + JSON.stringify(c) + ' - ' + e.message);
       }
     }
     this.executeInProcess = false;
