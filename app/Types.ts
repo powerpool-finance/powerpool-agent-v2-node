@@ -260,7 +260,7 @@ export interface ParsedRawJob {
 }
 
 export interface TxGasUpdate {
-  action: 'update' | 'replace';
+  action: 'ignore' | 'replace' | 'cancel';
   newMax: number;
   newPriority: number;
 }
@@ -274,20 +274,10 @@ export interface TxEnvelope {
 export interface ExecutorCallbacks {
   txEstimationFailed: (error, Error) => void;
   txExecutionFailed: (error, Error) => void;
-  txNotMinedInBlock: TxNotMinedInBlockCallback;
+  txNotMinedInBlock: (tx: ethers.UnsignedTransaction) => Promise<TxGasUpdate>;
 }
 
-export type TxNotMinedInBlockCallback = (
-  blockNumber: number,
-  blockTimestamp: number,
-  baseFee: number,
-) => null | TxGasUpdate;
-
-export function EmptyTxNotMinedInBlockCallback(
-  _blockNumber: number,
-  _blockTimestamp: number,
-  _baseFee: number,
-): null | TxGasUpdate {
+export function EmptyTxNotMinedInBlockCallback(_: ethers.UnsignedTransaction): Promise<TxGasUpdate> {
   return null;
 }
 
@@ -366,6 +356,8 @@ export interface IAgent {
   getIsAgentUp(): boolean;
 
   queryPastEvents(eventName: string, from: number, to: number): Promise<any>;
+
+  txNotMinedInBlock(tx: ethers.UnsignedTransaction): Promise<TxGasUpdate>;
 
   nowS(): number;
 

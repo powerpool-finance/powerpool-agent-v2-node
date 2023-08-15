@@ -10,6 +10,7 @@ import {
   IDataSource,
   Resolver,
   TxEnvelope,
+  TxGasUpdate,
 } from '../Types.js';
 import { BigNumber, ethers, Wallet } from 'ethers';
 import { getEncryptedJson } from '../services/KeyService.js';
@@ -468,6 +469,17 @@ export abstract class AbstractAgent implements IAgent {
     }
   }
 
+  async txNotMinedInBlock(tx: ethers.UnsignedTransaction): Promise<TxGasUpdate> {
+    //TODO: check resends count and max feePerGas
+    this.clog('Warning: txNotMinedInBlock', tx);
+    this.exitIfStrictTopic('executions');
+    return {
+      action: 'ignore',
+      newMax: 0,
+      newPriority: 0,
+    };
+  }
+
   protected startAllJobs() {
     for (const [, job] of this.jobs) {
       job.watch();
@@ -820,10 +832,16 @@ export abstract class AbstractAgent implements IAgent {
     this.on('DisableKeeper', event => {
       const keeperId = event.args[0];
       if (this.keeperId == keeperId) {
-        this.clog('debug', `Keeper with id ${keeperId} is disabled.`);
-
+        this.clog('debug', 'Keeper is disabled.');
         this.myKeeperIsActive = false;
-        this.activateOrTerminateAgentIfRequired();
+
+        (async () => {
+          while (Array.from(this.jobs.values()).some(job => (job as RandaoJob).assignedKeeperId === this.keeperId)) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+          this.clog('debug', 'Deactivate Keeper.');
+          this.activateOrTerminateAgentIfRequired();
+        })();
       }
     });
 

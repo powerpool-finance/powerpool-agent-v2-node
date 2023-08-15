@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
     "outDir": "./dist",
-    "lib": ["es2021"],
+    "lib": [
+      "es2021",
+      "es2015.iterable"
+    ],
     "isolatedModules": true,
     "module": "esnext",
     "moduleResolution": "node",

@@ -1,28 +1,33 @@
-import EventEmitter from 'events';
+import logger from '../services/Logger.js';
 
-export class QueueEmitter extends EventEmitter {
-  protected queue: [string, unknown[]][];
-  constructor() {
-    super();
-    this.queue = [];
-  }
+export default class QueueEmitter {
+  listenersByName = {};
+  callbacksToExecute = [];
+  executeInProcess = false;
 
-  emit(event: string, ...args): boolean {
-    this.queue.push([event, args]);
-
-    if (this.queue.length === 1) this.processQueue();
-
-    return true;
-  }
-
-  processQueue() {
-    if (!this.queue.length) return;
-
-    const [event, args] = this.queue[0];
-
-    super.emit(event, ...args, () => {
-      this.queue.shift();
-      this.processQueue();
+  emit(name, value) {
+    (this.listenersByName[name] || []).forEach(callback => {
+      this.callbacksToExecute.push({ name, value, callback });
     });
+    this.execute();
+  }
+  async execute() {
+    if (this.executeInProcess) {
+      return;
+    }
+    this.executeInProcess = true;
+    while (this.callbacksToExecute.length) {
+      const c = this.callbacksToExecute.shift();
+      try {
+        await c.callback(c.value);
+      } catch (e) {
+        logger.error('QueueEmitter.execute error: ' + JSON.stringify(c) + ' - ' + e.message);
+      }
+    }
+    this.executeInProcess = false;
+  }
+  on(name, callback) {
+    this.listenersByName[name] = this.listenersByName[name] || [];
+    this.listenersByName[name].push(callback);
   }
 }

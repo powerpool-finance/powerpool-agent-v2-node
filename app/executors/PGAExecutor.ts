@@ -6,7 +6,7 @@ import logger from '../services/Logger.js';
 
 export class PGAExecutor extends AbstractExecutor implements Executor {
   private toString(): string {
-    return `(network: ${this.networkName})`;
+    return `(network: ${this.networkName}, signer: ${this.workerSigner.address})`;
   }
 
   protected clog(level: string, ...args: any[]) {
@@ -67,7 +67,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       }
       return;
     } finally {
-      tx.nonce = await this.genericProvider.getTransactionCount(this.workerSigner.address);
+      tx.nonce = tx.nonce || (await this.genericProvider.getTransactionCount(this.workerSigner.address));
     }
     if (!gasLimitEstimation) {
       throw this.err(`gasLimitEstimation is not set: ${gasLimitEstimation}`);
@@ -92,6 +92,12 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       // This callback could trigger an error which will be caught by unhandledExceptionHandler
       envelope.executorCallbacks.txExecutionFailed(e, tx.data as string);
     }
-    // TODO: setTimeout with .call(tx), send cancel tx (eth transfer) with a higher gas price
+    setTimeout(async () => {
+      const { action } = await envelope.executorCallbacks.txNotMinedInBlock(tx);
+      if (action === 'ignore') {
+        return;
+      }
+      // TODO: resend or cancel tx (eth transfer) with a higher gas price (newMax, newPriority)
+    }, 1000 * 60);
   }
 }

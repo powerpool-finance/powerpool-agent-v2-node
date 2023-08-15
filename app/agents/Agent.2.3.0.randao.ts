@@ -1,11 +1,6 @@
 import { AbstractAgent } from './AbstractAgent.js';
 import { getPPAgentV2_3_0_RandaoAbi } from '../services/AbiService.js';
-import {
-  EmptyTxNotMinedInBlockCallback,
-  ExecutorCallbacks,
-  IRandaoAgent,
-  LensGetJobBytes32AndNextBlockSlasherIdResponse,
-} from '../Types.js';
+import { ExecutorCallbacks, IRandaoAgent, LensGetJobBytes32AndNextBlockSlasherIdResponse } from '../Types.js';
 import { RandaoJob } from '../jobs/RandaoJob.js';
 import { BI_10E15 } from '../Constants.js';
 import { AbstractJob } from '../jobs/AbstractJob.js';
@@ -135,7 +130,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       executorCallbacks: {
         txEstimationFailed,
         txExecutionFailed,
-        txNotMinedInBlock: EmptyTxNotMinedInBlockCallback,
+        txNotMinedInBlock: this.txNotMinedInBlock.bind(this),
       },
       jobKey,
       tx,
