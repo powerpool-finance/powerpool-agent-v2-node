@@ -5,7 +5,7 @@ import logger from '../services/Logger.js';
 export class RandaoJob extends AbstractJob {
   private BLACKLIST_ESTIMATIONS_LIMIT = 5;
 
-  protected assignedKeeperId: number;
+  public assignedKeeperId: number;
   protected createdAt: number;
   protected reservedSlasherId: number;
   protected slashingPossibleAfter: number;

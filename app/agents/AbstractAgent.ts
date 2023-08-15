@@ -832,10 +832,16 @@ export abstract class AbstractAgent implements IAgent {
     this.on('DisableKeeper', event => {
       const keeperId = event.args[0];
       if (this.keeperId == keeperId) {
-        this.clog('debug', `Keeper with id ${keeperId} is disabled.`);
-
+        this.clog('debug', 'Keeper is disabled.');
         this.myKeeperIsActive = false;
-        this.activateOrTerminateAgentIfRequired();
+
+        (async () => {
+          while (Array.from(this.jobs.values()).some(job => (job as RandaoJob).assignedKeeperId === this.keeperId)) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+          this.clog('debug', 'Deactivate Keeper.');
+          this.activateOrTerminateAgentIfRequired();
+        })();
       }
     });
 
