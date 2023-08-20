@@ -4,6 +4,8 @@ import { Contract } from 'web3-eth-contract';
 import { WebsocketProvider } from 'web3-core';
 import { RandaoJob } from './jobs/RandaoJob';
 import { LightJob } from './jobs/LightJob';
+import { BytesLike } from '@ethersproject/bytes';
+import { AccessListish } from '@ethersproject/transactions/src.ts/index';
 
 export type AvailableNetworkNames = 'mainnet' | 'bsc' | 'polygon' | 'goerli';
 export type ExecutorType = 'flashbots' | 'pga';
@@ -16,10 +18,17 @@ export enum CALLDATA_SOURCE {
   RESOLVER,
 }
 
+export interface ExecutorConfig {
+  tx_not_mined_timeout?: number;
+  tx_resend_max_gas_price_gwei?: number;
+  tx_resend_max_attempts?: number;
+}
+
 export interface AgentConfig {
   keeper_worker_address: string;
   key_pass: string;
   executor: ExecutorType;
+  executor_config?: ExecutorConfig;
   accept_max_base_fee_limit?: boolean;
   accrue_reward?: boolean;
   deployed_at?: number;
@@ -27,6 +36,28 @@ export interface AgentConfig {
   subgraph_url?: string;
   version?: string;
   strategy?: Strategy;
+}
+
+export interface UnsignedTransaction {
+  to?: string;
+  nonce?: number;
+
+  gasLimit?: bigint;
+  gasPrice?: bigint;
+
+  data?: BytesLike;
+  value?: bigint;
+  chainId?: number;
+
+  // Typed-Transaction features
+  type?: number | null;
+
+  // EIP-2930; Type 1 & EIP-1559; Type 2
+  accessList?: AccessListish;
+
+  // EIP-1559; Type 2
+  maxPriorityFeePerGas?: bigint;
+  maxFeePerGas?: bigint;
 }
 
 export interface NetworkConfig {
@@ -261,23 +292,23 @@ export interface ParsedRawJob {
 
 export interface TxGasUpdate {
   action: 'ignore' | 'replace' | 'cancel';
-  newMax: number;
-  newPriority: number;
+  newMax?: bigint;
+  newPriority?: bigint;
 }
 
 export interface TxEnvelope {
   jobKey: string;
-  tx: ethers.UnsignedTransaction;
+  tx: UnsignedTransaction;
   executorCallbacks: ExecutorCallbacks;
 }
 
 export interface ExecutorCallbacks {
   txEstimationFailed: (error, Error) => void;
   txExecutionFailed: (error, Error) => void;
-  txNotMinedInBlock: (tx: ethers.UnsignedTransaction) => Promise<TxGasUpdate>;
+  txNotMinedInBlock: (tx: UnsignedTransaction, txHash: string) => Promise<TxGasUpdate>;
 }
 
-export function EmptyTxNotMinedInBlockCallback(_: ethers.UnsignedTransaction): Promise<TxGasUpdate> {
+export function EmptyTxNotMinedInBlockCallback(_: UnsignedTransaction): Promise<TxGasUpdate> {
   return null;
 }
 
@@ -357,7 +388,7 @@ export interface IAgent {
 
   queryPastEvents(eventName: string, from: number, to: number): Promise<any>;
 
-  txNotMinedInBlock(tx: ethers.UnsignedTransaction): Promise<TxGasUpdate>;
+  txNotMinedInBlock(tx: UnsignedTransaction, txHash: string): Promise<TxGasUpdate>;
 
   nowS(): number;
 

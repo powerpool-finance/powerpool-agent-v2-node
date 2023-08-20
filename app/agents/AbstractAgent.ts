@@ -5,12 +5,14 @@ import {
   DataSourceType,
   EventWrapper,
   Executor,
+  ExecutorConfig,
   ExecutorType,
   IAgent,
   IDataSource,
   Resolver,
   TxEnvelope,
   TxGasUpdate,
+  UnsignedTransaction,
 } from '../Types.js';
 import { BigNumber, ethers, Wallet } from 'ethers';
 import { getEncryptedJson } from '../services/KeyService.js';
@@ -39,6 +41,7 @@ export abstract class AbstractAgent implements IAgent {
   public readonly dataSourceType: DataSourceType;
   public dataSource: IDataSource;
   private workerSigner: ethers.Wallet;
+  private executorConfig: ExecutorConfig;
   private executor: Executor;
 
   // Agent Config
@@ -96,6 +99,8 @@ export abstract class AbstractAgent implements IAgent {
 
     this.keeperConfig = 0;
     this.blacklistedJobs = new Set();
+
+    this.executorConfig = agentConfig.executor_config || {};
 
     // Check if all data for subgraph is provided
     if (agentConfig.data_source) {
@@ -226,6 +231,7 @@ export abstract class AbstractAgent implements IAgent {
           this.network.getProvider(),
           this.workerSigner,
           this.contract,
+          this.executorConfig,
         );
         break;
       default:
@@ -469,17 +475,6 @@ export abstract class AbstractAgent implements IAgent {
     }
   }
 
-  async txNotMinedInBlock(tx: ethers.UnsignedTransaction): Promise<TxGasUpdate> {
-    //TODO: check resends count and max feePerGas
-    this.clog('Warning: txNotMinedInBlock', tx);
-    this.exitIfStrictTopic('executions');
-    return {
-      action: 'ignore',
-      newMax: 0,
-      newPriority: 0,
-    };
-  }
-
   protected startAllJobs() {
     for (const [, job] of this.jobs) {
       job.watch();
@@ -512,28 +507,68 @@ export abstract class AbstractAgent implements IAgent {
     await this.trySendExecuteEnvelope(envelope);
   }
 
+  getMaxFeePerGas() {
+    return BigInt(this.network.getBaseFee() * 2n);
+  }
+
   // Here only the `maxPriorityFeePerGas` is assigned.
   // The `maxFeePerGas` is assigned earlier during job.buildTx().
-  protected async populateTxExtraFields(tx: ethers.UnsignedTransaction) {
+  protected async populateTxExtraFields(tx: UnsignedTransaction) {
     tx.chainId = this.network.getChainId();
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore (estimations will fail w/o this `from` assignment)
     tx.from = this.workerSigner.address;
     const maxPriorityFeePerGas = await this.network.getMaxPriorityFeePerGas();
     // console.log({ maxPriorityFeePerGas, maxFeePerGas: tx.maxFeePerGas });
-    tx.maxPriorityFeePerGas = String(BigInt(maxPriorityFeePerGas) * 2n);
+    tx.maxPriorityFeePerGas = BigInt(maxPriorityFeePerGas) * 2n;
 
     const maxPriorityFeePerGasBigInt = BigInt(tx.maxPriorityFeePerGas);
     const maxFeePerGasBigInt = BigInt(String(tx.maxFeePerGas));
     // console.log({ maxPriorityFeePerGasBigInt, maxFeePerGasBigInt });
     if (maxPriorityFeePerGasBigInt > maxFeePerGasBigInt) {
-      tx.maxPriorityFeePerGas = maxFeePerGasBigInt.toString(10);
+      tx.maxPriorityFeePerGas = maxFeePerGasBigInt;
     }
+  }
+
+  async txNotMinedInBlock(tx: UnsignedTransaction, txHash: string): Promise<TxGasUpdate> {
+    const receipt = await this.network.getProvider().getTransactionReceipt(txHash);
+    if (receipt) {
+      return { action: 'ignore' };
+    }
+    console.log('txNotMinedInBlock', txHash);
+    const { maxPriorityFeePerGas } = tx;
+    await this.populateTxExtraFields(tx);
+    const priorityIncrease = (tx.maxPriorityFeePerGas * 100n) / maxPriorityFeePerGas;
+    console.log(
+      'tx.maxPriorityFeePerGas',
+      tx.maxPriorityFeePerGas,
+      'maxPriorityFeePerGas',
+      maxPriorityFeePerGas,
+      'priorityIncrease',
+      priorityIncrease,
+    );
+    if (priorityIncrease < 110n) {
+      tx.maxPriorityFeePerGas = (maxPriorityFeePerGas * 111n) / 100n;
+    }
+    let newMax = this.getMaxFeePerGas();
+    if (tx.maxPriorityFeePerGas > newMax) {
+      newMax = tx.maxPriorityFeePerGas;
+    }
+    //TODO: check nonce
+    //TODO: check resends count and max feePerGas
+
+    // this.clog('Warning: txNotMinedInBlock', tx);
+    // this.exitIfStrictTopic('executions');
+    return {
+      action: 'replace',
+      newMax,
+      newPriority: tx.maxPriorityFeePerGas,
+    };
   }
 
   private async trySendExecuteEnvelope(envelope: TxEnvelope) {
     const { tx, jobKey /*, _ppmCompensation, _fixedCompensation, _creditsAvailable*/ } = envelope;
-    if (tx.maxFeePerGas === 0) {
+    if (tx.maxFeePerGas === 0n) {
       this.clog('warn', `Dropping tx due job gasPrice limit: (data=${tx.data})`);
       return;
     }

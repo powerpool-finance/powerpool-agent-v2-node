@@ -2,7 +2,7 @@ import { BigNumber, ethers, Wallet } from 'ethers';
 import sinon from 'sinon';
 import { PGAExecutor } from '../../app/executors/PGAExecutor.js';
 import { EthersContract } from '../../app/clients/EthersContract.js';
-import { ContractWrapper, EmptyTxNotMinedInBlockCallback, TxEnvelope } from '../../app/Types.js';
+import { ContractWrapper, EmptyTxNotMinedInBlockCallback, TxEnvelope, UnsignedTransaction } from '../../app/Types.js';
 import { assert } from 'chai';
 import { sleep } from '../../app/Utils.js';
 
@@ -35,15 +35,15 @@ describe('PGAExecutor', () => {
     const workerSigner: ethers.Wallet = new Wallet(privateKey);
     const agentContract: ContractWrapper = sinon.createStubInstance(EthersContract);
 
-    const executor = new PGAExecutor('testnet', provider, workerSigner, agentContract);
+    const executor = new PGAExecutor('testnet', provider, workerSigner, agentContract, {});
     executor.init();
 
-    const tx: ethers.Transaction = {
+    const tx: UnsignedTransaction = {
       chainId: 0,
       data: '0x',
-      gasLimit: BigNumber.from(100_000),
+      gasLimit: 100000n,
       nonce: undefined,
-      value: BigNumber.from(0),
+      value: 0n,
     };
     // const executionFailedMock = sinon.mock();
     const envelope: TxEnvelope = {
@@ -56,17 +56,12 @@ describe('PGAExecutor', () => {
       },
     };
     // NO AWAIT THUS THE INTERNAL QUEUE LOOP IS NOT LAUNCHED UNTIL THE END OF THIS FUNCTION
-    const promi = executor.push('foo', envelope);
-    let status = executor.getStatusObjectForApi();
+    await executor.push('foo', envelope);
+    const status = executor.getStatusObjectForApi();
 
-    assert.equal(status.currentTxKey, 'foo');
-    assert.typeOf(status.currentTxKey, 'string');
-    assert.equal(status.currentTxEnvelope.jobKey, 'buzz');
-    assert.equal(status.queueHandlerLock, true);
-    assert.equal(status.queue.length, 0);
-
-    await promi;
-    status = executor.getStatusObjectForApi();
+    assert.equal(status.lastTx.txKey, 'foo');
+    assert.typeOf(status.lastTx.txKey, 'string');
+    assert.equal(status.lastTx.txEnvelope.jobKey, 'buzz');
     assert.equal(status.currentTxKey, null);
     assert.equal(status.currentTxEnvelope, null);
     assert.equal(status.queueHandlerLock, false);

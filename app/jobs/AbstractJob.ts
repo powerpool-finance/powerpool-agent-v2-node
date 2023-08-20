@@ -8,9 +8,10 @@ import {
   ParsedJobConfig,
   RegisterJobEventArgs,
   Resolver,
+  UnsignedTransaction,
   UpdateJobEventArgs,
 } from '../Types.js';
-import { BigNumber, ethers, Event } from 'ethers';
+import { BigNumber, Event } from 'ethers';
 import { encodeExecute, parseConfig, parseRawJob, toNumber, weiValueToEth, weiValueToGwei } from '../Utils.js';
 import { Network } from '../Network.js';
 import { BN_ZERO } from '../Constants.js';
@@ -322,8 +323,8 @@ export abstract class AbstractJob {
     return encodeExecute(this.address, this.id, this.agent.getCfg(), this.agent.getKeeperId(), jobCalldata);
   }
 
-  protected async buildTx(calldata: string): Promise<ethers.UnsignedTransaction> {
-    const maxFeePerGas = this.calculateMaxFeePerGas().toString();
+  protected async buildTx(calldata: string): Promise<UnsignedTransaction> {
+    const maxFeePerGas = this.calculateMaxFeePerGas();
     return {
       to: this.agent.getAddress(),
 
@@ -366,7 +367,7 @@ export abstract class AbstractJob {
     return BigInt(balanceAvailable.toString());
   }
 
-  protected async executeTx(jobKey: string, tx: ethers.UnsignedTransaction) {
+  protected async executeTx(jobKey: string, tx: UnsignedTransaction) {
     return this.agent.sendTxEnvelope({
       executorCallbacks: {
         txEstimationFailed: this._executeTxEstimationFailed.bind(this),

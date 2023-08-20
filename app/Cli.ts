@@ -52,6 +52,11 @@ let app: App;
       accept_max_base_fee_limit: acceptMaxBaseFeeLimit,
       accrue_reward: accrueReward,
       executor: 'pga',
+      executor_config: {
+        tx_not_mined_timeout: parseInt(process.env.TX_NOT_MINED_TIMEOUT),
+        tx_resend_max_gas_price_gwei: parseFloat(process.env.TX_RESEND_MAX_GAS_PRICE),
+        tx_resend_max_attempts: parseInt(process.env.TX_RESEND_MAX_ATTEMPTS),
+      },
       keeper_worker_address: keeperAddress,
       key_pass: keyPassword,
       data_source: dataSource,
