@@ -370,8 +370,8 @@ export abstract class AbstractJob {
   protected async executeTx(jobKey: string, tx: UnsignedTransaction) {
     return this.agent.sendTxEnvelope({
       executorCallbacks: {
-        txEstimationFailed: this._executeTxEstimationFailed.bind(this),
-        txExecutionFailed: this._executeTxExecutionFailed.bind(this),
+        txEstimationFailed: this.agent.txEstimationFailed.bind(this.agent),
+        txExecutionFailed: this.agent.txExecutionFailed.bind(this.agent),
         txNotMinedInBlock: this.agent.txNotMinedInBlock.bind(this.agent),
       },
       jobKey,

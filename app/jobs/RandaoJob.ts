@@ -187,13 +187,13 @@ export class RandaoJob extends AbstractJob {
   }
 
   private async initiateSlashing(resolverCalldata) {
-    const txEstimationFailed = () => {
-      this.clog('error', 'InitiateSlashing() estimation failed');
+    const txEstimationFailed = error => {
+      this.clog('error', 'Error: InitiateSlashing() execution failed', error);
       this.exitIfStrictTopic('estimations');
       this._initiateSlashingIncrementFailedCounter();
     };
-    const txExecutionFailed = () => {
-      this.clog('error', 'InitiateSlashing() execution failed');
+    const txExecutionFailed = error => {
+      this.clog('error', 'Error: InitiateSlashing() execution failed', error);
       this.exitIfStrictTopic('executions');
       this._initiateSlashingIncrementFailedCounter();
     };

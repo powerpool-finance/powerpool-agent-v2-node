@@ -46,7 +46,6 @@ export abstract class AbstractExecutor {
   }
 
   protected async processIfRequired() {
-    console.log('this.queueHandlerLock', this.queueHandlerLock);
     if (this.queueHandlerLock) {
       this.clog('debug', 'Queue handler is already launched');
       return;

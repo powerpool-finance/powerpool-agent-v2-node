@@ -535,18 +535,17 @@ export abstract class AbstractAgent implements IAgent {
     if (receipt) {
       return { action: 'ignore' };
     }
-    console.log('txNotMinedInBlock', txHash);
     const { maxPriorityFeePerGas } = tx;
     await this.populateTxExtraFields(tx);
     const priorityIncrease = (tx.maxPriorityFeePerGas * 100n) / maxPriorityFeePerGas;
-    console.log(
-      'tx.maxPriorityFeePerGas',
-      tx.maxPriorityFeePerGas,
-      'maxPriorityFeePerGas',
-      maxPriorityFeePerGas,
-      'priorityIncrease',
-      priorityIncrease,
-    );
+    // console.log(
+    //   'tx.maxPriorityFeePerGas',
+    //   tx.maxPriorityFeePerGas,
+    //   'maxPriorityFeePerGas',
+    //   maxPriorityFeePerGas,
+    //   'priorityIncrease',
+    //   priorityIncrease,
+    // );
     if (priorityIncrease < 110n) {
       tx.maxPriorityFeePerGas = (maxPriorityFeePerGas * 111n) / 100n;
     }
@@ -564,6 +563,14 @@ export abstract class AbstractAgent implements IAgent {
       newMax,
       newPriority: tx.maxPriorityFeePerGas,
     };
+  }
+
+  async txExecutionFailed(err, txData) {
+    this.clog('error', `txExecutionFailed: ${err.message}, txData: ${txData}`);
+  }
+
+  async txEstimationFailed(err, txData) {
+    this.clog('error', `txExecutionFailed: ${err.message}, txData: ${txData}`);
   }
 
   private async trySendExecuteEnvelope(envelope: TxEnvelope) {
@@ -595,8 +602,20 @@ export abstract class AbstractAgent implements IAgent {
 
   protected activateOrTerminateAgentIfRequired() {
     if (!this.isAgentUp && this.myStakeIsSufficient() && this.myKeeperIsActive) {
+      this.clog(
+        'info',
+        `Activate agent, minKeeperCvp: ${ethers.utils.formatEther(
+          this.minKeeperCvp,
+        )}, myStake: ${ethers.utils.formatEther(this.myStake)}`,
+      );
       this.activateAgent();
     } else if (this.isAgentUp && !(this.myStakeIsSufficient() && this.myKeeperIsActive)) {
+      this.clog(
+        'info',
+        `Terminate agent, minKeeperCvp: ${ethers.utils.formatEther(
+          this.minKeeperCvp,
+        )}, myStake: ${ethers.utils.formatEther(this.myStake)}`,
+      );
       this.terminateAgent();
     }
   }
