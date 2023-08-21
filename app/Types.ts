@@ -386,6 +386,8 @@ export interface IAgent {
 
   getIsAgentUp(): boolean;
 
+  getMaxFeePerGas(): bigint;
+
   queryPastEvents(eventName: string, from: number, to: number): Promise<any>;
 
   txNotMinedInBlock(tx: UnsignedTransaction, txHash: string): Promise<TxGasUpdate>;

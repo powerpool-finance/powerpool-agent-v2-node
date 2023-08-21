@@ -324,7 +324,6 @@ export abstract class AbstractJob {
   }
 
   protected async buildTx(calldata: string): Promise<UnsignedTransaction> {
-    const maxFeePerGas = this.calculateMaxFeePerGas();
     return {
       to: this.agent.getAddress(),
 
@@ -334,28 +333,8 @@ export abstract class AbstractJob {
       type: 2,
 
       // EIP-1559; Type 2
-      maxFeePerGas,
+      maxFeePerGas: this.agent.getMaxFeePerGas(),
     };
-  }
-
-  private calculateMaxFeePerGas(): bigint {
-    return this.agent.getNetwork().getBaseFee() * 3n;
-    // TODO: maxBaseFee supported by lightjob, not by randao
-    // const jobConfigMaxFee = BigInt(this.details.maxBaseFeeGwei) * BigInt(1e9);
-
-    // console.log({ baseFee, max: jobConfigMaxFee });
-
-    // if (jobConfigMaxFee < baseFee) {
-    //   return 0n;
-    // }
-
-    // TODO: set back to 2n when txNotMined callback is implemented
-    // const currentDouble = baseFee * 3n;
-    // if (currentDouble > jobConfigMaxFee) {
-    //   return jobConfigMaxFee;
-    // } else {
-    //   return currentDouble;
-    // }
   }
 
   // 1 is 1 wei
@@ -461,8 +440,8 @@ export abstract class AbstractJob {
       calldataSource: this.getJobCalldataSourceString(),
       creditsAvailableWei: this.getCreditsAvailable(),
       creditsAvailableEth: weiValueToEth(this.getCreditsAvailable()),
-      maxFeePerGasWei: this.calculateMaxFeePerGas(),
-      maxFeePerGasGwei: weiValueToGwei(this.calculateMaxFeePerGas()),
+      maxFeePerGasWei: this.agent.getMaxFeePerGas(),
+      maxFeePerGasGwei: weiValueToGwei(this.agent.getMaxFeePerGas()),
       jobLevelMinKeeperCvp: this.jobLevelMinKeeperCvp,
       preDefinedCalldata: this.preDefinedCalldata,
 
