@@ -127,7 +127,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
           envelope.executorCallbacks.txExecutionFailed(this.err('Tx not mined, ignore: ' + txHash), tx.data as string);
           return callback(null);
         }
-        if (newMax + newPriority > BigInt(eConfig.tx_resend_max_gas_price_gwei) * 1000000000n) {
+        if (newMax > BigInt(eConfig.tx_resend_max_gas_price_gwei) * 1000000000n) {
           envelope.executorCallbacks.txExecutionFailed(
             this.err('Tx not mined, max gas price: ' + txHash),
             tx.data as string,
