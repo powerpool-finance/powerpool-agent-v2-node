@@ -90,7 +90,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
     let res;
 
     const eConfig = this.executorConfig || {};
-    if (eConfig.tx_not_mined_timeout) {
+    if (eConfig.tx_not_mined_blocks) {
       waitForResendTransaction.call(this);
     }
 
@@ -111,7 +111,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
     }
 
     function waitForResendTransaction() {
-      setTimeout(async () => {
+      const resend = async () => {
         if (res) {
           return;
         }
@@ -143,7 +143,17 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
         if (action === 'replace' || action === 'cancel') {
           return this.processCallback(envelope, callback, ++count);
         }
-      }, eConfig.tx_not_mined_timeout * 1000);
+      };
+
+      let blocksPast = 0;
+      const onNewBlock = () => {
+        blocksPast++;
+        if (blocksPast >= eConfig.tx_not_mined_blocks) {
+          this.genericProvider.off('block', onNewBlock);
+          resend();
+        }
+      };
+      this.genericProvider.on('block', onNewBlock);
     }
   }
 }

@@ -53,7 +53,7 @@ let app: App;
       accrue_reward: accrueReward,
       executor: 'pga',
       executor_config: {
-        tx_not_mined_timeout: parseInt(process.env.TX_NOT_MINED_TIMEOUT),
+        tx_not_mined_blocks: parseInt(process.env.TX_NOT_MINED_BLOCKS),
         tx_resend_max_gas_price_gwei: parseFloat(process.env.TX_RESEND_MAX_GAS_PRICE),
         tx_resend_max_attempts: parseInt(process.env.TX_RESEND_MAX_ATTEMPTS),
       },
