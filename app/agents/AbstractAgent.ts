@@ -20,7 +20,7 @@ import { BN_ZERO, DEFAULT_SYNC_FROM_CHAINS } from '../Constants.js';
 import { toChecksummedAddress, weiValueToEth } from '../Utils.js';
 import { FlashbotsExecutor } from '../executors/FlashbotsExecutor.js';
 import { PGAExecutor } from '../executors/PGAExecutor.js';
-import { getAgentDefaultSyncFromSafe } from '../ConfigGetters.js';
+import { getAgentDefaultSyncFromSafe, getDefaultExecutorConfig } from '../ConfigGetters.js';
 import { LightJob } from '../jobs/LightJob.js';
 import { RandaoJob } from '../jobs/RandaoJob.js';
 import { AbstractJob } from '../jobs/AbstractJob';
@@ -101,6 +101,12 @@ export abstract class AbstractAgent implements IAgent {
     this.blacklistedJobs = new Set();
 
     this.executorConfig = agentConfig.executor_config || {};
+    const defaultExecutorConfig = getDefaultExecutorConfig();
+    Object.keys(defaultExecutorConfig).forEach(name => {
+      if (typeof this.executorConfig[name] === 'undefined') {
+        this.executorConfig[name] = defaultExecutorConfig[name];
+      }
+    });
 
     // Check if all data for subgraph is provided
     if (agentConfig.data_source) {
