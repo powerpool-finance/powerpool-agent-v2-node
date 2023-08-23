@@ -608,30 +608,30 @@ export abstract class AbstractAgent implements IAgent {
 
   protected activateOrTerminateAgentIfRequired() {
     if (!this.isAgentUp && this.myStakeIsSufficient() && this.myKeeperIsActive) {
-      this.clog(
-        'info',
-        `Activate agent, minKeeperCvp: ${ethers.utils.formatEther(
-          this.minKeeperCvp,
-        )}, myStake: ${ethers.utils.formatEther(this.myStake)}`,
-      );
       this.activateAgent();
     } else if (this.isAgentUp && !(this.myStakeIsSufficient() && this.myKeeperIsActive)) {
-      this.clog(
-        'info',
-        `Terminate agent, minKeeperCvp: ${ethers.utils.formatEther(
-          this.minKeeperCvp,
-        )}, myStake: ${ethers.utils.formatEther(this.myStake)}`,
-      );
       this.terminateAgent();
     }
   }
 
   private activateAgent() {
+    this.clog(
+      'info',
+      `Activate agent, minKeeperCvp: ${ethers.utils.formatEther(
+        this.minKeeperCvp,
+      )}, myStake: ${ethers.utils.formatEther(this.myStake)}`,
+    );
     this.isAgentUp = true;
     this.startAllJobs();
   }
 
   private terminateAgent() {
+    this.clog(
+      'info',
+      `Terminate agent, minKeeperCvp: ${ethers.utils.formatEther(
+        this.minKeeperCvp,
+      )}, myStake: ${ethers.utils.formatEther(this.myStake)}`,
+    );
     this.isAgentUp = false;
     this.stopAllJobs();
   }

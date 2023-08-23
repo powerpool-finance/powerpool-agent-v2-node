@@ -76,8 +76,12 @@ export abstract class AbstractJob {
   protected _afterJobWatch(): void {}
   protected abstract _afterApplyJob(job: GetJobResponse): void;
   protected abstract intervalJobAvailableCallback(blockNumber: number);
-  protected _executeTxEstimationFailed(_txData: string): void {}
-  protected _executeTxExecutionFailed(_txData: string): void {}
+  protected _executeTxEstimationFailed(_, __: string): Promise<any> {
+    return null;
+  }
+  protected _executeTxExecutionFailed(_, __: string): Promise<any> {
+    return null;
+  }
 
   constructor(creationEvent: EventWrapper, agent: IAgent) {
     const args: RegisterJobEventArgs = creationEvent.args as never;
@@ -349,8 +353,8 @@ export abstract class AbstractJob {
   protected async executeTx(jobKey: string, tx: UnsignedTransaction) {
     return this.agent.sendTxEnvelope({
       executorCallbacks: {
-        txEstimationFailed: this.agent.txEstimationFailed.bind(this.agent),
-        txExecutionFailed: this.agent.txExecutionFailed.bind(this.agent),
+        txEstimationFailed: this._executeTxEstimationFailed.bind(this),
+        txExecutionFailed: this._executeTxExecutionFailed.bind(this),
         txNotMinedInBlock: this.agent.txNotMinedInBlock.bind(this.agent),
       },
       jobKey,

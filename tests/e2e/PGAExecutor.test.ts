@@ -59,9 +59,9 @@ describe('PGAExecutor', () => {
     await executor.push('foo', envelope);
     const status = executor.getStatusObjectForApi();
 
-    assert.equal(status.lastTx.txKey, 'foo');
-    assert.typeOf(status.lastTx.txKey, 'string');
-    assert.equal(status.lastTx.txEnvelope.jobKey, 'buzz');
+    assert.equal(status.lastTxKey, 'foo');
+    assert.typeOf(status.lastTxKey, 'string');
+    assert.equal(status.lastTxEnvelope.jobKey, 'buzz');
     assert.equal(status.currentTxKey, null);
     assert.equal(status.currentTxEnvelope, null);
     assert.equal(status.queueHandlerLock, false);

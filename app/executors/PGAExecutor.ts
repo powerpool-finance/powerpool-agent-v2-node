@@ -42,7 +42,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
 
   protected async process(envelope: TxEnvelope) {
     return new Promise((resolve, reject) =>
-      this.processCallback(envelope, (res, err) => (err ? reject(err) : resolve(res))),
+      this.processCallback(envelope, (err, res) => (err ? reject(err) : resolve(res))),
     );
   }
 
@@ -74,12 +74,12 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
         // const res2 = await res.wait(1);
         // console.log({res2});
       }
-      return callback(null);
+      return callback();
     } finally {
       tx.nonce = tx.nonce || (await this.genericProvider.getTransactionCount(this.workerSigner.address));
     }
     if (!gasLimitEstimation) {
-      return callback(null, this.err(`gasLimitEstimation is not set: ${gasLimitEstimation}`));
+      return callback(this.err(`gasLimitEstimation is not set: ${gasLimitEstimation}`));
     }
     tx.gasLimit = gasLimitEstimation.mul(40).div(10);
 
@@ -99,7 +99,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       const sendRes = await this.genericProvider.sendTransaction(signedTx);
       this.clog('debug', `Tx ${txHash}: 🚬 Waiting for the tx to be mined...`);
       res = await sendRes.wait(1);
-      callback(res);
+      callback(null, res);
       this.clog(
         'debug',
         `Tx ${txHash}: ⛓ Successfully mined in block #${res.blockNumber} with nonce ${tx.nonce}. The queue length is: ${this.queue.length}.`,
@@ -107,7 +107,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
     } catch (e) {
       // This callback could trigger an error which will be caught by unhandledExceptionHandler
       envelope.executorCallbacks.txExecutionFailed(e, tx.data as string);
-      callback(null);
+      callback();
     }
 
     function waitForResendTransaction() {
@@ -120,19 +120,19 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
             this.err('Tx not mined, max attempts: ' + txHash),
             tx.data as string,
           );
-          return callback(null);
+          return callback();
         }
         const { action, newMax, newPriority } = await envelope.executorCallbacks.txNotMinedInBlock(tx, txHash);
         if (action === 'ignore') {
           envelope.executorCallbacks.txExecutionFailed(this.err('Tx not mined, ignore: ' + txHash), tx.data as string);
-          return callback(null);
+          return callback();
         }
         if (newMax > BigInt(eConfig.tx_resend_max_gas_price_gwei) * 1000000000n) {
           envelope.executorCallbacks.txExecutionFailed(
             this.err('Tx not mined, max gas price: ' + txHash),
             tx.data as string,
           );
-          return callback(null);
+          return callback();
         }
         envelope.tx.maxFeePerGas = newMax;
         envelope.tx.maxPriorityFeePerGas = newPriority;

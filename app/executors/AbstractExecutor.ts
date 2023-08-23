@@ -19,10 +19,8 @@ export abstract class AbstractExecutor {
   // Tx hash => TxEnvelope. All the queued txs except the current
   protected queueTxs: Map<string, TxEnvelope>;
   protected queueHandlerLock: boolean;
-  protected lastTx: {
-    txKey: string;
-    txEnvelope: TxEnvelope;
-  };
+  protected lastTxKey: string;
+  protected lastTxEnvelope: TxEnvelope;
 
   protected constructor(agentContract: ContractWrapper) {
     this.agentContract = agentContract;
@@ -38,7 +36,8 @@ export abstract class AbstractExecutor {
     return {
       currentTxKey: this.currentTxKey,
       currentTxEnvelope: this.currentTxEnvelope,
-      lastTx: this.lastTx,
+      lastTxKey: this.lastTxKey,
+      lastTxEnvelope: this.lastTxEnvelope,
       queueHandlerLock: this.queueHandlerLock,
       queue: this.queue,
       queueTxs: Object.fromEntries(Array.from(this.queueTxs)),
@@ -65,10 +64,8 @@ export abstract class AbstractExecutor {
         this.clog('error', 'process(tx) error:', e);
       }
 
-      this.lastTx = {
-        txKey: this.currentTxKey,
-        txEnvelope: this.currentTxEnvelope,
-      };
+      this.lastTxKey = this.currentTxKey;
+      this.lastTxEnvelope = this.currentTxEnvelope;
       this.currentTxKey = null;
       this.currentTxEnvelope = null;
     }
