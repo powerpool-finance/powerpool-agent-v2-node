@@ -48,7 +48,6 @@ export abstract class AbstractJob {
   }
 
   protected _watchIntervalJob(): void {
-    this.clog('info', `Add watcher for interval job ${this.key}`);
     this.agent.registerIntervalJobExecution(
       this.key,
       this.nextExecutionTimestamp(),
@@ -57,7 +56,6 @@ export abstract class AbstractJob {
   }
 
   protected _watchResolverJob(): void {
-    this.clog('info', `Add watcher for resolver job ${this.key}`);
     this.agent.registerResolver(this.key, this.resolver, this.resolverSuccessCallback.bind(this));
   }
 
