@@ -306,7 +306,9 @@ export abstract class AbstractAgent implements IAgent {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private newBlockEventHandler(blockTimestamp) {}
+  private newBlockEventHandler(blockTimestamp) {
+    this.activateOrTerminateAgentIfRequired();
+  }
 
   public exitIfStrictTopic(topic) {
     this.network.exitIfStrictTopic(topic);
@@ -607,9 +609,17 @@ export abstract class AbstractAgent implements IAgent {
   }
 
   protected activateOrTerminateAgentIfRequired() {
-    if (!this.isAgentUp && this.myStakeIsSufficient() && this.myKeeperIsActive) {
+    if (
+      !this.isAgentUp &&
+      this.myStakeIsSufficient() &&
+      this.myKeeperIsActive &&
+      !this.network.isBlockDelayAboveMax()
+    ) {
       this.activateAgent();
-    } else if (this.isAgentUp && !(this.myStakeIsSufficient() && this.myKeeperIsActive)) {
+    } else if (
+      this.isAgentUp &&
+      !(this.myStakeIsSufficient() && this.myKeeperIsActive && this.network.isBlockDelayAboveMax())
+    ) {
       this.terminateAgent();
     }
   }

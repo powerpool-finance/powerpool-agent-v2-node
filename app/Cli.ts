@@ -69,6 +69,7 @@ let app: App;
 
     const netConfig: NetworkConfig = {
       rpc: process.env.NETWORK_RPC,
+      max_block_delay: parseInt(process.env.NETWORK_MAX_BLOCK_DELAY || '60'),
       agents: {
         [agentAddress]: agentConfig,
       },

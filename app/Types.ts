@@ -63,6 +63,7 @@ export interface UnsignedTransaction {
 export interface NetworkConfig {
   rpc: string;
   ws_timeout?: number;
+  max_block_delay?: number;
   flashbots?: {
     rpc: string;
     address: string;
