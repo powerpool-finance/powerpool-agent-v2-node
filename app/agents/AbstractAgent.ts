@@ -571,11 +571,11 @@ export abstract class AbstractAgent implements IAgent {
     };
   }
 
-  async txExecutionFailed(err, txData) {
+  txExecutionFailed(err, txData) {
     this.clog('error', `txExecutionFailed: ${err.message}, txData: ${txData}`);
   }
 
-  async txEstimationFailed(err, txData) {
+  txEstimationFailed(err, txData) {
     this.clog('error', `txExecutionFailed: ${err.message}, txData: ${txData}`);
   }
 

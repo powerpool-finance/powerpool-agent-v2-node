@@ -286,7 +286,7 @@ export class RandaoJob extends AbstractJob {
     super._watchResolverJob();
   }
 
-  protected _executeTxEstimationFailed(_, _txData: string): Promise<any> {
+  protected _executeTxEstimationFailed(_, _txData: string): any {
     if (this._getCurrentPeriod() === 3) {
       this.clog('info', 'Scheduling self-unassign since the current period is #3...');
       this._selfUnassign();
@@ -306,8 +306,8 @@ export class RandaoJob extends AbstractJob {
     this.watch();
   }
 
-  protected async _executeTxExecutionFailed(error, _txData: string): Promise<any> {
-    await this._executeTxEstimationFailed(error, _txData);
+  protected _executeTxExecutionFailed(error, _txData: string): any {
+    this._executeTxEstimationFailed(error, _txData);
     return this.agent.txExecutionFailed(error, _txData);
   }
 

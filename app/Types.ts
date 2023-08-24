@@ -392,9 +392,9 @@ export interface IAgent {
 
   txNotMinedInBlock(tx: UnsignedTransaction, txHash: string): Promise<TxGasUpdate>;
 
-  txExecutionFailed(err, txData): Promise<any>;
+  txExecutionFailed(err, txData): any;
 
-  txEstimationFailed(err, txData): Promise<any>;
+  txEstimationFailed(err, txData): any;
 
   nowS(): number;
 

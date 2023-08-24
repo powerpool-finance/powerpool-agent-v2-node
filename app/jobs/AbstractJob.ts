@@ -76,10 +76,10 @@ export abstract class AbstractJob {
   protected _afterJobWatch(): void {}
   protected abstract _afterApplyJob(job: GetJobResponse): void;
   protected abstract intervalJobAvailableCallback(blockNumber: number);
-  protected _executeTxEstimationFailed(_, __: string): Promise<any> {
+  protected _executeTxEstimationFailed(_, __: string): any {
     return null;
   }
-  protected _executeTxExecutionFailed(_, __: string): Promise<any> {
+  protected _executeTxExecutionFailed(_, __: string): any {
     return null;
   }
 
