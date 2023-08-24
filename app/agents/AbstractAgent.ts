@@ -618,7 +618,7 @@ export abstract class AbstractAgent implements IAgent {
       this.activateAgent();
     } else if (
       this.isAgentUp &&
-      !(this.myStakeIsSufficient() && this.myKeeperIsActive && this.network.isBlockDelayAboveMax())
+      !(this.myStakeIsSufficient() && this.myKeeperIsActive && !this.network.isBlockDelayAboveMax())
     ) {
       this.terminateAgent();
     }
