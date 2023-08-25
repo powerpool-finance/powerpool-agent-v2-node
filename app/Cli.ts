@@ -53,7 +53,9 @@ let app: App;
       accrue_reward: accrueReward,
       executor: 'pga',
       executor_config: {
-        tx_not_mined_blocks: process.env.TX_NOT_MINED_BLOCKS ? parseInt(process.env.TX_NOT_MINED_BLOCKS) : undefined,
+        tx_resend_or_drop_after_blocks: process.env.TX_RESEND_OR_DROP_AFTER_BLOCKS
+          ? parseInt(process.env.TX_RESEND_OR_DROP_AFTER_BLOCKS)
+          : undefined,
         tx_resend_max_gas_price_gwei: process.env.TX_RESEND_MAX_GAS_PRICE
           ? parseFloat(process.env.TX_RESEND_MAX_GAS_PRICE)
           : undefined,

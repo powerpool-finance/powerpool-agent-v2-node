@@ -90,7 +90,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
     let res;
 
     const eConfig = this.executorConfig || {};
-    if (eConfig.tx_not_mined_blocks) {
+    if (eConfig.tx_resend_or_drop_after_blocks) {
       waitForResendTransaction.call(this);
     }
 
@@ -124,7 +124,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
         }
         const { action, newMax, newPriority } = await envelope.executorCallbacks.txNotMinedInBlock(tx, txHash);
         if (action === 'ignore') {
-          envelope.executorCallbacks.txExecutionFailed(this.err('Tx not mined, ignore: ' + txHash), tx.data as string);
+          // envelope.executorCallbacks.txExecutionFailed(this.err('Tx not mined, ignore: ' + txHash), tx.data as string);
           return callback();
         }
         if (newMax > BigInt(eConfig.tx_resend_max_gas_price_gwei) * 1000000000n) {
@@ -148,7 +148,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       let blocksPast = 0;
       const onNewBlock = () => {
         blocksPast++;
-        if (blocksPast >= eConfig.tx_not_mined_blocks) {
+        if (blocksPast >= eConfig.tx_resend_or_drop_after_blocks) {
           this.genericProvider.off('block', onNewBlock);
           resend();
         }

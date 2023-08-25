@@ -19,7 +19,7 @@ export enum CALLDATA_SOURCE {
 }
 
 export interface ExecutorConfig {
-  tx_not_mined_blocks?: number;
+  tx_resend_or_drop_after_blocks?: number;
   tx_resend_max_gas_price_gwei?: number;
   tx_resend_max_attempts?: number;
 }
