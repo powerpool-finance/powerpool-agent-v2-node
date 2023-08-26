@@ -3,7 +3,9 @@
     "outDir": "./dist",
     "lib": [
       "es2021",
-      "es2015.iterable"
+      "es2015.iterable",
+      "es2015.promise",
+      "es2020.bigint"
     ],
     "isolatedModules": true,
     "module": "esnext",

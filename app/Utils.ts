@@ -9,7 +9,7 @@ import {
   CFG_CHECK_KEEPER_MIN_CVP_DEPOSIT,
   CFG_USE_JOB_OWNER_CREDITS,
 } from './Constants.js';
-import { ParsedJobConfig, ParsedRawJob } from './Types.js';
+import { ParsedJobConfig, ParsedRawJob, UnsignedTransaction } from './Types.js';
 
 export function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms, []));
@@ -57,6 +57,33 @@ export function weiValueToGwei(value): number {
   throw new Error(`Utils.weiValueToGwei() value not a BigNumber but ${typeof value}`);
 }
 
+export function getTxString(tx: UnsignedTransaction): string {
+  return JSON.stringify(
+    tx,
+    (key, value) => (typeof value === 'bigint' ? value.toString() : value), // return everything else unchanged
+  );
+}
+
+export function prepareTx(tx: UnsignedTransaction) {
+  const resTx = {
+    ...tx,
+    value: bigintToHex(tx.value),
+    gasLimit: bigintToHex(tx.gasLimit),
+    gasPrice: bigintToHex(tx.gasPrice),
+    maxPriorityFeePerGas: bigintToHex(tx.maxPriorityFeePerGas),
+    maxFeePerGas: bigintToHex(tx.maxFeePerGas),
+  };
+  Object.keys(resTx).forEach(key => {
+    if (resTx[key] === undefined) {
+      delete resTx[key];
+    }
+  });
+  return resTx;
+}
+
+function bigintToHex(n) {
+  return n ? (n.toHexString ? n.toHexString() : n.toString()) : undefined;
+}
 /**
  * Encode into PPAgentLite-compatible calldata
  * @param {string} address bytes20

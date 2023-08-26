@@ -187,13 +187,13 @@ export class RandaoJob extends AbstractJob {
   }
 
   private async initiateSlashing(resolverCalldata) {
-    const txEstimationFailed = () => {
-      this.clog('error', 'InitiateSlashing() estimation failed');
+    const txEstimationFailed = error => {
+      this.clog('error', 'Error: InitiateSlashing() execution failed', error);
       this.exitIfStrictTopic('estimations');
       this._initiateSlashingIncrementFailedCounter();
     };
-    const txExecutionFailed = () => {
-      this.clog('error', 'InitiateSlashing() execution failed');
+    const txExecutionFailed = error => {
+      this.clog('error', 'Error: InitiateSlashing() execution failed', error);
       this.exitIfStrictTopic('executions');
       this._initiateSlashingIncrementFailedCounter();
     };
@@ -286,7 +286,7 @@ export class RandaoJob extends AbstractJob {
     super._watchResolverJob();
   }
 
-  protected _executeTxEstimationFailed(_txData: string): void {
+  protected _executeTxEstimationFailed(_, _txData: string): any {
     if (this._getCurrentPeriod() === 3) {
       this.clog('info', 'Scheduling self-unassign since the current period is #3...');
       this._selfUnassign();
@@ -306,8 +306,9 @@ export class RandaoJob extends AbstractJob {
     this.watch();
   }
 
-  protected _executeTxExecutionFailed(_txData: string): void {
-    this._executeTxEstimationFailed(_txData);
+  protected _executeTxExecutionFailed(error, _txData: string): any {
+    this._executeTxEstimationFailed(error, _txData);
+    return this.agent.txExecutionFailed(error, _txData);
   }
 
   // t1 - resolver available at;

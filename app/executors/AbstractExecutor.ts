@@ -1,11 +1,14 @@
-import { ContractWrapper, TxEnvelope } from '../Types.js';
 import { ethers } from 'ethers';
+import { ContractWrapper, ExecutorConfig, TxEnvelope } from '../Types.js';
+import { getTxString } from '../Utils.js';
 
 export abstract class AbstractExecutor {
   protected networkName: string;
   protected agentContract: ContractWrapper;
   protected genericProvider: ethers.providers.BaseProvider;
   protected workerSigner: ethers.Wallet;
+
+  protected executorConfig: ExecutorConfig;
 
   // The currently executing tx key
   protected currentTxKey: string;
@@ -16,6 +19,8 @@ export abstract class AbstractExecutor {
   // Tx hash => TxEnvelope. All the queued txs except the current
   protected queueTxs: Map<string, TxEnvelope>;
   protected queueHandlerLock: boolean;
+  protected lastTxKey: string;
+  protected lastTxEnvelope: TxEnvelope;
 
   protected constructor(agentContract: ContractWrapper) {
     this.agentContract = agentContract;
@@ -31,6 +36,8 @@ export abstract class AbstractExecutor {
     return {
       currentTxKey: this.currentTxKey,
       currentTxEnvelope: this.currentTxEnvelope,
+      lastTxKey: this.lastTxKey,
+      lastTxEnvelope: this.lastTxEnvelope,
       queueHandlerLock: this.queueHandlerLock,
       queue: this.queue,
       queueTxs: Object.fromEntries(Array.from(this.queueTxs)),
@@ -57,6 +64,8 @@ export abstract class AbstractExecutor {
         this.clog('error', 'process(tx) error:', e);
       }
 
+      this.lastTxKey = this.currentTxKey;
+      this.lastTxEnvelope = this.currentTxEnvelope;
       this.currentTxKey = null;
       this.currentTxEnvelope = null;
     }
@@ -99,7 +108,7 @@ export abstract class AbstractExecutor {
     this.queueTxs.set(key, envelope);
     this.clog(
       'debug',
-      `📥 Enqueueing ${JSON.stringify(envelope.tx)}. The total queue length is now ${this.queue.length}...`,
+      `📥 Enqueueing ${getTxString(envelope.tx)}. The total queue length is now ${this.queue.length}...`,
     );
 
     // WARNING: async func call

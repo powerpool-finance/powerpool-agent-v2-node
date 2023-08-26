@@ -64,3 +64,11 @@ export function getAverageBlockTime(networkName: string) {
     throw new Error(`ConfigGetters.getAverageBlockTime(): Network ${networkName} not configured.`);
   }
 }
+
+export function getDefaultExecutorConfig() {
+  return {
+    tx_resend_or_drop_after_blocks: 5,
+    tx_resend_max_gas_price_gwei: 1000,
+    tx_resend_max_attempts: 5,
+  };
+}

@@ -52,6 +52,17 @@ let app: App;
       accept_max_base_fee_limit: acceptMaxBaseFeeLimit,
       accrue_reward: accrueReward,
       executor: 'pga',
+      executor_config: {
+        tx_resend_or_drop_after_blocks: process.env.TX_RESEND_OR_DROP_AFTER_BLOCKS
+          ? parseInt(process.env.TX_RESEND_OR_DROP_AFTER_BLOCKS)
+          : undefined,
+        tx_resend_max_gas_price_gwei: process.env.TX_RESEND_MAX_GAS_PRICE
+          ? parseFloat(process.env.TX_RESEND_MAX_GAS_PRICE)
+          : undefined,
+        tx_resend_max_attempts: process.env.TX_RESEND_MAX_ATTEMPTS
+          ? parseInt(process.env.TX_RESEND_MAX_ATTEMPTS)
+          : undefined,
+      },
       keeper_worker_address: keeperAddress,
       key_pass: keyPassword,
       data_source: dataSource,
@@ -60,6 +71,7 @@ let app: App;
 
     const netConfig: NetworkConfig = {
       rpc: process.env.NETWORK_RPC,
+      max_block_delay: parseInt(process.env.NETWORK_MAX_BLOCK_DELAY || '60'),
       agents: {
         [agentAddress]: agentConfig,
       },

@@ -8,9 +8,10 @@ import {
   ParsedJobConfig,
   RegisterJobEventArgs,
   Resolver,
+  UnsignedTransaction,
   UpdateJobEventArgs,
 } from '../Types.js';
-import { BigNumber, ethers, Event } from 'ethers';
+import { BigNumber, Event } from 'ethers';
 import { encodeExecute, parseConfig, parseRawJob, toNumber, weiValueToEth, weiValueToGwei } from '../Utils.js';
 import { Network } from '../Network.js';
 import { BN_ZERO } from '../Constants.js';
@@ -75,8 +76,12 @@ export abstract class AbstractJob {
   protected _afterJobWatch(): void {}
   protected abstract _afterApplyJob(job: GetJobResponse): void;
   protected abstract intervalJobAvailableCallback(blockNumber: number);
-  protected _executeTxEstimationFailed(_txData: string): void {}
-  protected _executeTxExecutionFailed(_txData: string): void {}
+  protected _executeTxEstimationFailed(_, __: string): any {
+    return null;
+  }
+  protected _executeTxExecutionFailed(_, __: string): any {
+    return null;
+  }
 
   constructor(creationEvent: EventWrapper, agent: IAgent) {
     const args: RegisterJobEventArgs = creationEvent.args as never;
@@ -322,8 +327,7 @@ export abstract class AbstractJob {
     return encodeExecute(this.address, this.id, this.agent.getCfg(), this.agent.getKeeperId(), jobCalldata);
   }
 
-  protected async buildTx(calldata: string): Promise<ethers.UnsignedTransaction> {
-    const maxFeePerGas = this.calculateMaxFeePerGas().toString();
+  protected async buildTx(calldata: string): Promise<UnsignedTransaction> {
     return {
       to: this.agent.getAddress(),
 
@@ -333,28 +337,8 @@ export abstract class AbstractJob {
       type: 2,
 
       // EIP-1559; Type 2
-      maxFeePerGas,
+      maxFeePerGas: this.agent.getMaxFeePerGas(),
     };
-  }
-
-  private calculateMaxFeePerGas(): bigint {
-    return this.agent.getNetwork().getBaseFee() * 3n;
-    // TODO: maxBaseFee supported by lightjob, not by randao
-    // const jobConfigMaxFee = BigInt(this.details.maxBaseFeeGwei) * BigInt(1e9);
-
-    // console.log({ baseFee, max: jobConfigMaxFee });
-
-    // if (jobConfigMaxFee < baseFee) {
-    //   return 0n;
-    // }
-
-    // TODO: set back to 2n when txNotMined callback is implemented
-    // const currentDouble = baseFee * 3n;
-    // if (currentDouble > jobConfigMaxFee) {
-    //   return jobConfigMaxFee;
-    // } else {
-    //   return currentDouble;
-    // }
   }
 
   // 1 is 1 wei
@@ -366,7 +350,7 @@ export abstract class AbstractJob {
     return BigInt(balanceAvailable.toString());
   }
 
-  protected async executeTx(jobKey: string, tx: ethers.UnsignedTransaction) {
+  protected async executeTx(jobKey: string, tx: UnsignedTransaction) {
     return this.agent.sendTxEnvelope({
       executorCallbacks: {
         txEstimationFailed: this._executeTxEstimationFailed.bind(this),
@@ -460,8 +444,8 @@ export abstract class AbstractJob {
       calldataSource: this.getJobCalldataSourceString(),
       creditsAvailableWei: this.getCreditsAvailable(),
       creditsAvailableEth: weiValueToEth(this.getCreditsAvailable()),
-      maxFeePerGasWei: this.calculateMaxFeePerGas(),
-      maxFeePerGasGwei: weiValueToGwei(this.calculateMaxFeePerGas()),
+      maxFeePerGasWei: this.agent.getMaxFeePerGas(),
+      maxFeePerGasGwei: weiValueToGwei(this.agent.getMaxFeePerGas()),
       jobLevelMinKeeperCvp: this.jobLevelMinKeeperCvp,
       preDefinedCalldata: this.preDefinedCalldata,
 

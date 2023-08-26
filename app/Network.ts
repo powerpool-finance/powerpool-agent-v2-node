@@ -30,6 +30,7 @@ export class Network {
   private readonly name: string;
   private readonly networkConfig: NetworkConfig;
   private readonly rpc: string;
+  private readonly maxBlockDelay: number;
   private chainId: number;
   private provider: ethers.providers.WebSocketProvider | undefined;
   private agents: IAgent[];
@@ -47,6 +48,7 @@ export class Network {
   private contractWrapperFactory: ContractWrapperFactory;
   private newBlockEventEmitter: EventEmitter;
 
+  private currentBlockDelay: number;
   private latestBaseFee: bigint;
   private latestBlockNumber: bigint;
   private latestBlockTimestamp: bigint;
@@ -68,6 +70,7 @@ export class Network {
     this.app = app;
     this.name = name;
     this.rpc = networkConfig.rpc;
+    this.maxBlockDelay = networkConfig.max_block_delay;
     this.networkConfig = networkConfig;
     this.agents = agents;
 
@@ -192,6 +195,7 @@ export class Network {
     return {
       name: this.name,
       rpc: this.rpc,
+      maxBlockDelay: this.maxBlockDelay,
       chainId: this.chainId,
       baseFee: this.getBaseFee(),
       latestBlockNumber: this.getLatestBlockNumber(),
@@ -262,6 +266,7 @@ export class Network {
     this.latestBaseFee = BigInt(block.baseFeePerGas.toString());
     this.latestBlockNumber = BigInt(block.number.toString());
     this.latestBlockTimestamp = BigInt(block.timestamp.toString());
+    this.currentBlockDelay = this.nowS() - parseInt(block.timestamp.toString());
 
     this.newBlockEventEmitter.emit('newBlock', block.timestamp);
 
@@ -281,6 +286,10 @@ export class Network {
         `🧱 New block: (number=${blockNumber},timestamp=${block.timestamp},hash=${block.hash},txCount=${block.transactions.length},baseFee=${block.baseFeePerGas},fetchDelayMs=${fetchBlockDelay})`,
       );
     }
+  }
+
+  public isBlockDelayAboveMax() {
+    return this.currentBlockDelay && this.currentBlockDelay > this.maxBlockDelay;
   }
 
   public getNewBlockEventEmitter(): EventEmitter {

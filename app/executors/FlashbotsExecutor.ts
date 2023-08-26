@@ -1,5 +1,5 @@
 import { ContractWrapper, Executor, TxEnvelope } from '../Types.js';
-import { fbReasonStringToHexString } from '../Utils.js';
+import { fbReasonStringToHexString, prepareTx } from '../Utils.js';
 import { ethers, utils } from 'ethers';
 import {
   FlashbotsBundleProvider,
@@ -67,14 +67,14 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
     const { tx } = envelope;
     let gasLimitEstimation;
     try {
-      gasLimitEstimation = await this.genericProvider.estimateGas(tx);
+      gasLimitEstimation = await this.genericProvider.estimateGas(prepareTx(tx));
     } catch (e) {
       // TODO (DANGER): hard limit
-      tx.gasLimit = 700_000;
+      tx.gasLimit = 700_000n;
       tx.nonce = await this.genericProvider.getTransactionCount(this.workerSigner.address);
       let txSimulation;
       try {
-        txSimulation = await this.genericProvider.call(tx);
+        txSimulation = await this.genericProvider.call(prepareTx(tx));
         printSolidityCustomError(this.clog.bind(this), this.agentContract.decodeError, txSimulation, tx.data as string);
       } catch (e) {
         this.clog('error', 'TX node simulation error', e);
@@ -89,7 +89,7 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
     const signedBundle = await this.fbProvider.signBundle([
       {
         signer: this.workerSigner,
-        transaction: tx,
+        transaction: prepareTx(tx),
       },
     ]);
     const txHash = utils.parseTransaction(signedBundle[0]).hash;

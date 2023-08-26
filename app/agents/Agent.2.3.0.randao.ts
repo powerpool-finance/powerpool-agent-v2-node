@@ -115,7 +115,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       type: 2,
 
       // EIP-1559; Type 2
-      maxFeePerGas: (this.network.getBaseFee() * 2n).toString(),
+      maxFeePerGas: this.getMaxFeePerGas(),
     };
     await this.populateTxExtraFields(tx);
     const txEstimationFailed = (error): void => {
@@ -134,8 +134,8 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       },
       jobKey,
       tx,
-      creditsAvailable: BigInt(0),
-      fixedCompensation: BigInt(0),
+      creditsAvailable: 0n,
+      fixedCompensation: 0n,
       ppmCompensation: 0,
       minTimestamp: 0,
     };
@@ -166,7 +166,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       type: 2,
 
       // EIP-1559; Type 2
-      maxFeePerGas: (this.network.getBaseFee() * 2n).toString(),
+      maxFeePerGas: this.getMaxFeePerGas(),
     };
     await this.populateTxExtraFields(tx);
     const envelope = {
