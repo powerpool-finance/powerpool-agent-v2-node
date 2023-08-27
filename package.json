@@ -37,6 +37,7 @@
     "eslint": "^8.19.0",
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-prettier": "^4.2.1",
+    "ethereumjs-wallet": "^1.0.2",
     "mocha": "^10.0.0",
     "prettier": "^2.8.8",
     "sinon": "^15.2.0",
