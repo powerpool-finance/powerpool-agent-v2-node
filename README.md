@@ -78,7 +78,7 @@ networks:
         '0xc8E864f12c337Bdf6294a3DCeE0E565D2B1B4d90':
           executor: pga
           keeper_worker_address: '0x840ccC99c425eDCAfebb0e7ccAC022CD15Fd49Ca'
-          key_pass: 'Very%RealiablePassword292'
+          key_pass: 'Very%ReliablePassword292'
           accept_max_base_fee_limit: false
           accrue_reward: false
 
