@@ -64,11 +64,17 @@ export function initApi(app: App, port: number): () => void {
     prettyReply(reply, agent.getStatusObjectForApi());
   });
 
-  fastify.listen({ port: parseInt(process.env.API_PORT) || port }, (err, address) => {
-    logger.info(`API Server: Listening on ${address}`);
-    if (err) throw err;
-    // Server is now listening on ${address}
-  });
+  fastify.listen(
+    {
+      host: process.env.API_HOST || '127.0.0.1',
+      port: parseInt(process.env.API_PORT) || port,
+    },
+    (err, address) => {
+      logger.info(`API Server: Listening on ${address}`);
+      if (err) throw err;
+      // Server is now listening on ${address}
+    },
+  );
 
   return async function stop() {
     return fastify.close();
