@@ -1,9 +1,10 @@
 import { ethers } from 'ethers';
 import { ContractWrapper, ExecutorConfig, TxEnvelope } from '../Types.js';
 import { getTxString } from '../Utils.js';
+import { Network } from '../Network';
 
 export abstract class AbstractExecutor {
-  protected networkName: string;
+  protected network: Network;
   protected agentContract: ContractWrapper;
   protected genericProvider: ethers.providers.BaseProvider;
   protected workerSigner: ethers.Wallet;

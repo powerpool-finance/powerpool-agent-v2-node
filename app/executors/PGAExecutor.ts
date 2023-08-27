@@ -1,13 +1,15 @@
-import { ContractWrapper, Executor, ExecutorConfig, TxEnvelope } from '../Types.js';
+import { ContractWrapper, Executor, ExecutorConfig, TxEnvelope, UnsignedTransaction } from '../Types.js';
 import { ethers, utils } from 'ethers';
 import { AbstractExecutor } from './AbstractExecutor.js';
 import { printSolidityCustomError } from './ExecutorUtils.js';
 import logger from '../services/Logger.js';
-import { prepareTx } from '../Utils.js';
+import { prepareTx, weiValueToGwei } from '../Utils.js';
+import axios from 'axios';
+import { Network } from '../Network';
 
 export class PGAExecutor extends AbstractExecutor implements Executor {
   private toString(): string {
-    return `(network: ${this.networkName}, signer: ${this.workerSigner.address})`;
+    return `(network: ${this.network.getName()}, signer: ${this.workerSigner.address})`;
   }
 
   protected clog(level: string, ...args: any[]) {
@@ -19,17 +21,16 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
   }
 
   constructor(
-    networkName: string,
-    genericProvider: ethers.providers.BaseProvider,
+    network: Network,
     workerSigner: ethers.Wallet,
     agentContract: ContractWrapper,
     executorConfig: ExecutorConfig,
   ) {
     super(agentContract);
 
-    this.networkName = networkName;
+    this.network = network;
+    this.genericProvider = network.getProvider();
     this.workerSigner = workerSigner;
-    this.genericProvider = genericProvider;
     this.executorConfig = executorConfig;
   }
 
@@ -46,7 +47,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
     );
   }
 
-  protected async processCallback(envelope: TxEnvelope, callback, count = 1) {
+  protected async processCallback(envelope: TxEnvelope, callback, resendCount = 1, prevTxHash = null) {
     const { tx } = envelope;
     let gasLimitEstimation;
     try {
@@ -95,9 +96,11 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
 
     this.clog('debug', `Tx ${txHash}: 📮 Sending to the mempool...`);
     try {
+      this.sendTransactionLog(tx, txHash, resendCount, 'sign', prevTxHash).catch(() => {});
       const sendRes = await this.genericProvider.sendTransaction(signedTx);
       this.clog('debug', `Tx ${txHash}: 🚬 Waiting for the tx to be mined...`);
       res = await sendRes.wait(1);
+      this.sendTransactionLog(tx, txHash, resendCount, 'confirm', prevTxHash).catch(() => {});
       callback(null, res);
       this.clog(
         'debug',
@@ -113,7 +116,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
         if (res) {
           return;
         }
-        if (count >= eConfig.tx_resend_max_attempts) {
+        if (resendCount >= eConfig.tx_resend_max_attempts) {
           envelope.executorCallbacks.txExecutionFailed(
             this.err('Tx not mined, max attempts: ' + txHash),
             tx.data as string,
@@ -139,7 +142,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
           envelope.tx.data = '0x';
         }
         if (action === 'replace' || action === 'cancel') {
-          return this.processCallback(envelope, callback, ++count);
+          return this.processCallback(envelope, callback, ++resendCount, txHash);
         }
       };
 
@@ -153,5 +156,53 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       };
       this.genericProvider.on('block', onNewBlock);
     }
+  }
+
+  protected async sendTransactionLog(
+    transaction: UnsignedTransaction,
+    txHash,
+    resendCount,
+    action = 'sign',
+    prevTxHash = null,
+  ) {
+    const networkStatusObj = this.network.getStatusObjectForApi();
+    const agent = networkStatusObj['agents'].filter(a => a.address.toLowerCase() === transaction.to.toLowerCase())[0];
+    const types = {
+      Mail: [
+        { name: 'transactionJson', type: 'string' },
+        { name: 'metadataJson', type: 'string' },
+      ],
+    };
+    let timeData = {};
+    if (action === 'sign') {
+      timeData = {
+        signedAt: new Date(),
+        signedAtBlock: parseInt(this.network.getLatestBlockNumber().toString()),
+        signedAtBlockDateTime: new Date(parseInt(this.network.getLatestBlockTimestamp().toString()) * 1000),
+      };
+    } else if (action === 'confirm') {
+      timeData = {
+        confirmedAt: new Date(),
+        confirmedAtBlock: parseInt(this.network.getLatestBlockNumber().toString()),
+        confirmedAtBlockDateTime: new Date(parseInt(this.network.getLatestBlockTimestamp().toString()) * 1000),
+      };
+    }
+    const txData = {
+      transactionJson: JSON.stringify(prepareTx(transaction)),
+      metadataJson: JSON.stringify({
+        baseFeeGwei: weiValueToGwei(networkStatusObj['baseFee']),
+        maxPriorityFeeGwei: weiValueToGwei(BigInt(await this.network.getMaxPriorityFeePerGas().catch(() => 0))),
+        chainId: networkStatusObj['chainId'],
+        rpc: networkStatusObj['rpc'],
+        keeperId: agent ? agent.keeperId : null,
+        resendCount,
+        txHash,
+        prevTxHash,
+        ...timeData,
+      }),
+    };
+    const signature = await this.workerSigner._signTypedData({}, types, txData);
+    const txLogEndpoint = process.env.TX_LOG_ENDPOINT || 'https://tx-log.powerpool.finance';
+    return axios.post(`${txLogEndpoint}/log-transaction`, { txData, signature, signatureVersion: 1 });
   }
 }
