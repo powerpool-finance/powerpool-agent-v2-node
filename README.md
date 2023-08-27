@@ -30,16 +30,17 @@ To sign as a Keeper you need to perform the following actions:
 <img width="1716" alt="Screenshot" src="https://github.com/powerpool-finance/powerpool-agent-v2-compose/assets/69249251/4cbe9c60-cca0-490f-9001-63e8c6ff4882">
 
 ### Setting up a node
-* Clone this repository
+* Install Node.js version 18.
+* Clone this repository:
   ```sh
   git clone https://github.com/powerpool-finance/powerpool-agent-v2-node.git
   cd powerpool-agent-v2-node
   ```
-* Install dependencies
+* Install dependencies:
   ```sh
   yarn
   ```
-* Build node
+* Build Power Agent node:
   ```sh
   yarn build
   ```
