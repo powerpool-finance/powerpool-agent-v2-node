@@ -3,7 +3,7 @@
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/powerpool-finance/powerpool-agent-v2-node/main.yml?branch=master)
 
 The node monitors on-chain events and executes jobs when required.
-This node is distributed as a Docker image and a DappNode package. However, you can also build it from the source by following the instructions.
+his node is distributed as a Docker image and a DappNode package. However, you can also build it from the source by following the instructions below.
 
 Detailed instructions on how to setup a Keeper Node:
 * <a href="https://github.com/powerpool-finance/powerpool-agent-v2-compose" target="_blank">Install Power Agent V2 using Docker</a>
@@ -15,6 +15,8 @@ Main Sepolia testnet Power Agent V2 contract - <a href="https://sepolia.ethersca
 Main Sepolia testnet Power Agent V2 subgraph - <a href="https://api.studio.thegraph.com/query/48711/ppv2r-sepolia-test-defibrain88/version/latest" target="_blank">api.studio.thegraph.com</a>.
 
 To see active Power Agent V2 deployments, go to <a href="https://app.powerpool.finance/#/sepolia/ppv2/agents-contracts" target="_blank">app.powerpool.finance</a>.
+
+## Creating a Keeper and setting up a node from the source code
 
 ### Signing up as a Keeper
 
@@ -29,7 +31,7 @@ To sign as a Keeper you need to perform the following actions:
 3. You will see all your created keepers in the My Keepers section.
 <img width="1716" alt="Screenshot" src="https://github.com/powerpool-finance/powerpool-agent-v2-compose/assets/69249251/4cbe9c60-cca0-490f-9001-63e8c6ff4882">
 
-### Setting up a node
+### Setting up a node from the source code
 * Install Node.js version 18.
 * Clone this repository:
   ```sh
