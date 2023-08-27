@@ -61,7 +61,6 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       }
       printSolidityCustomError(this.clog.bind(this), this.agentContract.decodeError, txSimulation, tx.data as string);
 
-      // This callback could trigger an error which will be caught by unhandledExceptionHandler
       envelope.executorCallbacks.txEstimationFailed(e, tx.data as string);
 
       // force execute (only for debug)
@@ -105,7 +104,6 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
         `Tx ${txHash}: ⛓ Successfully mined in block #${res.blockNumber} with nonce ${tx.nonce}. The queue length is: ${this.queue.length}.`,
       );
     } catch (e) {
-      // This callback could trigger an error which will be caught by unhandledExceptionHandler
       envelope.executorCallbacks.txExecutionFailed(e, tx.data as string);
       callback();
     }
