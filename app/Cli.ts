@@ -95,7 +95,7 @@ let app: App;
   app = new App(config);
   await app.start();
 })().catch(error => {
-  logger.error(error);
+  logger.error(error.stack);
   logger.info('CLI: Unexpected error. Stopping the app with a code (1).');
   process.exit(1);
 });
