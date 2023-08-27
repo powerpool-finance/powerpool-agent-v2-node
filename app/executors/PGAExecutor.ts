@@ -96,11 +96,11 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
 
     this.clog('debug', `Tx ${txHash}: 📮 Sending to the mempool...`);
     try {
-      this.sendTransactionLog(tx, txHash, resendCount, 'sign', prevTxHash);
+      this.sendTransactionLog(tx, txHash, resendCount, 'sign', prevTxHash).catch(() => {});
       const sendRes = await this.genericProvider.sendTransaction(signedTx);
       this.clog('debug', `Tx ${txHash}: 🚬 Waiting for the tx to be mined...`);
       res = await sendRes.wait(1);
-      this.sendTransactionLog(tx, txHash, resendCount, 'confirm', prevTxHash);
+      this.sendTransactionLog(tx, txHash, resendCount, 'confirm', prevTxHash).catch(() => {});
       callback(null, res);
       this.clog(
         'debug',
