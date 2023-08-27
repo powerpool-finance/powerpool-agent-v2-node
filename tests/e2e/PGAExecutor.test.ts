@@ -35,7 +35,15 @@ describe('PGAExecutor', () => {
     const workerSigner: ethers.Wallet = new Wallet(privateKey);
     const agentContract: ContractWrapper = sinon.createStubInstance(EthersContract);
 
-    const executor = new PGAExecutor('testnet', provider, workerSigner, agentContract, {});
+    const executor = new PGAExecutor(
+      {
+        getName: () => 'testnet',
+        getProvider: () => provider,
+      } as any,
+      workerSigner,
+      agentContract,
+      {},
+    );
     executor.init();
 
     const tx: UnsignedTransaction = {

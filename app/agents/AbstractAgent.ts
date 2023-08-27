@@ -222,23 +222,10 @@ export abstract class AbstractAgent implements IAgent {
         }
         wallet.connect(this.network.getProvider());
 
-        this.executor = new FlashbotsExecutor(
-          this.network.getName(),
-          this.network.getFlashbotsRpc(),
-          this.network.getProvider(),
-          this.workerSigner,
-          wallet,
-          this.contract,
-        );
+        this.executor = new FlashbotsExecutor(this.network, this.workerSigner, wallet, this.contract);
         break;
       case 'pga':
-        this.executor = new PGAExecutor(
-          this.network.getName(),
-          this.network.getProvider(),
-          this.workerSigner,
-          this.contract,
-          this.executorConfig,
-        );
+        this.executor = new PGAExecutor(this.network, this.workerSigner, this.contract, this.executorConfig);
         break;
       default:
         throw this.err(`Invalid executor type: '${this.executorType}'. Only 'flashbots' and 'pga' are supported.`);

@@ -10,6 +10,7 @@ import {
 import { AbstractExecutor } from './AbstractExecutor.js';
 import { printSolidityCustomError } from './ExecutorUtils.js';
 import logger from '../services/Logger.js';
+import { Network } from '../Network';
 
 export class FlashbotsExecutor extends AbstractExecutor implements Executor {
   private fbRpc: string;
@@ -17,7 +18,7 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
   private fbProvider: FlashbotsBundleProvider;
 
   protected toString(): string {
-    return `(network: ${this.networkName}, rpc: ${this.fbRpc})`;
+    return `(network: ${this.network.getName()}, rpc: ${this.fbRpc})`;
   }
 
   protected clog(level: string, ...args) {
@@ -28,22 +29,15 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
     return new Error(`FlashbotsExecutorError${this.toString()}: ${args.join(' ')}`);
   }
 
-  constructor(
-    networkName: string,
-    rpc: string,
-    genericProvider: ethers.providers.BaseProvider,
-    workerSigner: ethers.Wallet,
-    fbSigner: ethers.Wallet,
-    agentContract: ContractWrapper,
-  ) {
+  constructor(network: Network, workerSigner: ethers.Wallet, fbSigner: ethers.Wallet, agentContract: ContractWrapper) {
     super(agentContract);
 
     this.queue = [];
-    this.networkName = networkName;
+    this.network = network;
+    this.fbRpc = network.getFlashbotsRpc();
+    this.genericProvider = network.getProvider();
     this.workerSigner = workerSigner;
-    this.fbRpc = rpc;
     this.fbSigner = fbSigner;
-    this.genericProvider = genericProvider;
   }
 
   public async init() {
@@ -51,7 +45,7 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
       this.genericProvider as ethers.providers.BaseProvider,
       this.fbSigner,
       this.fbRpc,
-      this.networkName,
+      this.network.getName(),
       // {chainId: 5, name: goerli}
     );
   }
