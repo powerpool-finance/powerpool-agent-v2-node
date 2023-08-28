@@ -4,7 +4,7 @@ import fs from 'fs';
 import path, { dirname } from 'path';
 import { AgentConfig, Config, NetworkConfig } from './Types.js';
 import { fileURLToPath } from 'url';
-import logger from './services/Logger.js';
+import logger, { addSentryToLogger, updateSentryScope } from "./services/Logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -12,7 +12,8 @@ const __dirname = dirname(__filename);
 let app: App;
 
 (async function () {
-  logger.info(`PowerPool Agent Node version: ${process.env.npm_package_version}`);
+  const { version } = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../package.json')).toString());
+  console.log(`PowerPool Agent Node version: ${version}`);
 
   let config: Config;
 
@@ -20,25 +21,34 @@ let app: App;
     const configName = process.argv[2] ? process.argv[2].trim() : 'main';
     logger.info(`CLI: Reading configuration from ./config/${configName}.yaml ...`);
     config = YAML.parse(fs.readFileSync(path.resolve(__dirname, `../config/${configName}.yaml`)).toString()) as Config;
+    if (config.sentry) {
+      addSentryToLogger(config.sentry, version, 'yaml_file');
+    }
   } else {
+    if (process.env.SENTRY_DSN) {
+      addSentryToLogger(process.env.SENTRY_DSN, version, 'env_vars');
+    }
     logger.info('CLI: NETWORK_NAME is found. Assuming configuration is done with ENV vars...');
     const networkName = process.env.NETWORK_NAME;
     const networkRpc = process.env.NETWORK_RPC;
     const agentAddress = process.env.AGENT_ADDRESS;
     const dataSource = process.env.DATA_SOURCE;
     const subgraphUrl = process.env.SUBGRAPH_URL;
-    const keeperAddress = process.env.KEEPER_WORKER_ADDRESS;
+    const keeperWorkerAddress = process.env.KEEPER_WORKER_ADDRESS;
     const keyPassword = process.env.KEYPASSWORD || '';
     const acceptMaxBaseFeeLimit = process.env.ACCEPT_MAX_BASE_FEE_LIMIT === 'true';
     const accrueReward = process.env.ACCRUE_REWARD === 'true';
     const api = process.env.API_SERVER === 'true';
+
+    updateSentryScope(networkName, networkRpc, agentAddress, keeperWorkerAddress, dataSource, subgraphUrl);
+
     if (!networkRpc) {
       throw new Error('ENV Config: Missing NETWORK_RPC value');
     }
     if (!agentAddress) {
       throw new Error('ENV Config: Missing AGENT_ADDRESS value');
     }
-    if (!keeperAddress) {
+    if (!keeperWorkerAddress) {
       throw new Error('ENV Config: Missing KEEPER_ADDRESS value');
     }
     if (!keyPassword) {
@@ -63,7 +73,7 @@ let app: App;
           ? parseInt(process.env.TX_RESEND_MAX_ATTEMPTS)
           : undefined,
       },
-      keeper_worker_address: keeperAddress,
+      keeper_worker_address: keeperWorkerAddress,
       key_pass: keyPassword,
       data_source: dataSource,
       subgraph_url: subgraphUrl,
@@ -79,6 +89,7 @@ let app: App;
 
     config = {
       api,
+      sentry: process.env.SENTRY_DSN,
       strict: {
         all: false,
       },
@@ -96,20 +107,19 @@ let app: App;
   await app.start();
 })().catch(error => {
   logger.error(error.stack);
-  logger.info('CLI: Unexpected error. Stopping the app with a code (1).');
-  process.exit(1);
+  setTimeout(() => {
+    logger.info('CLI: Unexpected error. Stopping the app with a code (1).');
+    process.exit(1);
+  }, 2000);
 });
 
-process.on('unhandledRejection', function (error: Error, _promise) {
-  const msg = `Unhandled Rejection, reason: ${error}`;
-  logger.error(error.stack);
-
+process.on('unhandledRejection', function (_: Error, _promise) {
   if (app && app.unhandledExceptionsStrictMode) {
-    logger.info('CLI: Stopping the app with a code (1) since the "unhandledExceptionsStrictMode" is ON.');
-    process.exit(1);
+    setTimeout(() => {
+      logger.info('CLI: Stopping the app with a code (1) since the "unhandledExceptionsStrictMode" is ON.');
+      process.exit(1);
+    }, 2000);
   }
-
-  logger.error(msg);
 });
 
 process.on('SIGINT', async function () {
