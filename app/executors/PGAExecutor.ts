@@ -49,6 +49,8 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
 
   protected async processCallback(envelope: TxEnvelope, callback, resendCount = 1, prevTxHash = null) {
     const { tx } = envelope;
+
+    this.clog('debug', `📩 Starting to process tx with calldata=${tx.data} ...`);
     let gasLimitEstimation;
     try {
       gasLimitEstimation = await this.genericProvider.estimateGas(prepareTx(tx));
