@@ -5,6 +5,7 @@ import path, { dirname } from 'path';
 import { AgentConfig, Config, NetworkConfig } from './Types.js';
 import { fileURLToPath } from 'url';
 import logger, { addSentryToLogger, updateSentryScope } from './services/Logger.js';
+import getLastCommit from "./services/GitCommit.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -12,8 +13,9 @@ const __dirname = dirname(__filename);
 let app: App;
 
 (async function () {
+  const lastCommit = await getLastCommit(__dirname);
   const { version } = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../package.json')).toString());
-  console.log(`PowerPool Agent Node version: ${version}`);
+  console.log(`PowerPool Agent Node version: ${version}, commit: ${lastCommit}`);
 
   let config: Config;
 
