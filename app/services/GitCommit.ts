@@ -1,48 +1,51 @@
-import process from 'child_process';
+import { execSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 
-const splitCharacter = '<##>';
+const versionDataFileName = '.version-data.json';
 
-async function executeCommand(dirName, command): Promise<string> {
-  return new Promise((resolve, reject) => {
-    process.exec(command, { cwd: dirName }, function (err, stdout, stderr) {
-      if (stdout === '') return reject('this does not look like a git repo');
-      if (stderr) return reject(stderr);
-      resolve(stdout);
-    });
-  });
+let version, commit, branch;
+async function getVersion(dirName) {
+  if (version && commit) {
+    return `${version}-${commit}`;
+  }
+  ({version, commit, branch} = getVersionDataFromJson(dirName));
+  if (version && commit) {
+    return `${version}-${commit}`;
+  }
+  ({version, commit, branch} = getVersionAndGitData(dirName + '/../'));
+  return `${version}-${commit}`;
 }
 
-const prettyFormat = ['%h', '%H', '%s', '%f', '%b', '%at', '%ct', '%an', '%ae', '%cn', '%ce', '%N', ''];
-
-const getCommandString = splitCharacter =>
-  'git log -1 --pretty=format:"' +
-  prettyFormat.join(splitCharacter) +
-  '"' +
-  ' && git rev-parse --abbrev-ref HEAD' +
-  ' && git tag --contains HEAD';
-
-let lastCommit;
-function getLastCommit(dirName) {
-  if (lastCommit) {
-    return lastCommit;
-  }
-
-  const gitDataPath = path.resolve(dirName, '../.git-data.json');
+function getVersionDataFromJson(dirName) {
+  const gitDataPath = path.resolve(dirName, `./${versionDataFileName}`);
   if (fs.existsSync(gitDataPath)) {
     let gitData;
     try {
       gitData = JSON.parse(fs.readFileSync(gitDataPath, { encoding: 'utf8' }));
     } catch (_e) {}
     if (gitData && 'commit' in gitData) {
-      return gitData.commit;
+      return gitData;
     }
   }
-
-  return executeCommand(dirName, getCommandString(splitCharacter))
-    .then(res => (lastCommit = res.split(splitCharacter)[1]))
-    .catch(() => null);
+  return {};
 }
 
-export default getLastCommit;
+function getVersionAndGitData(dirName): any {
+  const gitData = getGitData();
+  gitData.version = JSON.parse(fs.readFileSync(path.resolve(dirName, './package.json')).toString()).version;
+  return gitData;
+}
+
+function getGitData(): any {
+  try {
+    return {
+      branch: execSync('git rev-parse --abbrev-ref HEAD').toString().trim(),
+      commit: execSync('git rev-parse --short HEAD').toString().trim()
+    };
+  } catch (e) {
+    return {};
+  }
+}
+
+export {getVersion, getVersionAndGitData, versionDataFileName};
