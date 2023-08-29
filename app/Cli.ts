@@ -13,7 +13,15 @@ let app: App;
 
 (async function () {
   const { version } = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../package.json')).toString());
-  console.log(`PowerPool Agent Node version: ${version}`);
+  let gitData;
+  try {
+    gitData = JSON.parse(fs.readFileSync(path.resolve(__dirname, './.git-data.json')).toString());
+  } catch (_e) {}
+  let versionString = version;
+  if (gitData && 'commit' in gitData) {
+    versionString = `${version}-${gitData.commit}`;
+  }
+  console.log(`PowerPool Agent Node version: ${versionString}`);
 
   let config: Config;
 
@@ -22,11 +30,11 @@ let app: App;
     logger.info(`CLI: Reading configuration from ./config/${configName}.yaml ...`);
     config = YAML.parse(fs.readFileSync(path.resolve(__dirname, `../config/${configName}.yaml`)).toString()) as Config;
     if (config.sentry) {
-      addSentryToLogger(config.sentry, version, 'yaml_file');
+      addSentryToLogger(config.sentry, versionString, 'yaml_file');
     }
   } else {
     if (process.env.SENTRY_DSN) {
-      addSentryToLogger(process.env.SENTRY_DSN, version, 'env_vars');
+      addSentryToLogger(process.env.SENTRY_DSN, versionString, 'env_vars');
     }
     logger.info('CLI: NETWORK_NAME is found. Assuming configuration is done with ENV vars...');
     const networkName = process.env.NETWORK_NAME;

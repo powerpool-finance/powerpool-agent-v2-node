@@ -4,12 +4,14 @@
   "description": "PowerPool Agent V2 Keeper Node",
   "main": "app/Run.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && yarn write-git-data",
+    "build:release": "yarn clean && yarn run build",
     "start": "ts-node app/Cli.ts",
     "dev": "NODE_ENV=dev ts-node app/Cli.ts",
     "lint": "eslint --ext .ts app/ tests/",
     "lint:fix": "eslint --fix --ext .ts app/ tests/",
-    "test": "NODE_ENV=test LOG_LEVEL=error mocha tests/**/*.test.ts"
+    "test": "NODE_ENV=test LOG_LEVEL=error mocha tests/**/*.test.ts",
+    "write-git-data": "node ./writeGitData.js"
   },
   "author": "PowerPool",
   "license": "ISC",
