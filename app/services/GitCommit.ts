@@ -1,4 +1,6 @@
 import process from 'child_process';
+import path from 'path';
+import fs from 'fs';
 
 const splitCharacter = '<##>';
 
@@ -26,6 +28,18 @@ function getLastCommit(dirName) {
   if (lastCommit) {
     return lastCommit;
   }
+
+  const gitDataPath = path.resolve(dirName, '../.git-data.json');
+  if (fs.existsSync(gitDataPath)) {
+    let gitData;
+    try {
+      gitData = JSON.parse(fs.readFileSync(gitDataPath, { encoding: 'utf8' }));
+    } catch (_e) {}
+    if (gitData && 'commit' in gitData) {
+      return gitData.commit;
+    }
+  }
+
   return executeCommand(dirName, getCommandString(splitCharacter))
     .then(res => (lastCommit = res.split(splitCharacter)[1]))
     .catch(() => null);
