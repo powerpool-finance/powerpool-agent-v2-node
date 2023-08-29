@@ -58,7 +58,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
         txSimulation = await this.genericProvider.call(prepareTx(tx));
       } catch (e) {
         envelope.executorCallbacks.txEstimationFailed(e, tx.data as string);
-        return;
+        return callback(this.err(`gasLimitEstimation failed with error: ${e.message}`));
       }
       printSolidityCustomError(this.clog.bind(this), this.agentContract.decodeError, txSimulation, tx.data as string);
 
