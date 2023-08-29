@@ -5,16 +5,16 @@ import fs from 'fs';
 const versionDataFileName = '.version-data.json';
 
 let version, commit, branch;
-async function getVersion(dirName) {
+async function getVersion(dirName, full = false) {
   if (version && commit) {
-    return `${version}-${commit}`;
+    return `${version}${full ? '-' + branch : ''}-${commit}`;
   }
-  ({version, commit, branch} = getVersionDataFromJson(dirName));
+  ({ version, commit, branch } = getVersionDataFromJson(dirName));
   if (version && commit) {
-    return `${version}-${commit}`;
+    return `${version}${full ? '-' + branch : ''}-${commit}`;
   }
-  ({version, commit, branch} = getVersionAndGitData(dirName + '/../'));
-  return `${version}-${commit}`;
+  ({ version, commit, branch } = getVersionAndGitData(dirName + '/../'));
+  return `${version}${full ? '-' + branch : ''}-${commit}`;
 }
 
 function getVersionDataFromJson(dirName) {
@@ -41,11 +41,11 @@ function getGitData(): any {
   try {
     return {
       branch: execSync('git rev-parse --abbrev-ref HEAD').toString().trim(),
-      commit: execSync('git rev-parse --short HEAD').toString().trim()
+      commit: execSync('git rev-parse --short HEAD').toString().trim(),
     };
   } catch (e) {
     return {};
   }
 }
 
-export {getVersion, getVersionAndGitData, versionDataFileName};
+export { getVersion, getVersionAndGitData, versionDataFileName };
