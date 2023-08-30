@@ -49,6 +49,8 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
 
   protected async processCallback(envelope: TxEnvelope, callback, resendCount = 1, prevTxHash = null) {
     const { tx } = envelope;
+
+    this.clog('debug', `📩 Starting to process tx with calldata=${tx.data} ...`);
     let gasLimitEstimation;
     try {
       gasLimitEstimation = await this.genericProvider.estimateGas(prepareTx(tx));
@@ -58,7 +60,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
         txSimulation = await this.genericProvider.call(prepareTx(tx));
       } catch (e) {
         envelope.executorCallbacks.txEstimationFailed(e, tx.data as string);
-        return;
+        return callback(this.err(`gasLimitEstimation failed with error: ${e.message}`));
       }
       printSolidityCustomError(this.clog.bind(this), this.agentContract.decodeError, txSimulation, tx.data as string);
 
