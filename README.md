@@ -10,9 +10,9 @@ Detailed instructions on how to setup a Keeper Node:
 
 ## Official PPAgentV2 deployments
 
-Main Sepolia testnet Power Agent V2 contract - <a href="https://sepolia.etherscan.io/address/0xc8E864f12c337Bdf6294a3DCeE0E565D2B1B4d90" target="_blank">0xc8E864f12c337Bdf6294a3DCeE0E565D2B1B4d90</a>.
+Main Sepolia testnet Power Agent V2 contract - <a href="https://sepolia.etherscan.io/address/0xf4583fc017D82c3462944A5d7E7aD380e5bfAD74" target="_blank">0xf4583fc017D82c3462944A5d7E7aD380e5bfAD74</a>.
 
-Main Sepolia testnet Power Agent V2 subgraph - <a href="https://api.studio.thegraph.com/query/48711/ppv2r-sepolia-test-defibrain88/version/latest" target="_blank">api.studio.thegraph.com</a>.
+Main Sepolia testnet Power Agent V2 subgraph - <a href="https://api.studio.thegraph.com/query/44364/ppav2-rd-sepolia-b11/version/latest" target="_blank">api.studio.thegraph.com</a>.
 
 To see active Power Agent V2 deployments, go to <a href="https://app.powerpool.finance/#/sepolia/ppv2/agents-contracts" target="_blank">app.powerpool.finance</a>.
 
@@ -68,20 +68,19 @@ cd config && cp main.template.yaml main.yaml
 
 * The main.yaml file should look like this:
 ```yaml
-api: 8090
 networks:
-  data_source: network
   enabled:
     - sepolia
   details:
     sepolia:
-      rpc: 'wss://sepolia-3.powerpool.finance'
+      rpc: 'wss://sepolia-1.powerpool.finance'
       agents:
-        '0xc8E864f12c337Bdf6294a3DCeE0E565D2B1B4d90':
+        '0xf4583fc017D82c3462944A5d7E7aD380e5bfAD74':
+          # data_source: subgraph
+          # subgraph_url: https://api.studio.thegraph.com/query/44364/ppav2-rd-sepolia-b11/version/latest
           executor: pga
           keeper_worker_address: '0x840ccC99c425eDCAfebb0e7ccAC022CD15Fd49Ca'
           key_pass: 'Very%ReliablePassword292'
-          accept_max_base_fee_limit: false
           accrue_reward: false
 
 ```
@@ -89,6 +88,20 @@ networks:
 ```sh
 node dist/Cli.js
 ```
+* If you want to override the config, you can use environment variables:
+```sh
+NETWORK_NAME=sepolia NETWORK_RPC='wss://sepolia-1.powerpool.finance' AGENT_ADDRESS='0xf4583fc017D82c3462944A5d7E7aD380e5bfAD74' KEEPER_WORKER_ADDRESS='0x840ccC99c425eDCAfebb0e7ccAC022CD15Fd49Ca' KEYPASSWORD='Very%ReliablePassword292' node dist/Cli.js
+```
+* Full list of environment variables:
+  * `NETWORK_NAME` - Name of the network (e.g., sepolia, goerli, gnosis, ethereum, etc.)
+  * `NETWORK_RPC` - Provided RPC URL
+  * `AGENT_ADDRESS` - Power Agent smart contract address
+  * `KEEPER_WORKER_ADDRESS` - Your Worker address
+  * `KEYPASSWORD` - Password for your keyfile
+  * `DATA_SOURCE` - Currently only 'subgraph'. If not provided, the node will use events.
+  * `SUBGRAPH_URL` - URL for the subgraph (e.g., `https://api.studio.thegraph.com/query/44364/ppav2-rd-sepolia-b11/version/latest`). Should be provided if `DATA_SOURCE='subgraph'`.
+  * `ACCEPT_MAX_BASE_FEE_LIMIT` - If provided, will be set to `true`
+  * `ACCRUE_REWARD` - If provided, will be set to `true`
   
 ### App exit codes
 
