@@ -85,11 +85,11 @@ networks:
           accrue_reward: false
 
 ```
-* Run node:
+* Start the node:
 ```sh
 node dist/Cli.js
 ```
-* If you want to override the config, you can use environment variables:
+* There is an alternative way to start the node by using only environment variables instead of a config file:
 ```sh
 NETWORK_NAME='sepolia' NETWORK_RPC='wss://sepolia-1.powerpool.finance' AGENT_ADDRESS='0xf4583fc017D82c3462944A5d7E7aD380e5bfAD74' KEEPER_WORKER_ADDRESS='0x840ccC99c425eDCAfebb0e7ccAC022CD15Fd49Ca' KEYPASSWORD='Very%ReliablePassword292' node dist/Cli.js
 ```
