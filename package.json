@@ -4,24 +4,28 @@
   "description": "PowerPool Agent V2 Keeper Node",
   "main": "app/Run.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && yarn write-version-data",
+    "build:release": "yarn clean && yarn run build",
     "start": "ts-node app/Cli.ts",
     "dev": "NODE_ENV=dev ts-node app/Cli.ts",
     "lint": "eslint --ext .ts app/ tests/",
     "lint:fix": "eslint --fix --ext .ts app/ tests/",
-    "test": "NODE_ENV=test LOG_LEVEL=error mocha tests/**/*.test.ts"
+    "test": "NODE_ENV=test LOG_LEVEL=error mocha tests/**/*.test.ts",
+    "write-version-data": "DIR=dist ts-node ./writeVersionData.ts"
   },
   "author": "PowerPool",
   "license": "ISC",
   "dependencies": {
     "@ethersproject/bignumber": "^5.7.0",
     "@flashbots/ethers-provider-bundle": "^0.6.1",
+    "@sentry/node": "^7.64.0",
     "@types/yamljs": "^0.2.31",
     "axios": "^1.3.6",
     "ethers": "^5.6.9",
     "fastify": "^4.19.2",
     "web3": "^1.9.0",
     "winston": "^3.10.0",
+    "winston-transport": "^4.5.0",
     "yamljs": "^0.3.0"
   },
   "type": "module",
@@ -37,6 +41,7 @@
     "eslint": "^8.19.0",
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-prettier": "^4.2.1",
+    "ethereumjs-wallet": "^1.0.2",
     "mocha": "^10.0.0",
     "prettier": "^2.8.8",
     "sinon": "^15.2.0",

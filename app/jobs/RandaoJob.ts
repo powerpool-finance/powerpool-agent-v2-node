@@ -286,7 +286,7 @@ export class RandaoJob extends AbstractJob {
     super._watchResolverJob();
   }
 
-  protected _executeTxEstimationFailed(_, _txData: string): any {
+  protected _executeTxEstimationFailedRewatch(_, _txData: string) {
     if (this._getCurrentPeriod() === 3) {
       this.clog('info', 'Scheduling self-unassign since the current period is #3...');
       this._selfUnassign();
@@ -302,12 +302,16 @@ export class RandaoJob extends AbstractJob {
         this.failedExecuteEstimationsInARow = 0;
       }
     }
-
     this.watch();
   }
 
+  protected _executeTxEstimationFailed(error, _txData: string): any {
+    this._executeTxEstimationFailedRewatch(error, _txData);
+    return this.agent.txEstimationFailed(error, _txData);
+  }
+
   protected _executeTxExecutionFailed(error, _txData: string): any {
-    this._executeTxEstimationFailed(error, _txData);
+    this._executeTxEstimationFailedRewatch(error, _txData);
     return this.agent.txExecutionFailed(error, _txData);
   }
 

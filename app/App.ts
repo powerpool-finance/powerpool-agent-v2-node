@@ -7,7 +7,7 @@ import { AgentRandao_2_3_0 } from './agents/Agent.2.3.0.randao.js';
 import { AgentLight_2_2_0 } from './agents/Agent.2.2.0.light.js';
 import { SubgraphSource } from './dataSources/SubgraphSource.js';
 import { BlockchainSource } from './dataSources/BlockchainSource.js';
-import logger from './services/Logger.js';
+import logger, { updateSentryScope } from './services/Logger.js';
 
 export class App {
   private networks: { [key: string]: Network };
@@ -126,6 +126,15 @@ export class App {
 
       for (const agent of network.getAgents()) {
         let dataSource;
+        // TODO: Add support for different agents. Now if there are multiple agents, the tags linked to the latest one.
+        updateSentryScope(
+          network.getName(),
+          network.getFlashbotsRpc(),
+          agent.address,
+          agent.getKeyAddress(),
+          agent.dataSourceType,
+          agent.subgraphUrl,
+        );
         if (agent.dataSourceType === 'subgraph') {
           dataSource = new SubgraphSource(network, agent, agent.subgraphUrl);
         } else if (agent.dataSourceType === 'blockchain') {
