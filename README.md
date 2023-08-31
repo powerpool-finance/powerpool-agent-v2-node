@@ -6,6 +6,7 @@ The node monitors on-chain events and executes jobs when required.
 his node is distributed as a Docker image and a DappNode package. However, you can also build it from the source by following the instructions below.
 
 Detailed instructions on how to setup a Keeper Node:
+* <a href="https://docs.powerpool.finance/powerpool-and-poweragent-network/powerpool-overview/poweragent-installation-guide" target="_blank">Install Power Agent V2 using DAppNode</a>
 * <a href="https://github.com/powerpool-finance/powerpool-agent-v2-compose" target="_blank">Install Power Agent V2 using Docker</a>
 
 ## Official PPAgentV2 deployments
