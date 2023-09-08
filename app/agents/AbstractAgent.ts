@@ -565,7 +565,7 @@ export abstract class AbstractAgent implements IAgent {
   }
 
   txEstimationFailed(err, txData) {
-    this.clog('error', `txExecutionFailed: ${err.message}, txData: ${txData}`);
+    this.clog('error', `txEstimationFailed: ${err.message}, txData: ${txData}`);
   }
 
   private async trySendExecuteEnvelope(envelope: TxEnvelope) {

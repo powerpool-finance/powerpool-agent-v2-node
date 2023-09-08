@@ -5,6 +5,7 @@ import path, { dirname } from 'path';
 import { AgentConfig, Config, NetworkConfig } from './Types.js';
 import { fileURLToPath } from 'url';
 import logger, { addSentryToLogger, updateSentryScope } from './services/Logger.js';
+import { getVersion } from './services/GitCommit.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -12,7 +13,7 @@ const __dirname = dirname(__filename);
 let app: App;
 
 (async function () {
-  const { version } = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../package.json')).toString());
+  const version = await getVersion(__dirname);
   console.log(`PowerPool Agent Node version: ${version}`);
 
   let config: Config;
