@@ -929,6 +929,9 @@ export abstract class AbstractAgent implements IAgent {
   }
 
   isAssignedJobsInProcess() {
-    return Array.from(this.jobs.values()).some(job => (job as RandaoJob).assignedKeeperId === this.keeperId);
+    return (
+      Array.from(this.jobs.values()).some(job => (job as RandaoJob).assignedKeeperId === this.keeperId) &&
+      !this.network.isBlockDelayAboveMax()
+    );
   }
 }
