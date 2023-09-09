@@ -226,10 +226,11 @@ export class Network {
     const originalSubscribe = provider._subscribe.bind(provider);
     provider._subscribe = (tag: string, param: Array<any>, processFunc: (result: any) => void) => {
       return originalSubscribe(tag, param, (result: any) => {
-        if (param[0] === 'logs' && !result.logs) {
-          return;
+        try {
+          processFunc(result);
+        } catch (e) {
+          this.clog('error', `Provider subscribe process error ${e.message}`);
         }
-        processFunc(result);
       });
     };
   }
