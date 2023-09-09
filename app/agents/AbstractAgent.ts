@@ -561,11 +561,24 @@ export abstract class AbstractAgent implements IAgent {
   }
 
   txExecutionFailed(err, txData) {
+    this.parseAndSetUnrecognizedErrorMessage(err);
     this.clog('error', `txExecutionFailed: ${err.message}, txData: ${txData}`);
   }
 
   txEstimationFailed(err, txData) {
+    this.parseAndSetUnrecognizedErrorMessage(err);
     this.clog('error', `txEstimationFailed: ${err.message}, txData: ${txData}`);
+  }
+
+  parseAndSetUnrecognizedErrorMessage(err) {
+    try {
+      if (err.reason && err.reason.includes('unrecognized custom error')) {
+        const decodedError = this.contract.decodeError(err.reason.split('data: ')[1].slice(0, -1));
+        err.message = `Error: VM Exception while processing transaction: reverted with ${
+          decodedError.name
+        } decoded error and ${JSON.stringify(decodedError.args)} args`;
+      }
+    } catch (_) {}
   }
 
   private async trySendExecuteEnvelope(envelope: TxEnvelope) {
