@@ -618,6 +618,7 @@ export abstract class AbstractAgent implements IAgent {
       this.activateAgent();
     } else if (
       this.isAgentUp &&
+      !this.isAssignedJobsInProcess() &&
       !(this.myStakeIsSufficient() && this.myKeeperIsActive && !this.network.isBlockDelayAboveMax())
     ) {
       this.terminateAgent();
@@ -906,7 +907,7 @@ export abstract class AbstractAgent implements IAgent {
         this.myKeeperIsActive = false;
 
         (async () => {
-          while (Array.from(this.jobs.values()).some(job => (job as RandaoJob).assignedKeeperId === this.keeperId)) {
+          while (this.isAssignedJobsInProcess()) {
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
           this.clog('debug', 'Deactivate Keeper.');
@@ -925,5 +926,9 @@ export abstract class AbstractAgent implements IAgent {
       }
     });
     this._afterInitializeListeners(blockNumber);
+  }
+
+  isAssignedJobsInProcess() {
+    return Array.from(this.jobs.values()).some(job => (job as RandaoJob).assignedKeeperId === this.keeperId);
   }
 }
