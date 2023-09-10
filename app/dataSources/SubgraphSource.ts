@@ -213,8 +213,8 @@ export class SubgraphSource extends AbstractSource {
     return lensFields;
   }
 
-  public async addLensFieldsToNewJob(newJob: LightJob | RandaoJob) {
-    return this.blockchainSource.addLensFieldsToNewJob(newJob);
+  public async addLensFieldsToOneJob(newJob: LightJob | RandaoJob) {
+    return this.blockchainSource.addLensFieldsToOneJob(newJob);
   }
 
   /**

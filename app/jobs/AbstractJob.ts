@@ -81,7 +81,7 @@ export abstract class AbstractJob {
     return null;
   }
   protected _executeTxExecutionSuccess(_, __: string): any {
-    return null;
+    return this.agent.updateJob(this);
   }
 
   constructor(creationEvent: EventWrapper, agent: IAgent) {

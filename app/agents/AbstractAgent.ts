@@ -456,7 +456,7 @@ export abstract class AbstractAgent implements IAgent {
     const job = this._buildNewJob(creationEvent);
     this.jobs.set(jobKey, job);
 
-    await this.dataSource.addLensFieldsToNewJob(job);
+    await this.dataSource.addLensFieldsToOneJob(job);
     job.clearJobCredits();
 
     if (!this.ownerJobs.has(owner)) {
@@ -468,6 +468,10 @@ export abstract class AbstractAgent implements IAgent {
     if (!this.ownerBalances.has(owner)) {
       this.ownerBalances.set(owner, BN_ZERO);
     }
+  }
+
+  public async updateJob(jobObj) {
+    return this.dataSource.addLensFieldsToOneJob(jobObj);
   }
 
   protected startAllJobs() {

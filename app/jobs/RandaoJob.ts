@@ -169,9 +169,9 @@ export class RandaoJob extends AbstractJob {
     this.agent.exitIfStrictTopic(topic);
   }
 
-  private async _initiateSlashingIncrementFailedCounter() {
+  private async _initiateSlashingIncrementFailedCounter(err) {
     // TODO: implement interval job counter
-    if (this.isResolverJob()) {
+    if (this.isResolverJob() && !this.isNotEnoughBalanceError(err)) {
       this.failedInitiateSlashingEstimationsInARow += 1;
 
       if (this.failedInitiateSlashingEstimationsInARow > this.BLACKLIST_ESTIMATIONS_LIMIT) {
@@ -190,17 +190,18 @@ export class RandaoJob extends AbstractJob {
     const txEstimationFailed = error => {
       this.clog('error', 'Error: InitiateSlashing() execution failed', error);
       this.exitIfStrictTopic('estimations');
-      this._initiateSlashingIncrementFailedCounter();
+      this._initiateSlashingIncrementFailedCounter(error);
     };
     const txExecutionFailed = error => {
       this.clog('error', 'Error: InitiateSlashing() execution failed', error);
       this.exitIfStrictTopic('executions');
-      this._initiateSlashingIncrementFailedCounter();
+      this._initiateSlashingIncrementFailedCounter(error);
     };
     const txExecutionSuccess = (receipt, txData) => {
       if ((this.agent as IRandaoAgent).isTxDataOfJobInitiateSlashing(txData, this.address, this.id)) {
         this._unlockInitiateSlashing();
       }
+      this._executeTxExecutionSuccess(receipt, txData);
     };
     if (this._initiateSlashingPending) {
       this.clog('debug', 'Slashing is already pending...');
@@ -334,21 +335,19 @@ export class RandaoJob extends AbstractJob {
   }
 
   protected async resolverSuccessCallback(triggeredByBlockNumber, invokeCalldata) {
-    // execute
     if (this.agent.getKeeperId() === this.assignedKeeperId) {
+      // execute
       await this.executeResolverJob(invokeCalldata);
-      // executeSlashing
     } else if (
       this.slashingPossibleAfter > 0 &&
       this.agent.nowS() > this.slashingPossibleAfter &&
       this.reservedSlasherId == this.agent.getKeeperId()
     ) {
-      if (!this._initiateSlashingPending) {
-        this.clog('debug', `Need execute slashing bn=${triggeredByBlockNumber}`);
-        await this.initiateSlashing(invokeCalldata);
-        // initiateSlashing
-      }
-    } else {
+      // executeSlashing
+      this.clog('debug', `Need execute slashing bn=${triggeredByBlockNumber}`);
+      await this.executeResolverJob(invokeCalldata);
+    } else if (!this._initiateSlashingPending) {
+      // initiateSlashing
       const now = this.agent.nowS();
       const latestBlock = this.agent.getNetwork().getLatestBlockNumber();
       const period1 = (this.agent as IRandaoAgent).getPeriod1Duration();
@@ -381,12 +380,10 @@ export class RandaoJob extends AbstractJob {
         } else {
           this.clog('debug', "😟 Can't initiate slashing, i'm not the next block slasher");
         }
-      } else {
-        if (this.t1 === 0) {
-          this.clog('debug', `Initiate resolver slashing counter bn=${triggeredByBlockNumber}`);
-          this.t1 = Number(this.agent.getNetwork().getLatestBlockTimestamp());
-          this.b1 = latestBlock;
-        }
+      } else if (this.t1 === 0) {
+        this.clog('debug', `Initiate resolver slashing counter bn=${triggeredByBlockNumber}`);
+        this.t1 = Number(this.agent.getNetwork().getLatestBlockTimestamp());
+        this.b1 = latestBlock;
       }
     }
   }

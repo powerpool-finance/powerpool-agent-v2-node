@@ -6,6 +6,7 @@ import { RandaoJob } from './jobs/RandaoJob';
 import { LightJob } from './jobs/LightJob';
 import { BytesLike } from '@ethersproject/bytes';
 import { AccessListish } from '@ethersproject/transactions/src.ts/index';
+import { AbstractJob } from './jobs/AbstractJob';
 
 export type AvailableNetworkNames = 'mainnet' | 'bsc' | 'polygon' | 'goerli';
 export type ExecutorType = 'flashbots' | 'pga';
@@ -350,7 +351,7 @@ export interface IRandaoAgent extends IAgent {
 export interface IDataSource {
   getRegisteredJobs(_context): Promise<Map<string, RandaoJob | LightJob>>;
   getOwnersBalances(context, jobOwnersSet: Set<string>): Promise<Map<string, BigNumber>>;
-  addLensFieldsToNewJob(newJobs: RandaoJob | LightJob): void;
+  addLensFieldsToOneJob(newJobs: RandaoJob | LightJob): void;
 }
 
 export interface IAgent {
@@ -405,6 +406,8 @@ export interface IAgent {
   txExecutionFailed(err, txData): any;
 
   txEstimationFailed(err, txData): any;
+
+  updateJob(jobObj: AbstractJob): Promise<any>;
 
   nowS(): number;
 
