@@ -80,6 +80,9 @@ export abstract class AbstractJob {
   protected _executeTxExecutionFailed(_, __: string): any {
     return null;
   }
+  protected _executeTxExecutionSuccess(_, __: string): any {
+    return null;
+  }
 
   constructor(creationEvent: EventWrapper, agent: IAgent) {
     const args: RegisterJobEventArgs = creationEvent.args as never;
@@ -339,6 +342,10 @@ export abstract class AbstractJob {
     };
   }
 
+  protected isNotEnoughBalanceError(e) {
+    return e.message && e.message.includes("sender doesn't have enough funds to send tx");
+  }
+
   // 1 is 1 wei
   public getCreditsAvailable(): bigint {
     let balanceAvailable = this.details.credits;
@@ -353,6 +360,7 @@ export abstract class AbstractJob {
       executorCallbacks: {
         txEstimationFailed: this._executeTxEstimationFailed.bind(this),
         txExecutionFailed: this._executeTxExecutionFailed.bind(this),
+        txExecutionSuccess: this._executeTxExecutionSuccess.bind(this),
         txNotMinedInBlock: this.agent.txNotMinedInBlock.bind(this.agent),
       },
       jobKey,

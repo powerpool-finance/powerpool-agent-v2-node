@@ -1,4 +1,4 @@
-import { ContractWrapper, ErrorWrapper } from '../Types.js';
+import { ContractWrapper, ErrorWrapper, TxDataWrapper } from '../Types.js';
 import { Contract } from 'web3-eth-contract';
 import Web3 from 'web3';
 import { WebsocketProvider } from 'web3-core';
@@ -63,6 +63,10 @@ export class Web3Contract implements ContractWrapper {
   }
 
   decodeError(/*response: string*/): ErrorWrapper {
+    return undefined;
+  }
+
+  decodeTxData(/*data: string*/): TxDataWrapper {
     return undefined;
   }
 

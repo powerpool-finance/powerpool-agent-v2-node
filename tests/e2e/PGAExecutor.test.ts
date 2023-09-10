@@ -60,6 +60,7 @@ describe('PGAExecutor', () => {
       executorCallbacks: {
         txEstimationFailed: NonExpectedEstimationCallback,
         txExecutionFailed: NonExpectedExecutionCallback,
+        txExecutionSuccess: (_, __) => {},
         txNotMinedInBlock: EmptyTxNotMinedInBlockCallback,
       },
     };

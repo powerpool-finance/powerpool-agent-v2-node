@@ -197,6 +197,11 @@ export class RandaoJob extends AbstractJob {
       this.exitIfStrictTopic('executions');
       this._initiateSlashingIncrementFailedCounter();
     };
+    const txExecutionSuccess = (receipt, txData) => {
+      if ((this.agent as IRandaoAgent).isTxDataOfJobInitiateSlashing(txData, this.address, this.id)) {
+        this._unlockInitiateSlashing();
+      }
+    };
     if (this._initiateSlashingPending) {
       this.clog('debug', 'Slashing is already pending...');
       return;
@@ -207,6 +212,7 @@ export class RandaoJob extends AbstractJob {
     return (this.agent as IRandaoAgent).initiateKeeperSlashing(this.address, this.id, this.key, resolverCalldata, {
       txEstimationFailed,
       txExecutionFailed,
+      txExecutionSuccess,
       txNotMinedInBlock: this.agent.txNotMinedInBlock.bind(this.agent),
     });
   }
@@ -286,7 +292,7 @@ export class RandaoJob extends AbstractJob {
     super._watchResolverJob();
   }
 
-  protected _executeTxEstimationFailedRewatch(_, _txData: string) {
+  protected _executeTxEstimationFailedRewatch(err: Error, _txData: string) {
     if (this._getCurrentPeriod() === 3) {
       this.clog('info', 'Scheduling self-unassign since the current period is #3...');
       this._selfUnassign();
@@ -294,7 +300,7 @@ export class RandaoJob extends AbstractJob {
       return;
     }
 
-    if (this.isResolverJob()) {
+    if (this.isResolverJob() && !this.isNotEnoughBalanceError(err)) {
       // Assume that a failed execution behaviour is equal to a failed estimation
       this.failedExecuteEstimationsInARow += 1;
       if (this.failedExecuteEstimationsInARow > this.BLACKLIST_ESTIMATIONS_LIMIT) {
@@ -322,6 +328,7 @@ export class RandaoJob extends AbstractJob {
   private bn = 0n;
 
   private async executeResolverJob(invokeCalldata) {
+    this.clog('info', 'executeResolverJob()');
     this.agent.unregisterResolver(this.key);
     return this.executeTx(this.key, await this.buildTx(this.buildResolverCalldata(invokeCalldata)));
   }
@@ -336,9 +343,11 @@ export class RandaoJob extends AbstractJob {
       this.agent.nowS() > this.slashingPossibleAfter &&
       this.reservedSlasherId == this.agent.getKeeperId()
     ) {
-      this.clog('debug', `Need execute slashing bn=${triggeredByBlockNumber}`);
-      await this.executeResolverJob(invokeCalldata);
-      // initiateSlashing
+      if (!this._initiateSlashingPending) {
+        this.clog('debug', `Need execute slashing bn=${triggeredByBlockNumber}`);
+        await this.initiateSlashing(invokeCalldata);
+        // initiateSlashing
+      }
     } else {
       const now = this.agent.nowS();
       const latestBlock = this.agent.getNetwork().getLatestBlockNumber();

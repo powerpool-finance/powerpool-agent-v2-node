@@ -242,10 +242,16 @@ export interface ErrorWrapper {
   signature: string;
   args: { [name: string]: any };
 }
+export interface TxDataWrapper {
+  name: string;
+  signature: string;
+  args: { [name: string]: any };
+}
 
 export interface ContractWrapper {
   readonly address: string;
   decodeError(response: string): ErrorWrapper;
+  decodeTxData(data: string): TxDataWrapper;
   getNativeContract(): ethers.Contract | Contract;
   getDefaultProvider(): ethers.providers.BaseProvider | WebsocketProvider;
   ethCall(method: string, args?: any[], overrides?: object, callStatic?: boolean): Promise<any>;
@@ -305,8 +311,9 @@ export interface TxEnvelope {
 }
 
 export interface ExecutorCallbacks {
-  txEstimationFailed: (error, Error) => void;
-  txExecutionFailed: (error, Error) => void;
+  txEstimationFailed: (error, txData) => void;
+  txExecutionFailed: (error, txData) => void;
+  txExecutionSuccess: (receipt, txData) => void;
   txNotMinedInBlock: (tx: UnsignedTransaction, txHash: string) => Promise<TxGasUpdate>;
 }
 
@@ -337,6 +344,7 @@ export interface IRandaoAgent extends IAgent {
     jobCalldata: string,
     executorCallbacks: ExecutorCallbacks,
   ): void;
+  isTxDataOfJobInitiateSlashing(data, jobAddress, jobId): boolean;
 }
 
 export interface IDataSource {
