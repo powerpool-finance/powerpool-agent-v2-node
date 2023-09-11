@@ -302,6 +302,7 @@ export abstract class AbstractAgent implements IAgent {
   }
 
   public addJobToBlacklist(jobKey) {
+    this.clog('info', `addJobToBlacklist: ${jobKey}`);
     this.blacklistedJobs.add(jobKey);
   }
 
@@ -456,7 +457,7 @@ export abstract class AbstractAgent implements IAgent {
     const job = this._buildNewJob(creationEvent);
     this.jobs.set(jobKey, job);
 
-    await this.dataSource.addLensFieldsToNewJob(job);
+    await this.dataSource.addLensFieldsToOneJob(job);
     job.clearJobCredits();
 
     if (!this.ownerJobs.has(owner)) {
@@ -468,6 +469,10 @@ export abstract class AbstractAgent implements IAgent {
     if (!this.ownerBalances.has(owner)) {
       this.ownerBalances.set(owner, BN_ZERO);
     }
+  }
+
+  public async updateJob(jobObj) {
+    return this.dataSource.addLensFieldsToOneJob(jobObj);
   }
 
   protected startAllJobs() {
@@ -561,11 +566,24 @@ export abstract class AbstractAgent implements IAgent {
   }
 
   txExecutionFailed(err, txData) {
+    this.parseAndSetUnrecognizedErrorMessage(err);
     this.clog('error', `txExecutionFailed: ${err.message}, txData: ${txData}`);
   }
 
   txEstimationFailed(err, txData) {
+    this.parseAndSetUnrecognizedErrorMessage(err);
     this.clog('error', `txEstimationFailed: ${err.message}, txData: ${txData}`);
+  }
+
+  private parseAndSetUnrecognizedErrorMessage(err) {
+    try {
+      if (err.reason && err.reason.includes('unrecognized custom error')) {
+        const decodedError = this.contract.decodeError(err.reason.split('data: ')[1].slice(0, -1));
+        err.message = `Error: VM Exception while processing transaction: reverted with ${
+          decodedError.name
+        } decoded error and ${JSON.stringify(decodedError.args)} args`;
+      }
+    } catch (_) {}
   }
 
   private async trySendExecuteEnvelope(envelope: TxEnvelope) {
@@ -605,6 +623,7 @@ export abstract class AbstractAgent implements IAgent {
       this.activateAgent();
     } else if (
       this.isAgentUp &&
+      !this.isAssignedJobsInProcess() &&
       !(this.myStakeIsSufficient() && this.myKeeperIsActive && !this.network.isBlockDelayAboveMax())
     ) {
       this.terminateAgent();
@@ -893,7 +912,7 @@ export abstract class AbstractAgent implements IAgent {
         this.myKeeperIsActive = false;
 
         (async () => {
-          while (Array.from(this.jobs.values()).some(job => (job as RandaoJob).assignedKeeperId === this.keeperId)) {
+          while (this.isAssignedJobsInProcess()) {
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
           this.clog('debug', 'Deactivate Keeper.');
@@ -912,5 +931,19 @@ export abstract class AbstractAgent implements IAgent {
       }
     });
     this._afterInitializeListeners(blockNumber);
+  }
+
+  /**
+   * Checks whether there are assigned jobs currently in progress for the keeper.
+   * This function verifies if any jobs in the 'jobs' map have the same assigned keeper ID as the current keeper.
+   * Additionally, it checks if the block delay is not above the maximum threshold.
+   *
+   * @returns boolean indicating whether there are assigned jobs in progress for the keeper.
+   */
+  public isAssignedJobsInProcess() {
+    return (
+      Array.from(this.jobs.values()).some(job => (job as RandaoJob).assignedKeeperId === this.keeperId) &&
+      !this.network.isBlockDelayAboveMax()
+    );
   }
 }

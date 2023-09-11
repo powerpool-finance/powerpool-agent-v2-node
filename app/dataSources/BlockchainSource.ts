@@ -73,9 +73,9 @@ export class BlockchainSource extends AbstractSource {
     });
   }
 
-  public async addLensFieldsToNewJob(newJob: RandaoJob | LightJob) {
+  public async addLensFieldsToOneJob(job: RandaoJob | LightJob) {
     const tmpMap = new Map();
-    tmpMap.set(newJob.getKey(), newJob);
+    tmpMap.set(job.getKey(), job);
     return this.addLensFieldsToJobs(tmpMap);
   }
 }

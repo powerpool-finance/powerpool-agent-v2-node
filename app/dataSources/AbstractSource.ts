@@ -33,7 +33,7 @@ export abstract class AbstractSource implements IDataSource {
 
   abstract getRegisteredJobs(_context): Promise<Map<string, RandaoJob | LightJob>>;
   abstract getOwnersBalances(context, jobOwnersSet: Set<string>): Promise<Map<string, BigNumber>>;
-  abstract addLensFieldsToNewJob(newJobs: RandaoJob | LightJob): void;
+  abstract addLensFieldsToOneJob(newJobs: RandaoJob | LightJob): void;
 
   /**
    * Helps handle null addresses. If value is null it returns a null address

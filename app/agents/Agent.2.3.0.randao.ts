@@ -130,6 +130,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       executorCallbacks: {
         txEstimationFailed,
         txExecutionFailed,
+        txExecutionSuccess: (_, __) => {},
         txNotMinedInBlock: this.txNotMinedInBlock.bind(this),
       },
       jobKey,
@@ -175,6 +176,15 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       tx,
     };
     await this._sendNonExecuteTransaction(envelope);
+  }
+
+  public isTxDataOfJobInitiateSlashing(data, jobAddress, jobId) {
+    const result = this.contract.decodeTxData(data);
+    return (
+      result.name === 'initiateKeeperSlashing' &&
+      result.args.jobAddress_.toLowerCase() === jobAddress.toLowerCase() &&
+      result.args.jobId_.toString() === jobId.toString()
+    );
   }
 
   private async queryAgentRdConfig(): Promise<any> {

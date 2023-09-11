@@ -1,4 +1,4 @@
-import { ContractWrapper, ErrorWrapper } from '../Types.js';
+import { ContractWrapper, ErrorWrapper, TxDataWrapper } from '../Types.js';
 import { Contract } from 'web3-eth-contract';
 import Web3 from 'web3';
 import { WebsocketProvider } from 'web3-core';
@@ -62,11 +62,15 @@ export class Web3Contract implements ContractWrapper {
     } while (errorCounter-- > 0);
   }
 
-  decodeError(/*response: string*/): ErrorWrapper {
+  public decodeError(/*response: string*/): ErrorWrapper {
     return undefined;
   }
 
-  ethCallStatic(/*method: string, args?: any[], overrides?: object*/): Promise<any> {
+  public decodeTxData(/*data: string*/): TxDataWrapper {
+    return undefined;
+  }
+
+  public ethCallStatic(/*method: string, args?: any[], overrides?: object*/): Promise<any> {
     return Promise.resolve(undefined);
   }
 

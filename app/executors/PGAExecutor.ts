@@ -102,6 +102,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       const sendRes = await this.genericProvider.sendTransaction(signedTx);
       this.clog('debug', `Tx ${txHash}: 🚬 Waiting for the tx to be mined...`);
       res = await sendRes.wait(1);
+      envelope.executorCallbacks.txExecutionSuccess(res, tx.data as string);
       this.sendTransactionLog(tx, txHash, resendCount, 'confirm', prevTxHash).catch(() => {});
       callback(null, res);
       this.clog(

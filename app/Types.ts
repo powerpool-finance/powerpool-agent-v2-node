@@ -6,6 +6,7 @@ import { RandaoJob } from './jobs/RandaoJob';
 import { LightJob } from './jobs/LightJob';
 import { BytesLike } from '@ethersproject/bytes';
 import { AccessListish } from '@ethersproject/transactions/src.ts/index';
+import { AbstractJob } from './jobs/AbstractJob';
 
 export type AvailableNetworkNames = 'mainnet' | 'bsc' | 'polygon' | 'goerli';
 export type ExecutorType = 'flashbots' | 'pga';
@@ -242,10 +243,16 @@ export interface ErrorWrapper {
   signature: string;
   args: { [name: string]: any };
 }
+export interface TxDataWrapper {
+  name: string;
+  signature: string;
+  args: { [name: string]: any };
+}
 
 export interface ContractWrapper {
   readonly address: string;
   decodeError(response: string): ErrorWrapper;
+  decodeTxData(data: string): TxDataWrapper;
   getNativeContract(): ethers.Contract | Contract;
   getDefaultProvider(): ethers.providers.BaseProvider | WebsocketProvider;
   ethCall(method: string, args?: any[], overrides?: object, callStatic?: boolean): Promise<any>;
@@ -305,8 +312,9 @@ export interface TxEnvelope {
 }
 
 export interface ExecutorCallbacks {
-  txEstimationFailed: (error, Error) => void;
-  txExecutionFailed: (error, Error) => void;
+  txEstimationFailed: (error, txData) => void;
+  txExecutionFailed: (error, txData) => void;
+  txExecutionSuccess: (receipt, txData) => void;
   txNotMinedInBlock: (tx: UnsignedTransaction, txHash: string) => Promise<TxGasUpdate>;
 }
 
@@ -337,12 +345,13 @@ export interface IRandaoAgent extends IAgent {
     jobCalldata: string,
     executorCallbacks: ExecutorCallbacks,
   ): void;
+  isTxDataOfJobInitiateSlashing(data, jobAddress, jobId): boolean;
 }
 
 export interface IDataSource {
   getRegisteredJobs(_context): Promise<Map<string, RandaoJob | LightJob>>;
   getOwnersBalances(context, jobOwnersSet: Set<string>): Promise<Map<string, BigNumber>>;
-  addLensFieldsToNewJob(newJobs: RandaoJob | LightJob): void;
+  addLensFieldsToOneJob(newJobs: RandaoJob | LightJob): void;
 }
 
 export interface IAgent {
@@ -397,6 +406,8 @@ export interface IAgent {
   txExecutionFailed(err, txData): any;
 
   txEstimationFailed(err, txData): any;
+
+  updateJob(jobObj: AbstractJob): Promise<any>;
 
   nowS(): number;
 

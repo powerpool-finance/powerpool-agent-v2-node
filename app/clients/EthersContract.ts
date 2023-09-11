@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import { sleep } from '../Utils.js';
-import { ContractWrapper, ErrorWrapper, EventWrapper, WrapperListener } from '../Types.js';
+import { ContractWrapper, ErrorWrapper, EventWrapper, TxDataWrapper, WrapperListener } from '../Types.js';
 import { Result, Fragment, ErrorFragment, FunctionFragment, EventFragment } from 'ethers/lib/utils.js';
 import logger from '../services/Logger.js';
 import QueueEmitter from '../services/QueueEmitter.js';
@@ -102,6 +102,14 @@ export class EthersContract implements ContractWrapper {
   }
   public decodeError(response: string): ErrorWrapper {
     const decoded = this.contract.interface.parseError(response);
+    return {
+      name: decoded.name,
+      signature: decoded.signature,
+      args: filterFunctionResultObject(decoded.args),
+    };
+  }
+  public decodeTxData(data: string): TxDataWrapper {
+    const decoded = this.contract.interface.parseTransaction({ data });
     return {
       name: decoded.name,
       signature: decoded.signature,

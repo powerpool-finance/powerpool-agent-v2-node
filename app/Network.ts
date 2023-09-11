@@ -213,11 +213,26 @@ export class Network {
 
   private initProvider() {
     this.provider = new ethers.providers.WebSocketProvider(this.rpc);
+    this.fixProvider(this.provider);
     this.contractWrapperFactory = new EthersContractWrapperFactory([this.rpc], this.networkConfig.ws_timeout);
+    this.fixProvider(this.contractWrapperFactory.getDefaultProvider());
     this.multicall = this.contractWrapperFactory.build(this.multicall2Address, getMulticall2Abi());
     // TODO: initialize this after we know agent version and strategy
     this.externalLens = this.contractWrapperFactory.build(this.externalLensAddress, getExternalLensAbi());
     this.provider.on('block', this._onNewBlockCallback.bind(this));
+  }
+
+  private fixProvider(provider) {
+    const originalSubscribe = provider._subscribe.bind(provider);
+    provider._subscribe = (tag: string, param: Array<any>, processFunc: (result: any) => void) => {
+      return originalSubscribe(tag, param, (result: any) => {
+        try {
+          processFunc(result);
+        } catch (e) {
+          this.clog('error', `Provider subscribe process error ${e.message}`);
+        }
+      });
+    };
   }
 
   public async init() {
