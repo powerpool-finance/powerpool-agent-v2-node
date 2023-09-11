@@ -171,7 +171,7 @@ export class RandaoJob extends AbstractJob {
 
   private async _initiateSlashingIncrementFailedCounter(err) {
     // TODO: implement interval job counter
-    if (this.isResolverJob() && !this.isNotEnoughBalanceError(err)) {
+    if (this.isResolverJob() && !this.isNotSuitableForBlacklistError(err)) {
       this.failedInitiateSlashingEstimationsInARow += 1;
 
       if (this.failedInitiateSlashingEstimationsInARow > this.BLACKLIST_ESTIMATIONS_LIMIT) {
@@ -301,7 +301,7 @@ export class RandaoJob extends AbstractJob {
       return;
     }
 
-    if (this.isResolverJob() && !this.isNotEnoughBalanceError(err)) {
+    if (this.isResolverJob() && !this.isNotSuitableForBlacklistError(err)) {
       // Assume that a failed execution behaviour is equal to a failed estimation
       this.failedExecuteEstimationsInARow += 1;
       if (this.failedExecuteEstimationsInARow > this.BLACKLIST_ESTIMATIONS_LIMIT) {

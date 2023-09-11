@@ -342,8 +342,12 @@ export abstract class AbstractJob {
     };
   }
 
-  protected isNotEnoughBalanceError(e) {
-    return e.message && e.message.includes("sender doesn't have enough funds to send tx");
+  protected isNotSuitableForBlacklistError(e) {
+    return (
+      e.message &&
+      (e.message.includes("sender doesn't have enough funds to send tx") ||
+        e.message.includes('Tx not mined, max attempts'))
+    );
   }
 
   // 1 is 1 wei

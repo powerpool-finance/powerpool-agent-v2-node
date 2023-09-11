@@ -302,6 +302,7 @@ export abstract class AbstractAgent implements IAgent {
   }
 
   public addJobToBlacklist(jobKey) {
+    this.clog('info', `addJobToBlacklist: ${jobKey}`);
     this.blacklistedJobs.add(jobKey);
   }
 
