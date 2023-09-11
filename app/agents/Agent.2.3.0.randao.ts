@@ -178,7 +178,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
     await this._sendNonExecuteTransaction(envelope);
   }
 
-  isTxDataOfJobInitiateSlashing(data, jobAddress, jobId) {
+  public isTxDataOfJobInitiateSlashing(data, jobAddress, jobId) {
     const result = this.contract.decodeTxData(data);
     return (
       result.name === 'initiateKeeperSlashing' &&

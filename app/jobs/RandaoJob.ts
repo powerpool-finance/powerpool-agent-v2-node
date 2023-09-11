@@ -338,9 +338,9 @@ export class RandaoJob extends AbstractJob {
     if (this.agent.getKeeperId() === this.assignedKeeperId) {
       // execute
       await this.executeResolverJob(invokeCalldata);
-    } else if (this.slashingPossibleAfter > 0 && this.reservedSlasherId == this.agent.getKeeperId()) {
-      if (this.agent.nowS() < this.slashingPossibleAfter) {
-        return; // wait until slashingPossibleAfter
+    } else if (this.slashingPossibleAfter > 0) {
+      if (this.reservedSlasherId != this.agent.getKeeperId() || this.agent.nowS() < this.slashingPossibleAfter) {
+        return; // wait until reservedSlasherId match and slashingPossibleAfter reached
       }
       // executeSlashing
       this.clog('debug', `Need execute slashing bn=${triggeredByBlockNumber}`);

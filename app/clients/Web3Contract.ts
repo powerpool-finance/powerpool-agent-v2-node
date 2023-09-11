@@ -62,15 +62,15 @@ export class Web3Contract implements ContractWrapper {
     } while (errorCounter-- > 0);
   }
 
-  decodeError(/*response: string*/): ErrorWrapper {
+  public decodeError(/*response: string*/): ErrorWrapper {
     return undefined;
   }
 
-  decodeTxData(/*data: string*/): TxDataWrapper {
+  public decodeTxData(/*data: string*/): TxDataWrapper {
     return undefined;
   }
 
-  ethCallStatic(/*method: string, args?: any[], overrides?: object*/): Promise<any> {
+  public ethCallStatic(/*method: string, args?: any[], overrides?: object*/): Promise<any> {
     return Promise.resolve(undefined);
   }
 

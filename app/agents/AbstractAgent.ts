@@ -574,7 +574,7 @@ export abstract class AbstractAgent implements IAgent {
     this.clog('error', `txEstimationFailed: ${err.message}, txData: ${txData}`);
   }
 
-  parseAndSetUnrecognizedErrorMessage(err) {
+  private parseAndSetUnrecognizedErrorMessage(err) {
     try {
       if (err.reason && err.reason.includes('unrecognized custom error')) {
         const decodedError = this.contract.decodeError(err.reason.split('data: ')[1].slice(0, -1));
@@ -784,6 +784,21 @@ export abstract class AbstractAgent implements IAgent {
       job.watch();
     });
 
+    this.on('InitiateKeeperSlashing', async event => {
+      const { jobKey, slasherKeeperId } = event.args;
+
+      this.clog(
+        'debug',
+        `'InitiateKeeperSlashing' event: (block=${
+          event.blockNumber
+        },jobKey=${jobKey},slasherKeeperId=${slasherKeeperId.toString()})`,
+      );
+
+      const job = this.jobs.get(jobKey);
+      await this.updateJob(job);
+      job.watch();
+    });
+
     this.on('SetJobPreDefinedCalldata', event => {
       const { jobKey, preDefinedCalldata } = event.args;
 
@@ -932,7 +947,7 @@ export abstract class AbstractAgent implements IAgent {
     this._afterInitializeListeners(blockNumber);
   }
 
-  isAssignedJobsInProcess() {
+  public isAssignedJobsInProcess() {
     return (
       Array.from(this.jobs.values()).some(job => (job as RandaoJob).assignedKeeperId === this.keeperId) &&
       !this.network.isBlockDelayAboveMax()
