@@ -95,8 +95,8 @@ export class RandaoJob extends AbstractJob {
   }
 
   public applyInitiateKeeperSlashing(jobSlashingPossibleAfter: number, slasherKeeperId: number) {
-    this.slashingPossibleAfter = jobSlashingPossibleAfter;
-    this.reservedSlasherId = slasherKeeperId;
+    this.slashingPossibleAfter = parseInt(jobSlashingPossibleAfter.toString());
+    this.reservedSlasherId = parseInt(slasherKeeperId.toString());
   }
 
   public applySlashKeeper() {
@@ -338,11 +338,10 @@ export class RandaoJob extends AbstractJob {
     if (this.agent.getKeeperId() === this.assignedKeeperId) {
       // execute
       await this.executeResolverJob(invokeCalldata);
-    } else if (
-      this.slashingPossibleAfter > 0 &&
-      this.agent.nowS() > this.slashingPossibleAfter &&
-      this.reservedSlasherId == this.agent.getKeeperId()
-    ) {
+    } else if (this.slashingPossibleAfter > 0 && this.reservedSlasherId == this.agent.getKeeperId()) {
+      if (this.agent.nowS() < this.slashingPossibleAfter) {
+        return; // wait until slashingPossibleAfter
+      }
       // executeSlashing
       this.clog('debug', `Need execute slashing bn=${triggeredByBlockNumber}`);
       await this.executeResolverJob(invokeCalldata);
