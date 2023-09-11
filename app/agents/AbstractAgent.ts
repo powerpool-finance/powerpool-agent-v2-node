@@ -785,21 +785,6 @@ export abstract class AbstractAgent implements IAgent {
       job.watch();
     });
 
-    this.on('InitiateKeeperSlashing', async event => {
-      const { jobKey, slasherKeeperId } = event.args;
-
-      this.clog(
-        'debug',
-        `'InitiateKeeperSlashing' event: (block=${
-          event.blockNumber
-        },jobKey=${jobKey},slasherKeeperId=${slasherKeeperId.toString()})`,
-      );
-
-      const job = this.jobs.get(jobKey);
-      await this.updateJob(job);
-      job.watch();
-    });
-
     this.on('SetJobPreDefinedCalldata', event => {
       const { jobKey, preDefinedCalldata } = event.args;
 
@@ -948,6 +933,13 @@ export abstract class AbstractAgent implements IAgent {
     this._afterInitializeListeners(blockNumber);
   }
 
+  /**
+   * Checks whether there are assigned jobs currently in progress for the keeper.
+   * This function verifies if any jobs in the 'jobs' map have the same assigned keeper ID as the current keeper.
+   * Additionally, it checks if the block delay is not above the maximum threshold.
+   *
+   * @returns boolean indicating whether there are assigned jobs in progress for the keeper.
+   */
   public isAssignedJobsInProcess() {
     return (
       Array.from(this.jobs.values()).some(job => (job as RandaoJob).assignedKeeperId === this.keeperId) &&
