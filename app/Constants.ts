@@ -126,7 +126,7 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
 export const MULTICALL_CONTRACTS: { [network: string]: string } = {
   mainnet: '0x5ba1e12693dc8f9c48aad8770482f4739beed696',
   goerli: '0x5ba1e12693dc8f9c48aad8770482f4739beed696',
-  gnosis: '0x5ba1e12693dc8f9c48aad8770482f4739beed696',
+  gnosis: '0xe79dfe2f36afa066dd501fd9c89a3e7d5843c0c2',
   sepolia: '0x3BEDdA2f411409448e0033024d68f1cDb0EEDd7B',
 };
 
