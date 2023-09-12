@@ -507,17 +507,19 @@ export abstract class AbstractAgent implements IAgent {
     await this.trySendExecuteEnvelope(envelope);
   }
 
-  getBaseFeePerGas() {
-    return BigInt((this.network.getBaseFee() * 110n) / 100n);
+  getBaseFeePerGas(multiplier = 2n) {
+    return BigInt(this.network.getBaseFee() * multiplier);
   }
 
   protected async populateTxExtraFields(tx: UnsignedTransaction) {
     tx.chainId = this.network.getChainId();
     tx['from'] = this.workerSigner.address;
     const baseFeePerGas = this.getBaseFeePerGas();
-    const maxPriorityFeePerGas = await this.network.getMaxPriorityFeePerGas();
-    const priorityGeeAddGwei = BigInt(this.executorConfig.gas_price_priority_add_gwei);
-    tx.maxPriorityFeePerGas = BigInt(maxPriorityFeePerGas) + priorityGeeAddGwei * 1000000000n;
+    const priorityFeeAddGwei = BigInt(this.executorConfig.gas_price_priority_add_gwei);
+    const maxPriorityFeePerGas = await this.network
+      .getMaxPriorityFeePerGas()
+      .catch(() => priorityFeeAddGwei * 1000000000n);
+    tx.maxPriorityFeePerGas = BigInt(maxPriorityFeePerGas) + priorityFeeAddGwei * 1000000000n;
     tx.maxFeePerGas = baseFeePerGas + tx.maxPriorityFeePerGas;
   }
 
