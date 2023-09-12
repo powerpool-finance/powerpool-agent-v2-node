@@ -126,6 +126,7 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
 export const MULTICALL_CONTRACTS: { [network: string]: string } = {
   mainnet: '0x5ba1e12693dc8f9c48aad8770482f4739beed696',
   goerli: '0x5ba1e12693dc8f9c48aad8770482f4739beed696',
+  gnosis: '0xe79dfe2f36afa066dd501fd9c89a3e7d5843c0c2',
   sepolia: '0x3BEDdA2f411409448e0033024d68f1cDb0EEDd7B',
 };
 
@@ -137,14 +138,16 @@ export const EXTERNAL_LENS_CONTRACTS_2_2_0: { [network: string]: string } = {
 
 export const EXTERNAL_LENS_CONTRACTS_2_3_0: { [network: string]: string } = {
   mainnet: '',
-  goerli: '0x1a348FDcD9EcB6c81CA5043B4278716189e6aEe4',
-  sepolia: '0x3606422e94ea26E5eE2653AC0d137c2Bf8b232F8',
+  gnosis: '0x0830f0AdfC3b07277b37d38253C01FE0Ed0348E5', // v2
+  goerli: '0x1a348FDcD9EcB6c81CA5043B4278716189e6aEe4', // v1
+  sepolia: '0x42a2D286Bac644CfdB4030d96b4f7b2ad9dFA998', // v2
 };
 
 export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {
   mainnet: 12,
   sepolia: 12,
   goerli: 12,
+  gnosis: 5,
   testnet: 5,
 };
 
