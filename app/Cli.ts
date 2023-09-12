@@ -117,10 +117,10 @@ let app: App;
   }, 2000);
 });
 
-process.on('unhandledRejection', function (_: Error, _promise) {
+process.on('unhandledRejection', function (e: Error, _promise) {
   if (app && app.unhandledExceptionsStrictMode) {
     setTimeout(() => {
-      logger.info('CLI: Stopping the app with a code (1) since the "unhandledExceptionsStrictMode" is ON.');
+      logger.info('CLI: Stopping the app with a code (1) since the "unhandledExceptionsStrictMode" is ON. Error: ', e);
       process.exit(1);
     }, 2000);
   }
