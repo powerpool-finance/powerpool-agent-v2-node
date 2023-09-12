@@ -129,8 +129,8 @@ describe('AgentRandao_2_3_0', () => {
         assert.deepEqual(api.calldataSource, 'Resolver');
         assert.deepEqual(api.creditsAvailableWei, 3000000000000000000n);
         assert.deepEqual(api.creditsAvailableEth, 3);
-        assert.deepEqual(api.maxFeePerGasWei, 4n);
-        assert.deepEqual(api.maxFeePerGasGwei, 4e-9);
+        assert.deepEqual(api.maxFeePerGasWei, 2n);
+        assert.deepEqual(api.maxFeePerGasGwei, 2e-9);
 
         assert.deepEqual(api.jobLevelMinKeeperCvp.toString(), '10');
         assert.deepEqual(api.config.isActive, true);

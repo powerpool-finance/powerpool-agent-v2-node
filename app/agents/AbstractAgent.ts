@@ -507,27 +507,32 @@ export abstract class AbstractAgent implements IAgent {
     await this.trySendExecuteEnvelope(envelope);
   }
 
-  getMaxFeePerGas() {
-    return BigInt(this.network.getBaseFee() * 2n);
+  getBaseFeePerGas() {
+    return BigInt((this.network.getBaseFee() * 110n) / 100n);
   }
 
-  // Here only the `maxPriorityFeePerGas` is assigned.
-  // The `maxFeePerGas` is assigned earlier during job.buildTx().
   protected async populateTxExtraFields(tx: UnsignedTransaction) {
     tx.chainId = this.network.getChainId();
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore (estimations will fail w/o this `from` assignment)
-    tx.from = this.workerSigner.address;
+    tx['from'] = this.workerSigner.address;
+    const baseFeePerGas = this.getBaseFeePerGas();
     const maxPriorityFeePerGas = await this.network.getMaxPriorityFeePerGas();
-    // console.log({ maxPriorityFeePerGas, maxFeePerGas: tx.maxFeePerGas });
-    tx.maxPriorityFeePerGas = BigInt(maxPriorityFeePerGas) * 2n;
+    const priorityGeeAddGwei = BigInt(this.executorConfig.gas_price_priority_add_gwei);
+    tx.maxPriorityFeePerGas = BigInt(maxPriorityFeePerGas) + priorityGeeAddGwei * 1000000000n;
+    tx.maxFeePerGas = baseFeePerGas + tx.maxPriorityFeePerGas;
+  }
 
-    const maxPriorityFeePerGasBigInt = BigInt(tx.maxPriorityFeePerGas);
-    const maxFeePerGasBigInt = BigInt(String(tx.maxFeePerGas));
-    // console.log({ maxPriorityFeePerGasBigInt, maxFeePerGasBigInt });
-    if (maxPriorityFeePerGasBigInt > maxFeePerGasBigInt) {
-      tx.maxPriorityFeePerGas = maxFeePerGasBigInt;
-    }
+  public async buildTx(calldata: string): Promise<UnsignedTransaction> {
+    return {
+      to: this.getAddress(),
+
+      data: calldata,
+
+      // Typed-Transaction features
+      type: 2,
+
+      // EIP-1559; Type 2
+      // maxFeePerGas: this.getBaseFeePerGas(),
+    };
   }
 
   async txNotMinedInBlock(tx: UnsignedTransaction, txHash: string): Promise<TxGasUpdate> {
@@ -549,10 +554,7 @@ export abstract class AbstractAgent implements IAgent {
     if (priorityIncrease < 110n) {
       tx.maxPriorityFeePerGas = (maxPriorityFeePerGas * 111n) / 100n;
     }
-    let newMax = this.getMaxFeePerGas();
-    if (tx.maxPriorityFeePerGas > newMax) {
-      newMax = tx.maxPriorityFeePerGas;
-    }
+    const newMax = this.getBaseFeePerGas() + tx.maxPriorityFeePerGas;
     //TODO: check nonce
     //TODO: check resends count and max feePerGas
 
