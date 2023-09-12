@@ -331,7 +331,7 @@ export class RandaoJob extends AbstractJob {
   private async executeResolverJob(invokeCalldata) {
     this.clog('info', 'executeResolverJob()');
     this.agent.unregisterResolver(this.key);
-    return this.executeTx(this.key, await this.buildTx(this.buildResolverCalldata(invokeCalldata)));
+    return this.executeTx(this.key, await this.agent.buildTx(this.buildResolverCalldata(invokeCalldata)));
   }
 
   protected async resolverSuccessCallback(triggeredByBlockNumber, invokeCalldata) {
@@ -409,7 +409,7 @@ export class RandaoJob extends AbstractJob {
         }),
       );
       this.agent.unregisterIntervalJobExecution(this.key);
-      return this.executeTx(this.key, await this.buildTx(this.buildIntervalCalldata()));
+      return this.executeTx(this.key, await this.agent.buildTx(this.buildIntervalCalldata()));
     }
   }
 
@@ -434,7 +434,7 @@ export class RandaoJob extends AbstractJob {
       this.clog('debug', 'Wont slash mine job', JSON.stringify({ nextBlockSlasherId, me: this.agent.getKeeperId() }));
     } else if (this.agent.getKeeperId() === nextBlockSlasherId) {
       this.unwatch();
-      return this.executeTx(this.key, await this.buildTx(this.buildIntervalCalldata()));
+      return this.executeTx(this.key, await this.agent.buildTx(this.buildIntervalCalldata()));
     } else {
       this.clog('debug', 'Slasher is not me', JSON.stringify({ nextBlockSlasherId, me: this.agent.getKeeperId() }));
     }

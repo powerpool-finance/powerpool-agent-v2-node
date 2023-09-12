@@ -73,6 +73,9 @@ let app: App;
         tx_resend_max_attempts: process.env.TX_RESEND_MAX_ATTEMPTS
           ? parseInt(process.env.TX_RESEND_MAX_ATTEMPTS)
           : undefined,
+        gas_price_priority_add_gwei: process.env.GAS_PRICE_ADD_GWEI
+          ? parseFloat(process.env.GAS_PRICE_ADD_GWEI)
+          : undefined,
       },
       keeper_worker_address: keeperWorkerAddress,
       key_pass: keyPassword,

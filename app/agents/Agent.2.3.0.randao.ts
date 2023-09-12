@@ -106,17 +106,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
   async selfUnassignFromJob(jobKey: string) {
     this.clog('info', 'Executing Self-Unassign');
     const calldata = this.encodeABI('releaseJob', [jobKey]);
-    const tx = {
-      to: this.getAddress(),
-
-      data: calldata,
-
-      // Typed-Transaction features
-      type: 2,
-
-      // EIP-1559; Type 2
-      maxFeePerGas: this.getMaxFeePerGas(),
-    };
+    const tx = await this.buildTx(calldata);
     await this.populateTxExtraFields(tx);
     const txEstimationFailed = (error): void => {
       this.clog('error', 'Error: Self-Unassign releaseJob() estimation failed', error);
@@ -158,17 +148,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       false,
       jobCalldata,
     ]);
-    const tx = {
-      to: this.getAddress(),
-
-      data: calldata,
-
-      // Typed-Transaction features
-      type: 2,
-
-      // EIP-1559; Type 2
-      maxFeePerGas: this.getMaxFeePerGas(),
-    };
+    const tx = await this.buildTx(calldata);
     await this.populateTxExtraFields(tx);
     const envelope = {
       executorCallbacks,

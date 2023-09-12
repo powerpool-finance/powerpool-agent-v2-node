@@ -23,6 +23,7 @@ export interface ExecutorConfig {
   tx_resend_or_drop_after_blocks?: number;
   tx_resend_max_gas_price_gwei?: number;
   tx_resend_max_attempts?: number;
+  gas_price_priority_add_gwei?: number;
 }
 
 export interface AgentConfig {
@@ -397,9 +398,11 @@ export interface IAgent {
 
   getIsAgentUp(): boolean;
 
-  getMaxFeePerGas(): bigint;
+  getBaseFeePerGas(): bigint;
 
   queryPastEvents(eventName: string, from: number, to: number): Promise<any>;
+
+  buildTx(calldata: string): Promise<UnsignedTransaction>;
 
   txNotMinedInBlock(tx: UnsignedTransaction, txHash: string): Promise<TxGasUpdate>;
 

@@ -328,20 +328,6 @@ export abstract class AbstractJob {
     return encodeExecute(this.address, this.id, this.agent.getCfg(), this.agent.getKeeperId(), jobCalldata);
   }
 
-  protected async buildTx(calldata: string): Promise<UnsignedTransaction> {
-    return {
-      to: this.agent.getAddress(),
-
-      data: calldata,
-
-      // Typed-Transaction features
-      type: 2,
-
-      // EIP-1559; Type 2
-      maxFeePerGas: this.agent.getMaxFeePerGas(),
-    };
-  }
-
   protected isNotSuitableForBlacklistError(e) {
     return (
       e.message &&
@@ -454,8 +440,8 @@ export abstract class AbstractJob {
       calldataSource: this.getJobCalldataSourceString(),
       creditsAvailableWei: this.getCreditsAvailable(),
       creditsAvailableEth: weiValueToEth(this.getCreditsAvailable()),
-      maxFeePerGasWei: this.agent.getMaxFeePerGas(),
-      maxFeePerGasGwei: weiValueToGwei(this.agent.getMaxFeePerGas()),
+      maxFeePerGasWei: this.agent.getBaseFeePerGas(),
+      maxFeePerGasGwei: weiValueToGwei(this.agent.getBaseFeePerGas()),
       jobLevelMinKeeperCvp: this.jobLevelMinKeeperCvp,
       preDefinedCalldata: this.preDefinedCalldata,
 
