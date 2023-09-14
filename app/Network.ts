@@ -274,12 +274,16 @@ export class Network {
   }
 
   private async _onNewBlockCallback(blockNumber) {
+    blockNumber = BigInt(blockNumber.toString());
     const before = this.nowMs();
     const block = await this.queryBlock(blockNumber);
     const fetchBlockDelay = this.nowMs() - before;
 
+    if (this.latestBlockNumber && blockNumber <= this.latestBlockNumber) {
+      return;
+    }
+    this.latestBlockNumber = blockNumber;
     this.latestBaseFee = BigInt(block.baseFeePerGas.toString());
-    this.latestBlockNumber = BigInt(block.number.toString());
     this.latestBlockTimestamp = BigInt(block.timestamp.toString());
     this.currentBlockDelay = this.nowS() - parseInt(block.timestamp.toString());
 
@@ -427,7 +431,7 @@ export class Network {
   }
 
   public async queryBlock(number): Promise<ethers.providers.Block> {
-    return this.provider.getBlock(number);
+    return this.provider.getBlock(parseInt(number.toString()));
   }
 
   public async queryLatestBlock(): Promise<ethers.providers.Block> {
