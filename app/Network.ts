@@ -15,6 +15,8 @@ import { App } from './App';
 import logger from './services/Logger.js';
 
 interface ResolverJobWithCallback {
+  lastSuccessBlock?: bigint;
+  successCounter?: number;
   resolver: Resolver;
   callback: (calldata: string) => void;
 }
@@ -339,9 +341,10 @@ export class Network {
     // TODO: protect from handlers queueing on the networks with < 3s block time
     const resolversToCall = [];
     const callbacks = [];
-    for (const [, jobData] of Object.entries(this.resolverJobData)) {
+    for (const [jobKey, jobData] of Object.entries(this.resolverJobData)) {
       callbacks.push(jobData.callback);
       resolversToCall.push({
+        jobKey,
         target: jobData.resolver.resolverAddress,
         callData: jobData.resolver.resolverCalldata,
       });
@@ -355,14 +358,18 @@ export class Network {
     let jobsToExecute = 0;
 
     for (let i = 0; i < results.length; i++) {
-      const res = results[i];
-      // Multicall-level success
-      if (res.success) {
-        const decoded = ethers.utils.defaultAbiCoder.decode(['bool', 'bytes'], res.returnData);
-        if (decoded[0]) {
-          callbacks[i](blockNumber, decoded[1]);
-          jobsToExecute += 1;
-        }
+      const decoded = results[i].success
+        ? ethers.utils.defaultAbiCoder.decode(['bool', 'bytes'], results[i].returnData)
+        : [false];
+      const { jobKey } = resolversToCall[i];
+      const job = this.resolverJobData[jobKey];
+      if (this.latestBlockNumber > job.lastSuccessBlock) {
+        job.lastSuccessBlock = decoded[0] ? this.latestBlockNumber : 0n;
+        job.successCounter = decoded[0] ? job.successCounter + 1 : 0;
+      }
+      if (decoded[0] && job.successCounter >= this.networkConfig.resolve_min_success_count) {
+        callbacks[i](blockNumber, decoded[1]);
+        jobsToExecute += 1;
       }
     }
 
@@ -418,6 +425,8 @@ export class Network {
     this.resolverJobData[key] = {
       resolver,
       callback,
+      lastSuccessBlock: 0n,
+      successCounter: 0,
     };
   }
 
