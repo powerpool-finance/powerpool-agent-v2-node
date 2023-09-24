@@ -13,10 +13,12 @@ export class App {
   private networks: { [key: string]: Network };
   private readonly config: Config;
   private stopApi: () => void;
+  private version;
 
   public unhandledExceptionsStrictMode = false;
 
   constructor(config: Config) {
+    this.version = config.version;
     this.networks = {};
 
     if (!!config.api) {
@@ -69,6 +71,10 @@ export class App {
     }
 
     this.config = config;
+  }
+
+  public getVersion() {
+    return this.version;
   }
 
   public async start() {

@@ -108,6 +108,7 @@ let app: App;
     };
   }
 
+  config.version = version;
   app = new App(config);
   await app.start();
 })().catch(error => {
