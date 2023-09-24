@@ -97,6 +97,7 @@ export interface StrictModeConfig {
 }
 
 export interface Config {
+  version?: string;
   observe?: boolean;
   api?: boolean | number;
   sentry?: string;

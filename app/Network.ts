@@ -109,6 +109,10 @@ export class Network {
     this.app.exitIfStrictTopic(topic);
   }
 
+  public getAppVersion() {
+    return this.app.getVersion();
+  }
+
   public getContractWrapperFactory(): ContractWrapperFactory {
     return this.contractWrapperFactory;
   }
