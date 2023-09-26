@@ -1,7 +1,8 @@
 import { ethers } from 'ethers';
-import { ContractWrapper, ExecutorConfig, TxEnvelope } from '../Types.js';
-import { getTxString } from '../Utils.js';
+import { ContractWrapper, ExecutorConfig, IAgent, TxEnvelope } from '../Types.js';
+import { getTxString, weiValueToGwei } from '../Utils.js';
 import { Network } from '../Network';
+import axios from 'axios';
 
 export abstract class AbstractExecutor {
   protected network: Network;
@@ -22,6 +23,7 @@ export abstract class AbstractExecutor {
   protected queueHandlerLock: boolean;
   protected lastTxKey: string;
   protected lastTxEnvelope: TxEnvelope;
+  protected lastDelaySentAt;
 
   protected constructor(agentContract: ContractWrapper) {
     this.agentContract = agentContract;
@@ -132,5 +134,34 @@ export abstract class AbstractExecutor {
     }
     this.clog('debug', '🔓 Unlocking queue...');
     this.queueHandlerLock = false;
+  }
+
+  async sendBlockDelayLog(agent: IAgent, delay, blockNumber) {
+    if (this.lastDelaySentAt && new Date().getTime() - this.lastDelaySentAt.getTime() < 60 * 1000) {
+      return;
+    }
+    this.lastDelaySentAt = new Date();
+
+    const types = {
+      Mail: [{ name: 'metadataJson', type: 'string' }],
+    };
+
+    const networkStatusObj = this.network.getStatusObjectForApi();
+    const blockData = {
+      metadataJson: JSON.stringify({
+        delay,
+        blockNumber,
+        keeperId: agent.keeperId,
+        rpc: networkStatusObj['rpc'],
+        agent: agent.address.toLowerCase(),
+        chainId: networkStatusObj['chainId'],
+        appVersion: this.network.getAppVersion(),
+        baseFeeGwei: weiValueToGwei(networkStatusObj['baseFee']),
+        maxPriorityFeeGwei: weiValueToGwei(BigInt(await this.network.getMaxPriorityFeePerGas().catch(() => 0))),
+      }),
+    };
+    const signature = await this.workerSigner._signTypedData({}, types, blockData);
+    const txLogEndpoint = process.env.TX_LOG_ENDPOINT || 'https://tx-log.powerpool.finance';
+    return axios.post(`${txLogEndpoint}/log-block-delay`, { blockData, signature, signatureVersion: 1 });
   }
 }

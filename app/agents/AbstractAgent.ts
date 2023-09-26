@@ -182,7 +182,6 @@ export abstract class AbstractAgent implements IAgent {
       throw this.err('Constructor not initialized');
     }
 
-    // TODO: remove unused
     this.network.getNewBlockEventEmitter().on('newBlock', this.newBlockEventHandler.bind(this));
 
     // Ensure version matches
@@ -293,8 +292,11 @@ export abstract class AbstractAgent implements IAgent {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private newBlockEventHandler(blockTimestamp) {
+  private newBlockEventHandler(blockTimestamp, blockNumber) {
     this.activateOrTerminateAgentIfRequired();
+    if (this.network.isBlockDelayAboveMax()) {
+      this.executor.sendBlockDelayLog(this, this.network.blockDelay(), blockNumber);
+    }
   }
 
   public exitIfStrictTopic(topic) {
