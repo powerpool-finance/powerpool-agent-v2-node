@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import { ContractWrapper, ExecutorConfig, IAgent, TxEnvelope } from '../Types.js';
-import { getTxString, weiValueToGwei } from '../Utils.js';
+import { getTxString } from '../Utils.js';
 import { Network } from '../Network';
 import axios from 'axios';
 
@@ -23,7 +23,7 @@ export abstract class AbstractExecutor {
   protected queueHandlerLock: boolean;
   protected lastTxKey: string;
   protected lastTxEnvelope: TxEnvelope;
-  protected lastDelaySentAt;
+  protected lastDelaySentAtMs;
 
   protected constructor(agentContract: ContractWrapper) {
     this.agentContract = agentContract;
@@ -137,10 +137,10 @@ export abstract class AbstractExecutor {
   }
 
   async sendBlockDelayLog(agent: IAgent, delay, blockNumber) {
-    if (this.lastDelaySentAt && new Date().getTime() - this.lastDelaySentAt.getTime() < 60 * 1000) {
+    if (this.lastDelaySentAtMs && this.network.nowMs() - this.lastDelaySentAtMs < 60 * 1000) {
       return;
     }
-    this.lastDelaySentAt = new Date();
+    this.lastDelaySentAtMs = this.network.nowMs();
 
     const types = {
       Mail: [{ name: 'metadataJson', type: 'string' }],
@@ -150,14 +150,12 @@ export abstract class AbstractExecutor {
     const blockData = {
       metadataJson: JSON.stringify({
         delay,
-        blockNumber,
         keeperId: agent.keeperId,
         rpc: networkStatusObj['rpc'],
+        blockNumber: Number(blockNumber),
         agent: agent.address.toLowerCase(),
         chainId: networkStatusObj['chainId'],
         appVersion: this.network.getAppVersion(),
-        baseFeeGwei: weiValueToGwei(networkStatusObj['baseFee']),
-        maxPriorityFeeGwei: weiValueToGwei(BigInt(await this.network.getMaxPriorityFeePerGas().catch(() => 0))),
       }),
     };
     const signature = await this.workerSigner._signTypedData({}, types, blockData);
