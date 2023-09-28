@@ -228,6 +228,7 @@ export interface Executor {
   getStatusObjectForApi(): object;
   init();
   push(key: string, tx: TxEnvelope);
+  sendBlockDelayLog(agent: IAgent, delay, blockNumber);
 }
 
 export interface ClientWrapper {
@@ -360,6 +361,7 @@ export interface IDataSource {
 export interface IAgent {
   readonly executorType: ExecutorType;
   readonly address: string;
+  readonly keeperId: number;
   readonly subgraphUrl: string;
   readonly dataSourceType: DataSourceType;
 

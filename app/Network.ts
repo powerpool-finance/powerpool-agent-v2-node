@@ -293,7 +293,7 @@ export class Network {
     this.latestBlockTimestamp = BigInt(block.timestamp.toString());
     this.currentBlockDelay = this.nowS() - parseInt(block.timestamp.toString());
 
-    this.newBlockEventEmitter.emit('newBlock', block.timestamp);
+    this.newBlockEventEmitter.emit('newBlock', block.timestamp, blockNumber);
 
     if (this.newBlockNotifications.has(blockNumber)) {
       const emittedBlockHashes = this.newBlockNotifications.get(blockNumber);
@@ -315,6 +315,10 @@ export class Network {
 
   public isBlockDelayAboveMax() {
     return this.currentBlockDelay && this.currentBlockDelay > this.maxBlockDelay;
+  }
+
+  public blockDelay() {
+    return this.currentBlockDelay - this.maxBlockDelay;
   }
 
   public getNewBlockEventEmitter(): EventEmitter {

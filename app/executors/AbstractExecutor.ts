@@ -1,7 +1,8 @@
 import { ethers } from 'ethers';
-import { ContractWrapper, ExecutorConfig, TxEnvelope } from '../Types.js';
+import { ContractWrapper, ExecutorConfig, IAgent, TxEnvelope } from '../Types.js';
 import { getTxString } from '../Utils.js';
 import { Network } from '../Network';
+import axios from 'axios';
 
 export abstract class AbstractExecutor {
   protected network: Network;
@@ -22,6 +23,7 @@ export abstract class AbstractExecutor {
   protected queueHandlerLock: boolean;
   protected lastTxKey: string;
   protected lastTxEnvelope: TxEnvelope;
+  protected lastDelaySentAtMs;
 
   protected constructor(agentContract: ContractWrapper) {
     this.agentContract = agentContract;
@@ -132,5 +134,32 @@ export abstract class AbstractExecutor {
     }
     this.clog('debug', '🔓 Unlocking queue...');
     this.queueHandlerLock = false;
+  }
+
+  async sendBlockDelayLog(agent: IAgent, delay, blockNumber) {
+    if (this.lastDelaySentAtMs && this.network.nowMs() - this.lastDelaySentAtMs < 60 * 1000) {
+      return;
+    }
+    this.lastDelaySentAtMs = this.network.nowMs();
+
+    const types = {
+      Mail: [{ name: 'metadataJson', type: 'string' }],
+    };
+
+    const networkStatusObj = this.network.getStatusObjectForApi();
+    const blockData = {
+      metadataJson: JSON.stringify({
+        delay,
+        keeperId: agent.keeperId,
+        rpc: networkStatusObj['rpc'],
+        blockNumber: Number(blockNumber),
+        agent: agent.address.toLowerCase(),
+        chainId: networkStatusObj['chainId'],
+        appVersion: this.network.getAppVersion(),
+      }),
+    };
+    const signature = await this.workerSigner._signTypedData({}, types, blockData);
+    const txLogEndpoint = process.env.TX_LOG_ENDPOINT || 'https://tx-log.powerpool.finance';
+    return axios.post(`${txLogEndpoint}/log-block-delay`, { blockData, signature, signatureVersion: 1 });
   }
 }
