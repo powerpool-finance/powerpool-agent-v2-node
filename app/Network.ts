@@ -7,7 +7,13 @@ import {
   Resolver,
 } from './Types.js';
 import { ethers } from 'ethers';
-import { getAverageBlockTime, getExternalLensAddress, getMulticall2Address } from './ConfigGetters.js';
+import {
+  getAverageBlockTime,
+  getDefaultNetworkConfig,
+  getExternalLensAddress,
+  getMulticall2Address,
+  setConfigDefaultValues,
+} from './ConfigGetters.js';
 import { getExternalLensAbi, getMulticall2Abi } from './services/AbiService.js';
 import { EthersContractWrapperFactory } from './clients/EthersContractWrapperFactory.js';
 import EventEmitter from 'events';
@@ -71,6 +77,7 @@ export class Network {
     this.initialized = false;
     this.app = app;
     this.name = name;
+    setConfigDefaultValues(networkConfig, getDefaultNetworkConfig());
     this.rpc = networkConfig.rpc;
     this.maxBlockDelay = networkConfig.max_block_delay;
     this.networkConfig = networkConfig;
