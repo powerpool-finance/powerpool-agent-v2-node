@@ -73,3 +73,18 @@ export function getDefaultExecutorConfig() {
     gas_price_priority_add_gwei: 2,
   };
 }
+
+export function getDefaultNetworkConfig() {
+  return {
+    max_block_delay: 60,
+    resolve_min_success_count: 3,
+  };
+}
+
+export function setConfigDefaultValues(config, defaultValues) {
+  Object.keys(defaultValues).forEach(name => {
+    if (typeof config[name] === 'undefined') {
+      config[name] = defaultValues[name];
+    }
+  });
+}

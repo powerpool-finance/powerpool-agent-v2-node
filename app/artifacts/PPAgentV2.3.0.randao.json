@@ -286,6 +286,11 @@
     "type": "error"
   },
   {
+    "inputs": [],
+    "name": "JobCompensationMultiplierBpsLT10000",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -335,6 +340,11 @@
       }
     ],
     "name": "KeeperIsAssignedToJobs",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "KeeperShouldBeDisabledForStakeLTMinKeeperCvp",
     "type": "error"
   },
   {
@@ -1338,6 +1348,11 @@
             "internalType": "uint8",
             "name": "keeperActivationTimeoutHours",
             "type": "uint8"
+          },
+          {
+            "internalType": "uint16",
+            "name": "jobFixedRewardFinney",
+            "type": "uint16"
           }
         ],
         "indexed": false,
@@ -1597,6 +1612,45 @@
   {
     "inputs": [
       {
+        "internalType": "bool",
+        "name": "ok_",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "job_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "keeperId_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "baseFee_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "gasUsed_",
+        "type": "uint256"
+      }
+    ],
+    "name": "calculateCompensation",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "rewardPct_",
         "type": "uint256"
@@ -1668,6 +1722,24 @@
       }
     ],
     "name": "depositJobOwnerCredits",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "for_",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "jobKeys_",
+        "type": "bytes32[]"
+      }
+    ],
+    "name": "depositJobOwnerCreditsAndAssignKeepers",
     "outputs": [],
     "stateMutability": "payable",
     "type": "function"
@@ -1965,7 +2037,7 @@
     "outputs": [
       {
         "internalType": "bytes32[]",
-        "name": "jobKeys",
+        "name": "actualJobKeys",
         "type": "bytes32[]"
       }
     ],
@@ -2129,6 +2201,11 @@
             "internalType": "uint8",
             "name": "keeperActivationTimeoutHours",
             "type": "uint8"
+          },
+          {
+            "internalType": "uint16",
+            "name": "jobFixedRewardFinney",
+            "type": "uint16"
           }
         ],
         "internalType": "struct IPPAgentV2RandaoViewer.RandaoConfig",
@@ -2267,6 +2344,11 @@
             "internalType": "uint8",
             "name": "keeperActivationTimeoutHours",
             "type": "uint8"
+          },
+          {
+            "internalType": "uint16",
+            "name": "jobFixedRewardFinney",
+            "type": "uint16"
           }
         ],
         "internalType": "struct IPPAgentV2RandaoViewer.RandaoConfig",
@@ -2537,6 +2619,39 @@
       }
     ],
     "name": "ownerSlash",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "keeperId_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "to_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "currentAmount_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "pendingAmount_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "disable_",
+        "type": "bool"
+      }
+    ],
+    "name": "ownerSlashDisable",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -2835,6 +2950,11 @@
             "internalType": "uint8",
             "name": "keeperActivationTimeoutHours",
             "type": "uint8"
+          },
+          {
+            "internalType": "uint16",
+            "name": "jobFixedRewardFinney",
+            "type": "uint16"
           }
         ],
         "internalType": "struct IPPAgentV2RandaoViewer.RandaoConfig",
