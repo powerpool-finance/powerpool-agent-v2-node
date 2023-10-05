@@ -179,3 +179,17 @@ export function fbReasonStringToHexString(reason: string): string {
 export function toChecksummedAddress(address: string): string {
   return utils.getAddress(address);
 }
+
+export function chunkArray(array, chunkSize) {
+  const size = Math.ceil(array.length / chunkSize);
+  const chunks = new Array(size).fill(0);
+  return chunks.map((_, index) => {
+    const start = index * chunkSize;
+    const end = (index + 1) * chunkSize;
+    return array.slice(start, end);
+  });
+}
+
+export function flattenArray(array) {
+  return [].concat(...array);
+}
