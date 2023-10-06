@@ -4,7 +4,8 @@ import { LightJob } from '../jobs/LightJob';
 import { Network } from '../Network';
 import { IAgent } from '../Types';
 import { BigNumber } from 'ethers';
-import { parseConfig } from '../Utils.js';
+import { chunkArray, flattenArray, parseConfig } from '../Utils.js';
+import pIteration from 'p-iteration';
 
 /**
  * This class used for fetching data directly from blockchain
@@ -60,7 +61,11 @@ export class BlockchainSource extends AbstractSource {
    */
   private async addLensFieldsToJobs(newJobs: Map<string, RandaoJob | LightJob>) {
     const jobKeys = Array.from(newJobs.keys());
-    const { results } = await this.network.queryLensJobs(this.agent.address, jobKeys);
+    const results = await pIteration
+      .mapSeries(chunkArray(jobKeys, 500), (keysChunk: string[]) => {
+        return this.network.queryLensJobs(this.agent.address, keysChunk).then(r => r.results);
+      })
+      .then(r => flattenArray(r));
 
     jobKeys.forEach((jobKey, index) => {
       const newJob = newJobs.get(jobKeys[index]);
