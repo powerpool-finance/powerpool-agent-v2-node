@@ -3,7 +3,7 @@
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/powerpool-finance/powerpool-agent-v2-node/main.yml?branch=master)
 
 The node monitors on-chain events and executes jobs when required.
-his node is distributed as a Docker image and a DappNode package. However, you can also build it from the source by following the instructions below.
+This node is distributed as a Docker image and a DappNode package. However, you can also build it from the source by following the instructions below.
 
 Detailed instructions on how to setup a Keeper Node:
 * <a href="https://docs.powerpool.finance/powerpool-and-poweragent-network/powerpool-overview/poweragent-installation-guide" target="_blank">Install Power Agent V2 using DAppNode</a>
@@ -11,9 +11,14 @@ Detailed instructions on how to setup a Keeper Node:
 
 ## Official PPAgentV2 deployments
 
-Main Sepolia testnet Power Agent V2 contract - <a href="https://sepolia.etherscan.io/address/0xf4583fc017D82c3462944A5d7E7aD380e5bfAD74" target="_blank">0xf4583fc017D82c3462944A5d7E7aD380e5bfAD74</a>.
+- Sepolia:
+  - Sepolia testnet Power Agent V2 Proxy contract - <a href="https://sepolia.etherscan.io/address/0xbdE2Aed54521000DC033B67FB522034e0F93A7e5" target="_blank">0xbdE2Aed54521000DC033B67FB522034e0F93A7e5</a>.
+  - Sepolia testnet Power Agent V2 Implementation contract - <a href="https://sepolia.etherscan.io/address/0x4dea5ec11e1eb6ff7fa62eed2fa72a1ae2934e89" target="_blank">0x4dea5ec11e1eb6ff7fa62eed2fa72a1ae2934e89</a>.
+  - Sepolia testnet Power Agent V2 Lens contract - <a href="https://sepolia.etherscan.io/address/0x937991108511f1850bd476b9ab56433afde7c92a" target="_blank">0x937991108511f1850bd476b9ab56433afde7c92a</a>.
+  - Sepolia testnet Power Agent V2 subgraph - <a href="https://api.studio.thegraph.com/query/48711/ppav2-rd-sepolia-b12-ui/version/latest">api.studio.thegraph.com</a>.
 
-Main Sepolia testnet Power Agent V2 subgraph - <a href="https://api.studio.thegraph.com/query/44364/ppav2-rd-sepolia-b11/version/latest" target="_blank">api.studio.thegraph.com</a>.
+- Gnosis chain:
+  - Gnosis chain Power Agent V2 Lens contract - <a href="https://gnosisscan.io/address/0xa39bCa92537de3922B7a874143101C398Ef7DeC9">0xa39bCa92537de3922B7a874143101C398Ef7DeC9</a>.
 
 To see active Power Agent V2 deployments, go to <a href="https://app.powerpool.finance/#/sepolia/ppv2/agents-contracts" target="_blank">app.powerpool.finance</a>.
 
@@ -21,22 +26,21 @@ To see active Power Agent V2 deployments, go to <a href="https://app.powerpool.f
 
 ### Signing up as a Keeper
 
-To be a keeper, you need at least two keys. (1) One admin key for management and (2) another one for a worker. The management key function is to assign a worker's address and withdraw compensations or initial deposit. The worker key is needed for transaction signing by a bot. 
+To be a keeper, you need at least two keys. (1) One admin key for management and (2) another one for a worker. The management key function is to assign a worker's address and withdraw compensations or initial deposit. The worker key is needed for transaction signing by a node. 
 
 To sign as a Keeper you need to perform the following actions:
 
-### 1. Open Power Agent dApp
+#### 1. Open Power Agent dApp
 Go to <a href="https://app.powerpool.finance/#/sepolia/ppv2/agents-contracts" target="_blank">app.powerpool.finance</a>. Here, you can see all available Power Agent contracts for the selected network and click the `Create Keeper` button.
-<img width="1683" alt="Screenshot" src="https://github.com/powerpool-finance/powerpool-agent-v2-compose/assets/69249251/c1229aab-ea11-4770-ad20-f9b593244b8c">
-### 2. Create your Keeper
+<img width="1713" alt="Screenshot 2023-10-10 at 13 38 21" src="https://github.com/powerpool-finance/powerpool-agent-v2-node/assets/69249251/0cb6b280-85a2-475c-9953-69cd0d4cba49">
+#### 2. Create your Keeper
 In the pop-up modal window, the Admin address will be set automatically to the connected wallet. Manually fill in the Worker address and the CVP stake amount, ensuring it's above the minimum level. Your CVP stake determines the compensation the Keeper receives and their ability to be assigned a job. Sign the approval transaction and then create a Keeper.
-<img width="1689" alt="Screenshot 2023-08-25 at 19 57 28" src="https://github.com/powerpool-finance/powerpool-agent-v2-compose/assets/69249251/06e622c6-09a8-4db1-ac38-29993ac9aa12">
-### 3. Check My Keepers
-You will see all your created keepers in the My Keepers section.
-
-<img width="1716" alt="Screenshot" src="https://github.com/powerpool-finance/powerpool-agent-v2-compose/assets/69249251/4cbe9c60-cca0-490f-9001-63e8c6ff4882">
-
-### Setting up a node from the source code
+<img width="1715" alt="Screenshot 2023-10-10 at 13 39 45" src="https://github.com/powerpool-finance/powerpool-agent-v2-node/assets/69249251/3d454889-3915-4ad7-9757-163e50c2e886">
+#### 3. Check My Keepers
+You will see all your created keepers in the My Keepers section. 
+⚠️ Attention! You have created a Keeper that is not active. Please do not activate it now.
+<img width="1712" alt="Screenshot 2023-10-10 at 13 18 27" src="https://github.com/powerpool-finance/powerpool-agent-v2-node/assets/69249251/3c025888-e04b-4bc5-b146-fe87b3afb152">
+### Setting up a Power Agent node from the source code
 * Install Node.js version 18.
 * Clone this repository:
 
@@ -83,9 +87,9 @@ networks:
     sepolia:
       rpc: 'wss://sepolia-1.powerpool.finance'
       agents:
-        '0xf4583fc017D82c3462944A5d7E7aD380e5bfAD74':
+        '0xbdE2Aed54521000DC033B67FB522034e0F93A7e5':
           # data_source: subgraph
-          # subgraph_url: https://api.studio.thegraph.com/query/44364/ppav2-rd-sepolia-b11/version/latest
+          # subgraph_url: https://api.studio.thegraph.com/query/48711/ppav2-rd-sepolia-b12-ui/version/latest
           executor: pga
           keeper_worker_address: '0x840ccC99c425eDCAfebb0e7ccAC022CD15Fd49Ca'
           key_pass: 'Very%ReliablePassword292'
@@ -106,7 +110,7 @@ pm2 startup && pm2 save
 
 * There is an alternative way to start the node by using only environment variables instead of a config file:
 ```sh
-NETWORK_NAME='sepolia' NETWORK_RPC='wss://sepolia-1.powerpool.finance' AGENT_ADDRESS='0xf4583fc017D82c3462944A5d7E7aD380e5bfAD74' KEEPER_WORKER_ADDRESS='0x840ccC99c425eDCAfebb0e7ccAC022CD15Fd49Ca' KEYPASSWORD='Very%ReliablePassword292' node dist/Cli.js
+NETWORK_NAME='sepolia' NETWORK_RPC='wss://sepolia-1.powerpool.finance' AGENT_ADDRESS='0xbdE2Aed54521000DC033B67FB522034e0F93A7e5' KEEPER_WORKER_ADDRESS='0x840ccC99c425eDCAfebb0e7ccAC022CD15Fd49Ca' KEYPASSWORD='Very%ReliablePassword292' node dist/Cli.js
 ```
 * Full list of environment variables:
   * `NETWORK_NAME` - Name of the network (e.g., sepolia, goerli, gnosis, ethereum, etc.)
@@ -115,11 +119,21 @@ NETWORK_NAME='sepolia' NETWORK_RPC='wss://sepolia-1.powerpool.finance' AGENT_ADD
   * `KEEPER_WORKER_ADDRESS` - Your Worker address
   * `KEYPASSWORD` - Password for your keyfile
   * `DATA_SOURCE` - Currently only 'subgraph'. If not provided, the node will use events.
-  * `SUBGRAPH_URL` - URL for the subgraph (e.g., `https://api.studio.thegraph.com/query/44364/ppav2-rd-sepolia-b11/version/latest`). Should be provided if `DATA_SOURCE='subgraph'`.
+  * `SUBGRAPH_URL` - URL for the subgraph (e.g., `https://api.studio.thegraph.com/query/48711/ppav2-rd-sepolia-b12-ui/version/latest`). Should be provided if `DATA_SOURCE='subgraph'`.
 
   * `ACCRUE_REWARD` - If provided, will be set to `true`
-  
-### App exit codes
+
+Eventually, you will see the following logs in the console. Pay attention: your keeper is still disabled, so you cannot execute jobs.
+<img width="1095" alt="Screenshot 2023-10-10 at 13 28 12" src="https://github.com/powerpool-finance/powerpool-agent-v2-node/assets/69249251/afd2f985-5a1e-4ac2-941a-c50b89a7ccc3">
+
+### Activate Keeper
+Go back to https://app.powerpool.finance/#/sepolia/ppv2/my-keepers, click the 'Complete' button, and then sign the transaction.
+<img width="1716" alt="Screenshot 2023-10-10 at 13 29 22" src="https://github.com/powerpool-finance/powerpool-agent-v2-node/assets/69249251/b673c84d-5350-433e-ac57-c22d586f425a">
+In the console, you will see that the Keeper was successfully activated. Congratulations!
+<img width="1098" alt="Screenshot 2023-10-10 at 13 29 51" src="https://github.com/powerpool-finance/powerpool-agent-v2-node/assets/69249251/12673b78-e034-4f10-94b8-b21392499fa7">
+
+
+## App exit codes
 
 0. Not an actual error, but some condition when it's better to restart an entire app. Used for some event handlers.
 1. Critical errors. Should stop the app. For ex. worker address not found, can't resolve RPC, etc.
