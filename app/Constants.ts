@@ -17,6 +17,13 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
       strategy: 'light',
     },
   },
+  gnosis: {
+    '0x071412e301C2087A4DAA055CF4aFa2683cE1e499': {
+      deployedAt: 30393450,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
+  },
   goerli: {
     '0x96cb9B293eB7695904B4Ea0FA73eB3650e07e8E4': {
       deployedAt: 7977609,
@@ -143,7 +150,7 @@ export const EXTERNAL_LENS_CONTRACTS_2_2_0: { [network: string]: string } = {
 
 export const EXTERNAL_LENS_CONTRACTS_2_3_0: { [network: string]: string } = {
   mainnet: '',
-  gnosis: '0x0830f0AdfC3b07277b37d38253C01FE0Ed0348E5', // v2
+  gnosis: '0x2b3d29dAa9F41c4171416Af3D66f5a2aE210616E', // v2
   goerli: '0x1a348FDcD9EcB6c81CA5043B4278716189e6aEe4', // v1
   sepolia: '0x42a2D286Bac644CfdB4030d96b4f7b2ad9dFA998', // v2
 };
