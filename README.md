@@ -11,14 +11,17 @@ Detailed instructions on how to setup a Keeper Node:
 
 ## Official PPAgentV2 deployments
 
-- Sepolia:
+- Sepolia test contracts:
   - Sepolia testnet Power Agent V2 Proxy contract - <a href="https://sepolia.etherscan.io/address/0xbdE2Aed54521000DC033B67FB522034e0F93A7e5" target="_blank">0xbdE2Aed54521000DC033B67FB522034e0F93A7e5</a>.
   - Sepolia testnet Power Agent V2 Implementation contract - <a href="https://sepolia.etherscan.io/address/0x4dea5ec11e1eb6ff7fa62eed2fa72a1ae2934e89" target="_blank">0x4dea5ec11e1eb6ff7fa62eed2fa72a1ae2934e89</a>.
   - Sepolia testnet Power Agent V2 Lens contract - <a href="https://sepolia.etherscan.io/address/0x937991108511f1850bd476b9ab56433afde7c92a" target="_blank">0x937991108511f1850bd476b9ab56433afde7c92a</a>.
   - Sepolia testnet Power Agent V2 subgraph - <a href="https://api.studio.thegraph.com/query/48711/ppav2-rd-sepolia-b12-ui/version/latest">api.studio.thegraph.com</a>.
 
-- Gnosis chain:
+- Gnosis chain test contracts:
+  - Gnosis chain test Power Agent V2 Proxy contract - <a href="https://gnosisscan.io/address/0x071412e301C2087A4DAA055CF4aFa2683cE1e499" target="_blank">0x071412e301C2087A4DAA055CF4aFa2683cE1e499</a>.
+  - Gnosis chain test Power Agent V2 Implementation contract - <a href="https://gnosisscan.io/address/0xda80ff51aafe84bb9463b09a3fc54f3819324692" target="_blank">0xda80ff51aafe84bb9463b09a3fc54f3819324692</a>.
   - Gnosis chain Power Agent V2 Lens contract - <a href="https://gnosisscan.io/address/0xa39bCa92537de3922B7a874143101C398Ef7DeC9">0xa39bCa92537de3922B7a874143101C398Ef7DeC9</a>.
+  - Gnosis chain test Power Agent V2 subgraph - <a href="https://api.studio.thegraph.com/query/48711/ppav2-rd-gnosis-b12-ui/version/latest">api.studio.thegraph.com</a>.
 
 To see active Power Agent V2 deployments, go to <a href="https://app.powerpool.finance/#/sepolia/ppv2/agents-contracts" target="_blank">app.powerpool.finance</a>.
 
@@ -77,7 +80,7 @@ cp config/main.template.yaml main.yaml
     * If you wish to accrue rewards on your balance in the Power Agent contract (which could save a small amount of gas), set `accrue_reward` to `true`. If set to `false`, the compensation will be sent to the worker's address after each job execution. The default value is `false`.
 * Please note that you cannot add more than one Keeper for a given agent contract on a single node. If you wish to set up more than one Keeper, we recommend setting up another node, preferably on a different host. Using different RPCs or even different regions are also good options.
 
-* The main.yaml file should look like this example:
+* The main.yaml file should look like this example for Sepolia:
 
 ```yaml
 networks:
@@ -96,7 +99,25 @@ networks:
           accrue_reward: false
 
 ```
+* The main.yaml file should look like this example for Gnosis chain:
 
+```yaml
+networks:
+  enabled:
+    - gnosis
+  details:
+    gnosis:
+      rpc: 'wss://gnosis-1.powerpool.finance'
+      agents:
+        '0x071412e301C2087A4DAA055CF4aFa2683cE1e499':
+          # data_source: subgraph
+          # subgraph_url: https://api.studio.thegraph.com/query/48711/ppav2-rd-gnosis-b12-ui/version/latest
+          executor: pga
+          keeper_worker_address: '0x840ccC99c425eDCAfebb0e7ccAC022CD15Fd49Ca'
+          key_pass: 'Very%ReliablePassword292'
+          accrue_reward: false
+
+```
 * To start the node and ensure that everything is okay:
 ```sh
 node dist/Cli.js
@@ -133,11 +154,15 @@ In the console, you will see that the Keeper was successfully activated. Congrat
 <img width="1098" alt="Screenshot 2023-10-10 at 13 29 51" src="https://github.com/powerpool-finance/powerpool-agent-v2-node/assets/69249251/12673b78-e034-4f10-94b8-b21392499fa7">
 
 
+## Build Docker image from sources
+```sh
+docker buildx build -t power-agent-node:latest .
+```
 ## App exit codes
 
 0. Not an actual error, but some condition when it's better to restart an entire app. Used for some event handlers.
 1. Critical errors. Should stop the app. For ex. worker address not found, can't resolve RPC, etc.
 2. Non-critical errors. Should restart the app. For ex. hanged WS endpoint connection.
 
-### Privacy
+## Privacy
 The Power Agent node sends basic, anonymous data about transactions to the backend for debugging. This data includes gas price and when the transaction was sent and added to the block. No IP addresses are recorded.
