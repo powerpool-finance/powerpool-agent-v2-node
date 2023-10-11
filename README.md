@@ -20,7 +20,7 @@ Detailed instructions on how to setup a Keeper Node:
 - Gnosis chain test contracts:
   - Gnosis chain test Power Agent V2 Proxy contract - <a href="https://gnosisscan.io/address/0x071412e301C2087A4DAA055CF4aFa2683cE1e499" target="_blank">0x071412e301C2087A4DAA055CF4aFa2683cE1e499</a>.
   - Gnosis chain test Power Agent V2 Implementation contract - <a href="https://gnosisscan.io/address/0xda80ff51aafe84bb9463b09a3fc54f3819324692" target="_blank">0xda80ff51aafe84bb9463b09a3fc54f3819324692</a>.
-  - Gnosis chain Power Agent V2 Lens contract - <a href="https://gnosisscan.io/address/0xa39bCa92537de3922B7a874143101C398Ef7DeC9">0xa39bCa92537de3922B7a874143101C398Ef7DeC9</a>.
+  - Gnosis chain Power Agent V2 Lens contract - <a href="https://gnosisscan.io/address/0x2b3d29daa9f41c4171416af3d66f5a2ae210616e">0x2b3d29daa9f41c4171416af3d66f5a2ae210616e</a>.
   - Gnosis chain test Power Agent V2 subgraph - <a href="https://api.studio.thegraph.com/query/48711/ppav2-rd-gnosis-b12-ui/version/latest">api.studio.thegraph.com</a>.
 
 To see active Power Agent V2 deployments, go to <a href="https://app.powerpool.finance/#/sepolia/ppv2/agents-contracts" target="_blank">app.powerpool.finance</a>.
