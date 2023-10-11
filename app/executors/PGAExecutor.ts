@@ -193,6 +193,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
     const txData = {
       transactionJson: JSON.stringify(prepareTx(transaction)),
       metadataJson: JSON.stringify({
+        appEnv: process.env.APP_ENV,
         appVersion: this.network.getAppVersion(),
         baseFeeGwei: weiValueToGwei(networkStatusObj['baseFee']),
         maxPriorityFeeGwei: weiValueToGwei(BigInt(await this.network.getMaxPriorityFeePerGas().catch(() => 0))),

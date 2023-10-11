@@ -156,6 +156,7 @@ export abstract class AbstractExecutor {
         agent: agent.address.toLowerCase(),
         chainId: networkStatusObj['chainId'],
         appVersion: this.network.getAppVersion(),
+        appEnv: process.env.APP_ENV,
       }),
     };
     const signature = await this.workerSigner._signTypedData({}, types, blockData);
