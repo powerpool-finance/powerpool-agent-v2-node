@@ -1,8 +1,6 @@
 import { BigNumber, utils } from 'ethers';
 import { keccak256 } from 'ethers/lib/utils.js';
 import {
-  BI_10E9,
-  BN_10E9,
   BN_ZERO,
   CFG_ACTIVE,
   CFG_ASSERT_RESOLVER_SELECTOR,
@@ -10,6 +8,7 @@ import {
   CFG_USE_JOB_OWNER_CREDITS,
 } from './Constants.js';
 import { ParsedJobConfig, ParsedRawJob, UnsignedTransaction } from './Types.js';
+import { ethers } from 'ethers';
 
 export function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms, []));
@@ -33,33 +32,31 @@ export function toNumber(value: number | BigNumber): number {
   }
 }
 
+export function numberToBigInt(n) {
+  return BigInt(n.toString());
+}
+
 export function weiValueToEth(value): number {
   if (!value) {
     return 0;
   }
-  if (BigNumber.isBigNumber(value)) {
-    return value.div(BN_10E9).toNumber() / 1e9;
-  } else if (typeof value === 'bigint') {
-    return Number(value / BI_10E9) / 1e9;
-  }
-  throw new Error(`Utils.weiValueToEth() value not a BigNumber but ${typeof value}`);
+  return parseFloat(ethers.utils.formatUnits(value, 'ether'));
 }
 
 export function weiValueToGwei(value): number {
   if (!value) {
     return 0;
   }
-  if (BigNumber.isBigNumber(value)) {
-    return value.toNumber() / 1e9;
-  } else if (typeof value === 'bigint') {
-    return Number(value) / 1e9;
-  }
-  throw new Error(`Utils.weiValueToGwei() value not a BigNumber but ${typeof value}`);
+  return parseFloat(ethers.utils.formatUnits(value, 'gwei'));
 }
 
 export function getTxString(tx: UnsignedTransaction): string {
+  return jsonStringify(tx);
+}
+
+export function jsonStringify(obj: any): string {
   return JSON.stringify(
-    tx,
+    obj,
     (key, value) => (typeof value === 'bigint' ? value.toString() : value), // return everything else unchanged
   );
 }
