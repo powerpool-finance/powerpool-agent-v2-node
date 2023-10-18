@@ -450,9 +450,9 @@ export class Network {
     delete this.resolverJobData[key];
   }
 
-  public async queryGasPrice(): Promise<number> {
-    return (await this.provider.getGasPrice()).toNumber();
-  }
+  // public async queryGasPrice(): Promise<number> {
+  //   return (await this.provider.getGasPrice()).toNumber();
+  // }
 
   public async queryBlock(number): Promise<ethers.providers.Block> {
     return this.provider.getBlock(parseInt(number.toString()));

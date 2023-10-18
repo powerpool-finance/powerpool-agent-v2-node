@@ -17,7 +17,7 @@ import {
 import { BigNumber, ethers, Wallet } from 'ethers';
 import { getEncryptedJson } from '../services/KeyService.js';
 import { BN_ZERO, DEFAULT_SYNC_FROM_CHAINS } from '../Constants.js';
-import { toChecksummedAddress, weiValueToEth } from '../Utils.js';
+import { numberToBigInt, toChecksummedAddress, weiValueToEth } from '../Utils.js';
 import { FlashbotsExecutor } from '../executors/FlashbotsExecutor.js';
 import { PGAExecutor } from '../executors/PGAExecutor.js';
 import { getAgentDefaultSyncFromSafe, getDefaultExecutorConfig, setConfigDefaultValues } from '../ConfigGetters.js';
@@ -846,9 +846,11 @@ export abstract class AbstractAgent implements IAgent {
         'debug',
         `'Execute' event: (block=${
           event.blockNumber
-        },jobKey=${jobKey},jobAddress=${jobAddress},keeperId=${keeperId.toNumber()},gasUsed=${gasUsed.toNumber()},baseFee=${baseFee.toNumber()}gwei,gasPrice=${gasPrice.toNumber()}wei,compensation=${
-          compensation.toNumber() / 1e18
-        }eth/${compensation.toNumber()}wei,binJobAfter=${binJobAfter})`,
+        },jobKey=${jobKey},jobAddress=${jobAddress},keeperId=${numberToBigInt(keeperId)},gasUsed=${numberToBigInt(
+          gasUsed,
+        )},baseFee=${numberToBigInt(baseFee)}gwei,gasPrice=${numberToBigInt(gasPrice)}wei,compensation=${weiValueToEth(
+          compensation,
+        )}eth/${numberToBigInt(compensation)}wei,binJobAfter=${binJobAfter})`,
       );
 
       const job = this.jobs.get(jobKey);

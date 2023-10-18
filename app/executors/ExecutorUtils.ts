@@ -1,5 +1,6 @@
-import { ErrorWrapper } from '../Types';
+import { ErrorWrapper } from '../Types.js';
 import { BigNumber, ethers } from 'ethers';
+import { jsonStringify, numberToBigInt } from '../Utils.js';
 
 export function printSolidityCustomError(
   consoleLog: (...string) => void,
@@ -26,13 +27,13 @@ Check out here for more details on Panic(uint256) errors: https://docs.solidityl
       const { args, name } = decodeError(bytes);
       for (const [key, value] of Object.entries(args)) {
         if (BigNumber.isBigNumber(value)) {
-          args[key] = value.toNumber();
+          args[key] = numberToBigInt(value);
         }
       }
       consoleLog(
         'debug',
         `⛔️ Ignoring tx estimation reverted with '${name}' error and the following error arguments:`,
-        args,
+        jsonStringify(args),
         `(calldata=${txCalldata})`,
       );
     } catch (_) {
