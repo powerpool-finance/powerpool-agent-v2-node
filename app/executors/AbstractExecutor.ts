@@ -152,6 +152,7 @@ export abstract class AbstractExecutor {
         delay,
         keeperId: agent.keeperId,
         rpc: networkStatusObj['rpc'],
+        rpcClient: await this.network.getClientVersion(),
         blockNumber: Number(blockNumber),
         agent: agent.address.toLowerCase(),
         chainId: networkStatusObj['chainId'],

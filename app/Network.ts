@@ -154,6 +154,10 @@ export class Network {
     return this.provider.send('eth_maxPriorityFeePerGas', []);
   }
 
+  public async getClientVersion(): Promise<string> {
+    return this.provider.send('web3_clientVersion', []).catch(() => 'unknown');
+  }
+
   public getFlashbotsRpc(): string {
     return this.flashbotsRpc;
   }
