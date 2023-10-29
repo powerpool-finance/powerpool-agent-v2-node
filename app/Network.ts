@@ -300,7 +300,7 @@ export class Network {
       setTimeout(() => {
         this._onNewBlockCallback(blockNumber);
       }, 1000);
-      return this.clog('error', `⚠️ Block not found (number=${blockNumber})`);
+      return this.clog('error', `⚠️ Block not found (number=${blockNumber},nowMs=${this.nowMs()})`);
     }
     const fetchBlockDelay = this.nowMs() - before;
     if (process.env.NODE_ENV !== 'test') {
@@ -335,8 +335,15 @@ export class Network {
       if (this.latestBlockNumber > blockNumber) {
         return;
       }
+      this.clog(
+        'error',
+        `⏲ New block timeout: (number=${blockNumber},before=${before},nowMs=${this.nowMs()},maxNewBlockDelay=${
+          this.maxNewBlockDelay
+        })`,
+      );
+      this.newBlockEventEmitter.emit('newBlockDelay', blockNumber);
       this._onNewBlockCallback(++blockNumber);
-    }, this.maxNewBlockDelay);
+    }, this.maxNewBlockDelay * 1000);
   }
 
   public isBlockDelayAboveMax() {
@@ -345,6 +352,10 @@ export class Network {
 
   public blockDelay() {
     return this.currentBlockDelay - this.maxBlockDelay;
+  }
+
+  public getMaxNewBlockDelay() {
+    return this.maxNewBlockDelay;
   }
 
   public getNewBlockEventEmitter(): EventEmitter {

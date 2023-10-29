@@ -229,6 +229,7 @@ export interface Executor {
   init();
   push(key: string, tx: TxEnvelope);
   sendBlockDelayLog(agent: IAgent, delay, blockNumber);
+  sendNewBlockDelayLog(agent: IAgent, delay, blockNumber);
 }
 
 export interface ClientWrapper {

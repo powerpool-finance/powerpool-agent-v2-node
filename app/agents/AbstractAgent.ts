@@ -179,6 +179,8 @@ export abstract class AbstractAgent implements IAgent {
 
     this.network.getNewBlockEventEmitter().on('newBlock', this.newBlockEventHandler.bind(this));
 
+    this.network.getNewBlockEventEmitter().on('newBlockDelay', this.newBlockDelayEventHandler.bind(this));
+
     // Ensure version matches
     // TODO: extract check
     const version = await this.queryContractVersion();
@@ -292,6 +294,11 @@ export abstract class AbstractAgent implements IAgent {
     if (this.network.isBlockDelayAboveMax()) {
       this.executor.sendBlockDelayLog(this, this.network.blockDelay(), blockNumber);
     }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private newBlockDelayEventHandler(blockNumber) {
+    this.executor.sendNewBlockDelayLog(this, this.network.getMaxNewBlockDelay(), blockNumber);
   }
 
   public exitIfStrictTopic(topic) {
