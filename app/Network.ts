@@ -39,6 +39,7 @@ export class Network {
   private readonly networkConfig: NetworkConfig;
   private readonly rpc: string;
   private readonly maxBlockDelay: number;
+  private readonly maxNewBlockDelay: number;
   private chainId: number;
   private provider: ethers.providers.WebSocketProvider | undefined;
   private agents: IAgent[];
@@ -80,6 +81,7 @@ export class Network {
     setConfigDefaultValues(networkConfig, getDefaultNetworkConfig());
     this.rpc = networkConfig.rpc;
     this.maxBlockDelay = networkConfig.max_block_delay;
+    this.maxNewBlockDelay = networkConfig.max_block_delay;
     this.networkConfig = networkConfig;
     this.agents = agents;
 
@@ -294,7 +296,19 @@ export class Network {
     blockNumber = BigInt(blockNumber.toString());
     const before = this.nowMs();
     const block = await this.queryBlock(blockNumber);
+    if (!block) {
+      setTimeout(() => {
+        this._onNewBlockCallback(blockNumber);
+      }, 1000);
+      return this.clog('error', `⚠️ Block not found (number=${blockNumber})`);
+    }
     const fetchBlockDelay = this.nowMs() - before;
+    if (process.env.NODE_ENV !== 'test') {
+      this.clog(
+        'info',
+        `🧱 New block: (number=${blockNumber},timestamp=${block.timestamp},hash=${block.hash},txCount=${block.transactions.length},baseFee=${block.baseFeePerGas},fetchDelayMs=${fetchBlockDelay})`,
+      );
+    }
 
     if (this.latestBlockNumber && blockNumber <= this.latestBlockNumber) {
       return;
@@ -316,12 +330,13 @@ export class Network {
       this.newBlockNotifications.set(blockNumber, new Set([block.hash]));
       this.walkThroughTheJobs(blockNumber, block.timestamp);
     }
-    if (process.env.NODE_ENV !== 'test') {
-      this.clog(
-        'info',
-        `🧱 New block: (number=${blockNumber},timestamp=${block.timestamp},hash=${block.hash},txCount=${block.transactions.length},baseFee=${block.baseFeePerGas},fetchDelayMs=${fetchBlockDelay})`,
-      );
-    }
+
+    setTimeout(() => {
+      if (this.latestBlockNumber > blockNumber) {
+        return;
+      }
+      this._onNewBlockCallback(++blockNumber);
+    }, this.maxNewBlockDelay);
   }
 
   public isBlockDelayAboveMax() {
