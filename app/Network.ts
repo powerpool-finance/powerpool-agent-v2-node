@@ -81,7 +81,7 @@ export class Network {
     setConfigDefaultValues(networkConfig, getDefaultNetworkConfig());
     this.rpc = networkConfig.rpc;
     this.maxBlockDelay = networkConfig.max_block_delay;
-    this.maxNewBlockDelay = networkConfig.max_block_delay;
+    this.maxNewBlockDelay = networkConfig.max_new_block_delay;
     this.networkConfig = networkConfig;
     this.agents = agents;
 
@@ -300,7 +300,8 @@ export class Network {
       setTimeout(() => {
         this._onNewBlockCallback(blockNumber);
       }, 1000);
-      return this.clog('error', `⚠️ Block not found (number=${blockNumber},nowMs=${this.nowMs()})`);
+      this.clog('error', `⚠️ Block not found (number=${blockNumber},nowMs=${this.nowMs()})`);
+      return null;
     }
     const fetchBlockDelay = this.nowMs() - before;
     if (process.env.NODE_ENV !== 'test') {
@@ -311,7 +312,7 @@ export class Network {
     }
 
     if (this.latestBlockNumber && blockNumber <= this.latestBlockNumber) {
-      return;
+      return null;
     }
     this.latestBlockNumber = blockNumber;
     this.latestBaseFee = BigInt(block.baseFeePerGas.toString());
@@ -331,7 +332,7 @@ export class Network {
       this.walkThroughTheJobs(blockNumber, block.timestamp);
     }
 
-    setTimeout(() => {
+    setTimeout(async () => {
       if (this.latestBlockNumber > blockNumber) {
         return;
       }
@@ -342,8 +343,13 @@ export class Network {
         })`,
       );
       this.newBlockEventEmitter.emit('newBlockDelay', blockNumber);
-      this._onNewBlockCallback(++blockNumber);
+      let block;
+      do {
+        block = await this._onNewBlockCallback(++blockNumber);
+      } while (block);
     }, this.maxNewBlockDelay * 1000);
+
+    return block;
   }
 
   public isBlockDelayAboveMax() {
@@ -351,7 +357,7 @@ export class Network {
   }
 
   public blockDelay() {
-    return this.currentBlockDelay - this.maxBlockDelay;
+    return this.currentBlockDelay;
   }
 
   public getMaxNewBlockDelay() {

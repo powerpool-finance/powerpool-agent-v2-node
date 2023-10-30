@@ -66,6 +66,7 @@ export interface NetworkConfig {
   rpc: string;
   ws_timeout?: number;
   max_block_delay?: number;
+  max_new_block_delay?: number;
   resolve_min_success_count?: number;
   flashbots?: {
     rpc: string;

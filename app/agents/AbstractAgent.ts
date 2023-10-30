@@ -654,7 +654,7 @@ export abstract class AbstractAgent implements IAgent {
       'info',
       `Terminate agent, minKeeperCvp: ${ethers.utils.formatEther(
         this.minKeeperCvp,
-      )}, myStake: ${ethers.utils.formatEther(this.myStake)}`,
+      )}, myStake: ${ethers.utils.formatEther(this.myStake)}, delay: ${this.network.blockDelay()}`,
     );
     this.isAgentUp = false;
     this.stopAllJobs();
