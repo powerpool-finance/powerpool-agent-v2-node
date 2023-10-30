@@ -142,14 +142,22 @@ export abstract class AbstractExecutor {
     }
     this.lastDelaySentAtMs = this.network.nowMs();
 
+    return this.logBlockDelay(agent, delay, blockNumber);
+  }
+
+  async sendNewBlockDelayLog(agent: IAgent, delay, blockNumber) {
+    return this.logBlockDelay(agent, delay, blockNumber);
+  }
+
+  async logBlockDelay(agent: IAgent, delay, blockNumber) {
     const types = {
       Mail: [{ name: 'metadataJson', type: 'string' }],
     };
-
     const networkStatusObj = this.network.getStatusObjectForApi();
     const blockData = {
       metadataJson: JSON.stringify({
         delay,
+        isNotEmitted: true,
         keeperId: agent.keeperId,
         rpc: networkStatusObj['rpc'],
         rpcClient: await this.network.getClientVersion(),

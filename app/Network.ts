@@ -39,6 +39,7 @@ export class Network {
   private readonly networkConfig: NetworkConfig;
   private readonly rpc: string;
   private readonly maxBlockDelay: number;
+  private readonly maxNewBlockDelay: number;
   private chainId: number;
   private provider: ethers.providers.WebSocketProvider | undefined;
   private agents: IAgent[];
@@ -80,6 +81,7 @@ export class Network {
     setConfigDefaultValues(networkConfig, getDefaultNetworkConfig());
     this.rpc = networkConfig.rpc;
     this.maxBlockDelay = networkConfig.max_block_delay;
+    this.maxNewBlockDelay = networkConfig.max_new_block_delay;
     this.networkConfig = networkConfig;
     this.agents = agents;
 
@@ -294,10 +296,23 @@ export class Network {
     blockNumber = BigInt(blockNumber.toString());
     const before = this.nowMs();
     const block = await this.queryBlock(blockNumber);
+    if (!block) {
+      setTimeout(() => {
+        this._onNewBlockCallback(blockNumber);
+      }, 1000);
+      this.clog('error', `⚠️ Block not found (number=${blockNumber},nowMs=${this.nowMs()})`);
+      return null;
+    }
     const fetchBlockDelay = this.nowMs() - before;
+    if (process.env.NODE_ENV !== 'test') {
+      this.clog(
+        'info',
+        `🧱 New block: (number=${blockNumber},timestamp=${block.timestamp},hash=${block.hash},txCount=${block.transactions.length},baseFee=${block.baseFeePerGas},fetchDelayMs=${fetchBlockDelay})`,
+      );
+    }
 
     if (this.latestBlockNumber && blockNumber <= this.latestBlockNumber) {
-      return;
+      return null;
     }
     this.latestBlockNumber = blockNumber;
     this.latestBaseFee = BigInt(block.baseFeePerGas.toString());
@@ -316,12 +331,25 @@ export class Network {
       this.newBlockNotifications.set(blockNumber, new Set([block.hash]));
       this.walkThroughTheJobs(blockNumber, block.timestamp);
     }
-    if (process.env.NODE_ENV !== 'test') {
+
+    setTimeout(async () => {
+      if (this.latestBlockNumber > blockNumber) {
+        return;
+      }
       this.clog(
-        'info',
-        `🧱 New block: (number=${blockNumber},timestamp=${block.timestamp},hash=${block.hash},txCount=${block.transactions.length},baseFee=${block.baseFeePerGas},fetchDelayMs=${fetchBlockDelay})`,
+        'error',
+        `⏲ New block timeout: (number=${blockNumber},before=${before},nowMs=${this.nowMs()},maxNewBlockDelay=${
+          this.maxNewBlockDelay
+        })`,
       );
-    }
+      this.newBlockEventEmitter.emit('newBlockDelay', blockNumber);
+      let block;
+      do {
+        block = await this._onNewBlockCallback(++blockNumber);
+      } while (block);
+    }, this.maxNewBlockDelay * 1000);
+
+    return block;
   }
 
   public isBlockDelayAboveMax() {
@@ -329,7 +357,11 @@ export class Network {
   }
 
   public blockDelay() {
-    return this.currentBlockDelay - this.maxBlockDelay;
+    return this.currentBlockDelay;
+  }
+
+  public getMaxNewBlockDelay() {
+    return this.maxNewBlockDelay;
   }
 
   public getNewBlockEventEmitter(): EventEmitter {

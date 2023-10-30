@@ -77,6 +77,7 @@ export function getDefaultExecutorConfig() {
 export function getDefaultNetworkConfig() {
   return {
     max_block_delay: 60,
+    max_new_block_delay: 10,
     resolve_min_success_count: 3,
   };
 }

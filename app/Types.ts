@@ -66,6 +66,7 @@ export interface NetworkConfig {
   rpc: string;
   ws_timeout?: number;
   max_block_delay?: number;
+  max_new_block_delay?: number;
   resolve_min_success_count?: number;
   flashbots?: {
     rpc: string;
@@ -229,6 +230,7 @@ export interface Executor {
   init();
   push(key: string, tx: TxEnvelope);
   sendBlockDelayLog(agent: IAgent, delay, blockNumber);
+  sendNewBlockDelayLog(agent: IAgent, delay, blockNumber);
 }
 
 export interface ClientWrapper {
