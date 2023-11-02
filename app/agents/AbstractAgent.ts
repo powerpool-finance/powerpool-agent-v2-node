@@ -585,12 +585,24 @@ export abstract class AbstractAgent implements IAgent {
 
   private parseAndSetUnrecognizedErrorMessage(err) {
     try {
+      let decodedError;
       if (err.reason && err.reason.includes('unrecognized custom error')) {
-        const decodedError = this.contract.decodeError(err.reason.split('data: ')[1].slice(0, -1));
-        err.message = `Error: VM Exception while processing transaction: reverted with ${
-          decodedError.name
-        } decoded error and ${JSON.stringify(decodedError.args)} args`;
+        decodedError = this.contract.decodeError(err.reason.split('data: ')[1].slice(0, -1));
+      } else if (err.message && err.message.includes('error={"code":3')) {
+        // 'cannot estimate gas; transaction may fail or may require manual gas limit [ See: https://links.ethers.org/v5-errors-UNPREDICTABLE_GAS_LIMIT ] (reason="execution reverted", method="estimateGas", transaction={"from":"0x779bEfe2b4C43cD1F87924defd13c8b9d3B1E1d8","maxPriorityFeePerGas":{"type":"BigNumber","hex":"0x05196259dd"},"maxFeePerGas":{"type":"BigNumber","hex":"0x05196259ed"},"to":"0x071412e301C2087A4DAA055CF4aFa2683cE1e499","data":"0x00000000ef0b5a45ff9b79d4b9162130bf0cd44dcf68b90d0000010200003066f23ebc0000000000000000000000000000000000000000000000000000000000000000","type":2,"accessList":null}, error={"code":3,"response":"{\"jsonrpc\":\"2.0\",\"id\":20442,\"error\":{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0xbe32c0ad\"}}\n"}, code=UNPREDICTABLE_GAS_LIMIT, version=providers/5.7.2)'
+        // ->
+        // '{"code":3,"response":{"jsonrpc":"2.0","id":20442,"error":{"code":3,"message":"execution reverted","data":"0xbe32c0ad"}}}'
+        const responseJson = err.message
+          .split('error=')[1]
+          .split(', code=UNPREDICTABLE_GAS_LIMIT')[0]
+          .replace('\n', '')
+          .replace('}"', '}')
+          .replace('"{', '{');
+        decodedError = this.contract.decodeError(JSON.parse(responseJson).response.error.data);
       }
+      err.message =
+        `Error: VM Exception while processing transaction: reverted with ${decodedError.name} ` +
+        `decoded error and ${JSON.stringify(decodedError.args)} args`;
     } catch (_) {}
   }
 
