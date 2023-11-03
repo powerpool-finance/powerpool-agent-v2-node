@@ -104,6 +104,12 @@ export class RandaoJob extends AbstractJob {
     this.reservedSlasherId = 0;
   }
 
+  public applyWasExecuted() {
+    this.slashingPossibleAfter = 0;
+    this.reservedSlasherId = 0;
+    super.applyWasExecuted();
+  }
+
   public applyClearResolverTimeouts(): void {
     this.t1 = 0;
     this.b1 = 0n;
