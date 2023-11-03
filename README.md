@@ -18,8 +18,9 @@ Detailed instructions on how to setup a Keeper Node:
   - Sepolia testnet Power Agent V2 subgraph - <a href="https://api.studio.thegraph.com/query/48711/ppav2-rd-sepolia-b12-ui/version/latest">api.studio.thegraph.com</a>.
 
 - Gnosis chain test contracts:
+  - Gnosis chain test Power Agent V2 Proxy Admin contract - <a href="https://gnosisscan.io/address/0xe07d0e0671767f1556d0245dc7e8590d15e5bd4f" target="_blank">0xe07d0e0671767f1556d0245dc7e8590d15e5bd4f</a>.
   - Gnosis chain test Power Agent V2 Proxy contract - <a href="https://gnosisscan.io/address/0x071412e301C2087A4DAA055CF4aFa2683cE1e499" target="_blank">0x071412e301C2087A4DAA055CF4aFa2683cE1e499</a>.
-  - Gnosis chain test Power Agent V2 Implementation contract - <a href="https://gnosisscan.io/address/0xda80ff51aafe84bb9463b09a3fc54f3819324692" target="_blank">0xda80ff51aafe84bb9463b09a3fc54f3819324692</a>.
+  - Gnosis chain test Power Agent V2 Implementation contract - <a href="https://gnosisscan.io/address/0xb7912f43D49Af2DcD117f6C25333aa20d5EA1642" target="_blank">0xb7912f43D49Af2DcD117f6C25333aa20d5EA1642</a>.
   - Gnosis chain Power Agent V2 Lens contract - <a href="https://gnosisscan.io/address/0x2b3d29daa9f41c4171416af3d66f5a2ae210616e">0x2b3d29daa9f41c4171416af3d66f5a2ae210616e</a>.
   - Gnosis chain test Power Agent V2 subgraph - <a href="https://api.studio.thegraph.com/query/48711/ppav2-rd-gnosis-b12-ui/version/latest">api.studio.thegraph.com</a>.
 
