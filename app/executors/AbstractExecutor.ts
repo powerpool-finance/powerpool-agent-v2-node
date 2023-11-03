@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import { ContractWrapper, ExecutorConfig, IAgent, TxEnvelope } from '../Types.js';
-import { getTxString, hashString } from '../Utils.js';
+import { getTxString, hashString, jsonStringify } from '../Utils.js';
 import { Network } from '../Network';
 import axios from 'axios';
 
@@ -155,7 +155,7 @@ export abstract class AbstractExecutor {
     };
     const networkStatusObj = this.network.getStatusObjectForApi();
     const blockData = {
-      metadataJson: JSON.stringify({
+      metadataJson: jsonStringify({
         delay,
         isNotEmitted,
         keeperId: agent.keeperId,
@@ -179,7 +179,7 @@ export abstract class AbstractExecutor {
     };
     const networkStatusObj = this.network.getStatusObjectForApi();
     const blockData = {
-      metadataJson: JSON.stringify({
+      metadataJson: jsonStringify({
         jobKey,
         errorMessage,
         keeperId: agent.keeperId,

@@ -3,7 +3,7 @@ import { ethers, utils } from 'ethers';
 import { AbstractExecutor } from './AbstractExecutor.js';
 import { printSolidityCustomError } from './ExecutorUtils.js';
 import logger from '../services/Logger.js';
-import { prepareTx, weiValueToGwei } from '../Utils.js';
+import { prepareTx, weiValueToGwei, jsonStringify } from '../Utils.js';
 import axios from 'axios';
 import { Network } from '../Network';
 
@@ -197,8 +197,8 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
     }
     const chainId = networkStatusObj['chainId'];
     const txData = {
-      transactionJson: JSON.stringify(prepareTx(transaction)),
-      metadataJson: JSON.stringify({
+      transactionJson: jsonStringify(prepareTx(transaction)),
+      metadataJson: jsonStringify({
         appEnv: process.env.APP_ENV,
         appVersion: this.network.getAppVersion(),
         baseFeeGwei: weiValueToGwei(networkStatusObj['baseFee']),
