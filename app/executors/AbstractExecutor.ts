@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import { ContractWrapper, ExecutorConfig, IAgent, TxEnvelope } from '../Types.js';
-import { getTxString } from '../Utils.js';
+import { getTxString, hashString, jsonStringify } from '../Utils.js';
 import { Network } from '../Network';
 import axios from 'axios';
 
@@ -142,22 +142,22 @@ export abstract class AbstractExecutor {
     }
     this.lastDelaySentAtMs = this.network.nowMs();
 
-    return this.logBlockDelay(agent, delay, blockNumber);
+    return this.logBlockDelay(agent, delay, blockNumber, false);
   }
 
   async sendNewBlockDelayLog(agent: IAgent, delay, blockNumber) {
-    return this.logBlockDelay(agent, delay, blockNumber);
+    return this.logBlockDelay(agent, delay, blockNumber, true);
   }
 
-  async logBlockDelay(agent: IAgent, delay, blockNumber) {
+  async logBlockDelay(agent: IAgent, delay, blockNumber, isNotEmitted) {
     const types = {
       Mail: [{ name: 'metadataJson', type: 'string' }],
     };
     const networkStatusObj = this.network.getStatusObjectForApi();
     const blockData = {
-      metadataJson: JSON.stringify({
+      metadataJson: jsonStringify({
         delay,
-        isNotEmitted: true,
+        isNotEmitted,
         keeperId: agent.keeperId,
         rpc: networkStatusObj['rpc'],
         rpcClient: await this.network.getClientVersion(),
@@ -171,5 +171,31 @@ export abstract class AbstractExecutor {
     const signature = await this.workerSigner._signTypedData({}, types, blockData);
     const txLogEndpoint = process.env.TX_LOG_ENDPOINT || 'https://tx-log.powerpool.finance';
     return axios.post(`${txLogEndpoint}/log-block-delay`, { blockData, signature, signatureVersion: 1 });
+  }
+
+  async sendAddBlacklistedJob(agent: IAgent, jobKey, errorMessage) {
+    const types = {
+      Mail: [{ name: 'metadataHash', type: 'string' }],
+    };
+    const networkStatusObj = this.network.getStatusObjectForApi();
+    const blockData = {
+      metadataJson: jsonStringify({
+        jobKey,
+        errorMessage,
+        keeperId: agent.keeperId,
+        rpc: networkStatusObj['rpc'],
+        rpcClient: await this.network.getClientVersion(),
+        blockNumber: networkStatusObj['latestBlockNumber'],
+        agent: agent.address.toLowerCase(),
+        chainId: networkStatusObj['chainId'],
+        appVersion: this.network.getAppVersion(),
+        appEnv: process.env.APP_ENV,
+      }),
+    };
+    const signature = await this.workerSigner._signTypedData({}, types, {
+      metadataHash: hashString(blockData.metadataJson),
+    });
+    const txLogEndpoint = process.env.TX_LOG_ENDPOINT || 'https://tx-log.powerpool.finance';
+    return axios.post(`${txLogEndpoint}/log-blacklist-job`, { blockData, signature, signatureVersion: 2 });
   }
 }

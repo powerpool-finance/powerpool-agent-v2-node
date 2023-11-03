@@ -118,7 +118,11 @@ export function buildSignature(abiItem: { name: string; inputs: object[] }): str
 }
 
 export function buildAbiSelector(signature: string): string {
-  return keccak256(utils.toUtf8Bytes(signature)).slice(0, 10);
+  return hashString(signature).slice(0, 10);
+}
+
+export function hashString(signature: string): string {
+  return keccak256(utils.toUtf8Bytes(signature));
 }
 
 export function parseRawJob(rawJob: string): ParsedRawJob {

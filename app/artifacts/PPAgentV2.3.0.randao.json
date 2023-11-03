@@ -11,6 +11,11 @@
     "type": "constructor"
   },
   {
+    "inputs": [],
+    "name": "ActivationNotInitiated",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",

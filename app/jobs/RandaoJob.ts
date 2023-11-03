@@ -104,6 +104,12 @@ export class RandaoJob extends AbstractJob {
     this.reservedSlasherId = 0;
   }
 
+  public applyWasExecuted() {
+    this.slashingPossibleAfter = 0;
+    this.reservedSlasherId = 0;
+    super.applyWasExecuted();
+  }
+
   public applyClearResolverTimeouts(): void {
     this.t1 = 0;
     this.b1 = 0n;
@@ -176,7 +182,7 @@ export class RandaoJob extends AbstractJob {
 
       if (this.failedInitiateSlashingEstimationsInARow > this.BLACKLIST_ESTIMATIONS_LIMIT) {
         this.applyClearResolverTimeouts();
-        this.agent.addJobToBlacklist(this.key);
+        this.agent.addJobToBlacklist(this.key, err.message);
         this.failedInitiateSlashingEstimationsInARow = 0;
       } else {
         this._unlockInitiateSlashing();
@@ -305,7 +311,7 @@ export class RandaoJob extends AbstractJob {
       // Assume that a failed execution behaviour is equal to a failed estimation
       this.failedExecuteEstimationsInARow += 1;
       if (this.failedExecuteEstimationsInARow > this.BLACKLIST_ESTIMATIONS_LIMIT) {
-        this.agent.addJobToBlacklist(this.key);
+        this.agent.addJobToBlacklist(this.key, err.message);
         this.failedExecuteEstimationsInARow = 0;
       }
     }
