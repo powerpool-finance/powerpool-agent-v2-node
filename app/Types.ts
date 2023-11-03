@@ -231,6 +231,7 @@ export interface Executor {
   push(key: string, tx: TxEnvelope);
   sendBlockDelayLog(agent: IAgent, delay, blockNumber);
   sendNewBlockDelayLog(agent: IAgent, delay, blockNumber);
+  sendAddBlacklistedJob(agent: IAgent, jobKey, errMessage);
 }
 
 export interface ClientWrapper {
@@ -400,7 +401,7 @@ export interface IAgent {
 
   exitIfStrictTopic(topic): void;
 
-  addJobToBlacklist(jobKey);
+  addJobToBlacklist(jobKey, errMessage);
 
   getIsAgentUp(): boolean;
 

@@ -62,7 +62,12 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
         envelope.executorCallbacks.txEstimationFailed(e, tx.data as string);
         return callback(this.err(`gasLimitEstimation failed with error: ${e.message}`));
       }
-      printSolidityCustomError(this.clog.bind(this), this.agentContract.decodeError.bind(this.agentContract), txSimulation, tx.data as string);
+      printSolidityCustomError(
+        this.clog.bind(this),
+        this.agentContract.decodeError.bind(this.agentContract),
+        txSimulation,
+        tx.data as string,
+      );
 
       envelope.executorCallbacks.txEstimationFailed(e, tx.data as string);
 
@@ -190,6 +195,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
         confirmedAtBlockDateTime: new Date(parseInt(this.network.getLatestBlockTimestamp().toString()) * 1000),
       };
     }
+    const chainId = networkStatusObj['chainId'];
     const txData = {
       transactionJson: JSON.stringify(prepareTx(transaction)),
       metadataJson: JSON.stringify({
@@ -197,18 +203,18 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
         appVersion: this.network.getAppVersion(),
         baseFeeGwei: weiValueToGwei(networkStatusObj['baseFee']),
         maxPriorityFeeGwei: weiValueToGwei(BigInt(await this.network.getMaxPriorityFeePerGas().catch(() => 0))),
-        chainId: networkStatusObj['chainId'],
         keeperId: agent ? agent.keeperId : null,
         rpc: networkStatusObj['rpc'],
         rpcClient: await this.network.getClientVersion(),
         resendCount,
+        chainId,
         txHash,
         prevTxHash,
         ...timeData,
       }),
     };
     const signature = await this.workerSigner._signTypedData({}, types, txData);
-    const txLogEndpoint = process.env.TX_LOG_ENDPOINT || 'https://tx-log.powerpool.finance';
+    const txLogEndpoint = process.env.TX_LOG_ENDPOINT || 'https://tx-log.powerpool.finance'; // TODO: add ${chainId}.
     return axios.post(`${txLogEndpoint}/log-transaction`, { txData, signature, signatureVersion: 1 });
   }
 }

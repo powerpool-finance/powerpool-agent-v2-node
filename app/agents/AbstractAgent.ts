@@ -305,9 +305,10 @@ export abstract class AbstractAgent implements IAgent {
     this.network.exitIfStrictTopic(topic);
   }
 
-  public addJobToBlacklist(jobKey) {
-    this.clog('info', `addJobToBlacklist: ${jobKey}`);
+  public addJobToBlacklist(jobKey, errMessage) {
+    this.clog('info', `addJobToBlacklist: ${jobKey}, errMessage ${errMessage}`);
     this.blacklistedJobs.add(jobKey);
+    this.executor.sendAddBlacklistedJob(this, jobKey, errMessage);
   }
 
   public getJobOwnerBalance(address: string): BigNumber {
