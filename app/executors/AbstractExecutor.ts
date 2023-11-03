@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import { ContractWrapper, ExecutorConfig, IAgent, TxEnvelope } from '../Types.js';
-import { getTxString } from '../Utils.js';
+import { getTxString, hashString } from '../Utils.js';
 import { Network } from '../Network';
 import axios from 'axios';
 
@@ -175,7 +175,7 @@ export abstract class AbstractExecutor {
 
   async sendAddBlacklistedJob(agent: IAgent, jobKey, errorMessage) {
     const types = {
-      Mail: [{ name: 'metadataJson', type: 'string' }],
+      Mail: [{ name: 'metadataHash', type: 'string' }],
     };
     const networkStatusObj = this.network.getStatusObjectForApi();
     const blockData = {
@@ -192,8 +192,10 @@ export abstract class AbstractExecutor {
         appEnv: process.env.APP_ENV,
       }),
     };
-    const signature = await this.workerSigner._signTypedData({}, types, blockData);
+    const signature = await this.workerSigner._signTypedData({}, types, {
+      metadataHash: hashString(blockData.metadataJson),
+    });
     const txLogEndpoint = process.env.TX_LOG_ENDPOINT || 'https://tx-log.powerpool.finance';
-    return axios.post(`${txLogEndpoint}/log-blacklist-job`, { blockData, signature, signatureVersion: 1 });
+    return axios.post(`${txLogEndpoint}/log-blacklist-job`, { blockData, signature, signatureVersion: 2 });
   }
 }
