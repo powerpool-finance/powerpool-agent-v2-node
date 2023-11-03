@@ -69,7 +69,7 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
       let txSimulation;
       try {
         txSimulation = await this.genericProvider.call(prepareTx(tx));
-        printSolidityCustomError(this.clog.bind(this), this.agentContract.decodeError, txSimulation, tx.data as string);
+        printSolidityCustomError(this.clog.bind(this), this.agentContract.decodeError.bind(this.agentContract), txSimulation, tx.data as string);
       } catch (e) {
         this.clog('error', 'TX node simulation error', e);
       }
