@@ -90,12 +90,16 @@ export class EthersContract implements ContractWrapper {
     );
   }
 
+  public parseLog(log) {
+    const parsedLogs = this.contract.interface.parseLog(log);
+    return Object.assign(log, parsedLogs);
+  }
+
   private async processLog(log) {
     const topic0 = log.topics[0];
     if (this.abiEventByTopic.has(topic0)) {
       const abiEvent = this.abiEventByTopic.get(topic0);
-      const parsedLogs = this.contract.interface.parseLog(log);
-      this.eventEmitter.emit(abiEvent.name, Object.assign(log, parsedLogs));
+      this.eventEmitter.emit(abiEvent.name, this.parseLog(log));
     } else {
       throw this.err('EthersContract: event missing from abi', JSON.stringify(log));
     }
@@ -231,6 +235,10 @@ ${e.message}: ${Error().stack}`,
       });
     }
     return this;
+  }
+
+  public getTopicOfEvent(eventName) {
+    return this.abiEvents.get(eventName).signature;
   }
 
   public getAbiEventsByLogs() {

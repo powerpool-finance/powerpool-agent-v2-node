@@ -695,8 +695,8 @@ export abstract class AbstractAgent implements IAgent {
     return this.contract.getPastEvents(eventName, from, to);
   }
 
-  protected on(eventName: string | string[], callback: (event: any) => void) {
-    this.contract.on(eventName, callback);
+  protected on(eventName: string, callback: (event: any) => void) {
+    this.network.getContractEventEmitter(this.contract).on(eventName, callback);
   }
 
   protected initializeListeners(blockNumber: number) {

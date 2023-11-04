@@ -19,6 +19,7 @@ import { EthersContractWrapperFactory } from './clients/EthersContractWrapperFac
 import EventEmitter from 'events';
 import { App } from './App';
 import logger from './services/Logger.js';
+import ContractEventsEmitter from './services/ContractEventsEmitter.js';
 
 interface ResolverJobWithCallback {
   lastSuccessBlock?: bigint;
@@ -56,6 +57,7 @@ export class Network {
   private newBlockNotifications: Map<number, Set<string>>;
   private contractWrapperFactory: ContractWrapperFactory;
   private newBlockEventEmitter: EventEmitter;
+  private contractEventsEmitter: ContractEventsEmitter;
 
   private currentBlockDelay: number;
   private latestBaseFee: bigint;
@@ -93,6 +95,7 @@ export class Network {
     this.externalLensAddress = networkConfig.external_lens || getExternalLensAddress(name, null, null);
     this.multicall2Address = networkConfig.multicall2 || getMulticall2Address(name);
     this.newBlockEventEmitter = new EventEmitter();
+    this.contractEventsEmitter = new ContractEventsEmitter(networkConfig.block_logs_mode);
 
     this.newBlockNotifications = new Map();
 
@@ -336,6 +339,7 @@ export class Network {
       if (this.latestBlockNumber > blockNumber) {
         return;
       }
+      this.contractEventsEmitter.setBlockLogsMode(true);
       this.clog(
         'error',
         `⏲ New block timeout: (number=${blockNumber},before=${before},nowMs=${this.nowMs()},maxNewBlockDelay=${
@@ -348,6 +352,12 @@ export class Network {
         block = await this._onNewBlockCallback(++blockNumber);
       } while (block);
     }, this.maxNewBlockDelay * 1000);
+
+    if (this.contractEventsEmitter.blockLogsMode) {
+      this.contractEventsEmitter.emitByBlockLogs(
+        await this.provider.getLogs({ fromBlock: blockNumber, toBlock: blockNumber }),
+      );
+    }
 
     return block;
   }
@@ -366,6 +376,10 @@ export class Network {
 
   public getNewBlockEventEmitter(): EventEmitter {
     return this.newBlockEventEmitter;
+  }
+
+  public getContractEventEmitter(contract: ContractWrapper): EventEmitter {
+    return this.contractEventsEmitter.contractEmitter(contract);
   }
 
   private walkThroughTheJobs(blockNumber: number, blockTimestamp: number) {

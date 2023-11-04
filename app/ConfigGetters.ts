@@ -79,6 +79,7 @@ export function getDefaultNetworkConfig() {
     max_block_delay: 60,
     max_new_block_delay: 10,
     resolve_min_success_count: 3,
+    block_logs_mode: true,
   };
 }
 
