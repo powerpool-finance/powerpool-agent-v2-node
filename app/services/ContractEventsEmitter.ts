@@ -18,9 +18,6 @@ export default class ContractEventsEmitter {
   }
 
   emitByContractAddress(address, eventName, value) {
-    if (this.blockLogsMode) {
-      return;
-    }
     this.contractEmitterByAddress[address].emit(eventName, value);
   }
 
@@ -48,8 +45,14 @@ export default class ContractEventsEmitter {
       this.contractEmitterByAddress[address] = new QueueEmitter();
       this.contractEventsByAddress[address] = [];
       this.eventByContractTopic[address] = {};
+    }
+    const eventTopic = contract.getTopicOfEvent(eventName);
+    if (!this.eventByContractTopic[address][eventTopic]) {
+      this.eventByContractTopic[address][eventTopic] = eventName;
       contract.on(eventName, value => {
-        this.eventByContractTopic[address][contract.getTopicOfEvent(eventName)] = eventName;
+        if (this.blockLogsMode) {
+          return;
+        }
         this.emitByContractAddress(address, eventName, value);
       });
     }

@@ -6,6 +6,7 @@ import {
   NetworkConfig,
   Resolver,
 } from './Types.js';
+import { bigintToHex } from './Utils.js';
 import { ethers } from 'ethers';
 import {
   getAverageBlockTime,
@@ -80,7 +81,7 @@ export class Network {
     this.initialized = false;
     this.app = app;
     this.name = name;
-    setConfigDefaultValues(networkConfig, getDefaultNetworkConfig());
+    setConfigDefaultValues(networkConfig, getDefaultNetworkConfig(name));
     this.rpc = networkConfig.rpc;
     this.maxBlockDelay = networkConfig.max_block_delay;
     this.maxNewBlockDelay = networkConfig.max_new_block_delay;
@@ -354,9 +355,8 @@ export class Network {
     }, this.maxNewBlockDelay * 1000);
 
     if (this.contractEventsEmitter.blockLogsMode) {
-      this.contractEventsEmitter.emitByBlockLogs(
-        await this.provider.getLogs({ fromBlock: blockNumber, toBlock: blockNumber }),
-      );
+      const fromBlock = bigintToHex(blockNumber);
+      this.contractEventsEmitter.emitByBlockLogs(await this.provider.getLogs({ fromBlock, toBlock: fromBlock }));
     }
 
     return block;

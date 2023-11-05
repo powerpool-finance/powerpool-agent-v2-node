@@ -78,8 +78,8 @@ export function prepareTx(tx: UnsignedTransaction) {
   return resTx;
 }
 
-function bigintToHex(n) {
-  return n ? (n.toHexString ? n.toHexString() : n.toString()) : undefined;
+export function bigintToHex(n) {
+  return n ? (n.toHexString ? n.toHexString() : BigNumber.from(n.toString()).toHexString()) : undefined;
 }
 /**
  * Encode into PPAgentLite-compatible calldata
