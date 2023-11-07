@@ -256,6 +256,36 @@ export class Network {
         }
       });
     };
+
+    if (provider.websocket && provider.websocket.onmessage) {
+      const originalOnMessage = provider.websocket.onmessage.bind(provider);
+      provider.websocket.onmessage = (messageEvent: { data: string }) => {
+        if (messageEvent.data) {
+          messageEvent.data.split(/\}\{/).forEach(chunk => {
+            if (chunk[chunk.length - 1] !== '}') {
+              chunk += '}';
+            }
+            if (chunk[0] !== '{') {
+              chunk = '{' + chunk;
+            }
+            try {
+              JSON.parse(chunk);
+              // TODO: handle canceled requests?
+              // if (result.error && result.error.message === 'Request was canceled due to enabled timeout.') {
+              //   return;
+              // }
+              messageEvent.data = chunk;
+              if (messageEvent.data.includes('Request was canceled due to enabled timeout.')) {
+                console.log('messageEvent.data', messageEvent.data);
+              }
+              originalOnMessage(messageEvent);
+            } catch (e) {
+              this.clog('error', `fixProvider json parsing error: ${e.message}, JSON: ${chunk}`);
+            }
+          });
+        }
+      };
+    }
   }
 
   public async init() {
