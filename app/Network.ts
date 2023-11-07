@@ -6,6 +6,7 @@ import {
   NetworkConfig,
   Resolver,
 } from './Types.js';
+import { bigintToHex } from './Utils.js';
 import { ethers } from 'ethers';
 import {
   getAverageBlockTime,
@@ -19,6 +20,7 @@ import { EthersContractWrapperFactory } from './clients/EthersContractWrapperFac
 import EventEmitter from 'events';
 import { App } from './App';
 import logger from './services/Logger.js';
+import ContractEventsEmitter from './services/ContractEventsEmitter.js';
 
 interface ResolverJobWithCallback {
   lastSuccessBlock?: bigint;
@@ -56,6 +58,7 @@ export class Network {
   private newBlockNotifications: Map<number, Set<string>>;
   private contractWrapperFactory: ContractWrapperFactory;
   private newBlockEventEmitter: EventEmitter;
+  private contractEventsEmitter: ContractEventsEmitter;
 
   private currentBlockDelay: number;
   private latestBaseFee: bigint;
@@ -78,7 +81,7 @@ export class Network {
     this.initialized = false;
     this.app = app;
     this.name = name;
-    setConfigDefaultValues(networkConfig, getDefaultNetworkConfig());
+    setConfigDefaultValues(networkConfig, getDefaultNetworkConfig(name));
     this.rpc = networkConfig.rpc;
     this.maxBlockDelay = networkConfig.max_block_delay;
     this.maxNewBlockDelay = networkConfig.max_new_block_delay;
@@ -93,6 +96,7 @@ export class Network {
     this.externalLensAddress = networkConfig.external_lens || getExternalLensAddress(name, null, null);
     this.multicall2Address = networkConfig.multicall2 || getMulticall2Address(name);
     this.newBlockEventEmitter = new EventEmitter();
+    this.contractEventsEmitter = new ContractEventsEmitter(networkConfig.block_logs_mode);
 
     this.newBlockNotifications = new Map();
 
@@ -252,6 +256,40 @@ export class Network {
         }
       });
     };
+
+    if (provider.websocket && provider.websocket.onmessage) {
+      const originalOnMessage = provider.websocket.onmessage.bind(provider);
+      provider.websocket.onmessage = (messageEvent: { data: string }) => {
+        if (messageEvent.data) {
+          messageEvent.data.split(/\}\{/).forEach(chunk => {
+            if (chunk[chunk.length - 1] !== '}') {
+              chunk += '}';
+            }
+            if (chunk[0] !== '{') {
+              chunk = '{' + chunk;
+            }
+            try {
+              const data = JSON.parse(chunk);
+              if (!data.id && !data.method && data.result && data.result.length && data.result[0].logIndex) {
+                // TODO: remove on fixing this case in Ethermint
+                this.contractEventsEmitter.emitByBlockLogs(data.result, true);
+              }
+              // TODO: handle canceled requests?
+              // if (data.error && data.error.message === 'Request was canceled due to enabled timeout.') {
+              //   return;
+              // }
+              messageEvent.data = chunk;
+              if (messageEvent.data.includes('Request was canceled due to enabled timeout.')) {
+                console.log('messageEvent.data', messageEvent.data);
+              }
+              originalOnMessage(messageEvent);
+            } catch (e) {
+              this.clog('error', `fixProvider json parsing error: ${e.message}, JSON: ${chunk}`);
+            }
+          });
+        }
+      };
+    }
   }
 
   public async init() {
@@ -336,6 +374,7 @@ export class Network {
       if (this.latestBlockNumber > blockNumber) {
         return;
       }
+      this.contractEventsEmitter.setBlockLogsMode(true);
       this.clog(
         'error',
         `⏲ New block timeout: (number=${blockNumber},before=${before},nowMs=${this.nowMs()},maxNewBlockDelay=${
@@ -348,6 +387,11 @@ export class Network {
         block = await this._onNewBlockCallback(++blockNumber);
       } while (block);
     }, this.maxNewBlockDelay * 1000);
+
+    if (this.contractEventsEmitter.blockLogsMode) {
+      const fromBlock = bigintToHex(blockNumber);
+      this.contractEventsEmitter.emitByBlockLogs(await this.provider.getLogs({ fromBlock, toBlock: fromBlock }));
+    }
 
     return block;
   }
@@ -366,6 +410,10 @@ export class Network {
 
   public getNewBlockEventEmitter(): EventEmitter {
     return this.newBlockEventEmitter;
+  }
+
+  public getContractEventEmitter(contract: ContractWrapper): EventEmitter {
+    return this.contractEventsEmitter.contractEmitter(contract);
   }
 
   private walkThroughTheJobs(blockNumber: number, blockTimestamp: number) {

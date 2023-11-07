@@ -202,7 +202,7 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
       // The keeper was unassigned earlier with JobKeeperChanged event, thus no need to call watch() here
     });
 
-    this.on(['JobKeeperChanged'], async event => {
+    this.on('JobKeeperChanged', async event => {
       const { keeperFrom, keeperTo, jobKey } = event.args;
 
       this.clog(

@@ -74,11 +74,18 @@ export function getDefaultExecutorConfig() {
   };
 }
 
-export function getDefaultNetworkConfig() {
+const maxNewBlockDelayByNetwork = {
+  gnosis: 10,
+  sepolia: 20,
+  ethereum: 20,
+};
+
+export function getDefaultNetworkConfig(name) {
   return {
     max_block_delay: 60,
-    max_new_block_delay: 10,
+    max_new_block_delay: maxNewBlockDelayByNetwork[name] || 10,
     resolve_min_success_count: 3,
+    block_logs_mode: false,
   };
 }
 

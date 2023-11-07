@@ -92,6 +92,7 @@ let app: App;
       resolve_min_success_count: process.env.NETWORK_MIN_SUCCESS_RESOLVE
         ? parseInt(process.env.NETWORK_MIN_SUCCESS_RESOLVE)
         : undefined,
+      block_logs_mode: process.env.NETWORK_BLOCK_LOG_MODE === 'true' || process.env.NETWORK_BLOCK_LOG_MODE === '1',
       agents: {
         [agentAddress]: agentConfig,
       },

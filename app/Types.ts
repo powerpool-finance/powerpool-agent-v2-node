@@ -68,6 +68,7 @@ export interface NetworkConfig {
   max_block_delay?: number;
   max_new_block_delay?: number;
   resolve_min_success_count?: number;
+  block_logs_mode?: boolean;
   flashbots?: {
     rpc: string;
     address: string;
@@ -267,6 +268,8 @@ export interface ContractWrapper {
   getPastEvents(eventName: string, from: number, to: number): Promise<any[]>;
   on(eventNameOrNames: string | string[], eventEmittedCallback: WrapperListener): ContractWrapper;
   encodeABI(method: string, args?: any[]): string;
+  getTopicOfEvent(eventName): string;
+  parseLog(log): any;
 }
 
 export interface EventWrapper {
