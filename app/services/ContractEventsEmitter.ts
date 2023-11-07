@@ -21,10 +21,11 @@ export default class ContractEventsEmitter {
     this.contractEmitterByAddress[address].emit(eventName, value);
   }
 
-  emitByBlockLogs(logs) {
-    if (!this.blockLogsMode) {
+  emitByBlockLogs(logs, forceEmit = false) {
+    if (!this.blockLogsMode && !forceEmit) {
       return;
     }
+    console.log('emitByBlockLogs logs.length', logs.length);
     logs.forEach(l => {
       const address = l.address.toLowerCase();
       if (!this.contractEmitterByAddress[address]) {

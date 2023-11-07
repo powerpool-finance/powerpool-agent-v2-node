@@ -269,9 +269,13 @@ export class Network {
               chunk = '{' + chunk;
             }
             try {
-              JSON.parse(chunk);
+              const data = JSON.parse(chunk);
+              if (!data.id && !data.method && data.result && data.result.length && data.result[0].logIndex) {
+                // TODO: remove on fixing this case in Ethermint
+                this.contractEventsEmitter.emitByBlockLogs(data.result, true);
+              }
               // TODO: handle canceled requests?
-              // if (result.error && result.error.message === 'Request was canceled due to enabled timeout.') {
+              // if (data.error && data.error.message === 'Request was canceled due to enabled timeout.') {
               //   return;
               // }
               messageEvent.data = chunk;
