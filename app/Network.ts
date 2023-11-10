@@ -261,7 +261,9 @@ export class Network {
       const originalOnMessage = provider.websocket.onmessage.bind(provider);
       provider.websocket.onmessage = (messageEvent: { data: string }) => {
         if (messageEvent.data) {
+          const originalData = messageEvent.data;
           messageEvent.data.split(/\}\{/).forEach(chunk => {
+            chunk = chunk.trim();
             if (chunk[chunk.length - 1] !== '}') {
               chunk += '}';
             }
@@ -284,7 +286,10 @@ export class Network {
               }
               originalOnMessage(messageEvent);
             } catch (e) {
-              this.clog('error', `fixProvider json parsing error: ${e.message}, JSON: ${chunk}`);
+              this.clog(
+                'error',
+                `fixProvider json parsing error: ${e.message}, JSON: ${chunk}, Original message: ${originalData}`,
+              );
             }
           });
         }
