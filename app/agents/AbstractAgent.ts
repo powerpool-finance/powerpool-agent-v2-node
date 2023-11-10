@@ -428,6 +428,7 @@ export abstract class AbstractAgent implements IAgent {
     const latestBock = this.network.getLatestBlockNumber();
     // 1. init jobs
     let newJobs = new Map<string, RandaoJob | LightJob>();
+    //TODO: handle timeout error on getting all jobs from blockchain
     newJobs = await this.dataSource.getRegisteredJobs(this);
 
     // 2. set owners

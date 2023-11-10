@@ -4,7 +4,7 @@ import { AgentHardcodedConfig } from './Types';
 export const MIN_EXECUTION_GAS = 55_000;
 
 export const DEFAULT_SYNC_FROM_CHAINS: { [network: string]: number } = {
-  mainnet: 15665361,
+  mainnet: 18533834,
   goerli: 7298263,
   rinkeby: 11096966,
 };
@@ -15,6 +15,11 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
       deployedAt: 15665361,
       version: '2.2.0',
       strategy: 'light',
+    },
+    '0xc9ce4CdA5897707546F3904C0FfCC6e429bC4546': {
+      deployedAt: 18533834,
+      version: '2.3.0',
+      strategy: 'randao',
     },
   },
   gnosis: {
@@ -149,7 +154,7 @@ export const EXTERNAL_LENS_CONTRACTS_2_2_0: { [network: string]: string } = {
 };
 
 export const EXTERNAL_LENS_CONTRACTS_2_3_0: { [network: string]: string } = {
-  mainnet: '',
+  mainnet: '0xbB8dAC006c8B6F67c4bc2563b64ed669Faa54F07',
   gnosis: '0x2b3d29dAa9F41c4171416Af3D66f5a2aE210616E', // v2
   goerli: '0x1a348FDcD9EcB6c81CA5043B4278716189e6aEe4', // v1
   sepolia: '0x42a2D286Bac644CfdB4030d96b4f7b2ad9dFA998', // v2
