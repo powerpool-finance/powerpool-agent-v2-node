@@ -11,9 +11,10 @@ Detailed instructions on how to setup a Keeper Node:
 
 ## Official PPAgentV2 deployments
 
-- Sepolia test contracts:
+- Sepolia test contracts: 
+  - Sepolia testnet Power Agent V2 Proxy Admin contract - <a href="https://sepolia.etherscan.io/address/0x3a779286E14EFcAD664D20023C2CE0209486fF9c" target="_blank">0x3a779286E14EFcAD664D20023C2CE0209486fF9c</a>.
   - Sepolia testnet Power Agent V2 Proxy contract - <a href="https://sepolia.etherscan.io/address/0xbdE2Aed54521000DC033B67FB522034e0F93A7e5" target="_blank">0xbdE2Aed54521000DC033B67FB522034e0F93A7e5</a>.
-  - Sepolia testnet Power Agent V2 Implementation contract - <a href="https://sepolia.etherscan.io/address/0x4dea5ec11e1eb6ff7fa62eed2fa72a1ae2934e89" target="_blank">0x4dea5ec11e1eb6ff7fa62eed2fa72a1ae2934e89</a>.
+  - Sepolia testnet Power Agent V2 Implementation contract - <a href="https://sepolia.etherscan.io/address/0xaE32C29AfE1eB46B4fCa7E5f77e95217eF987332" target="_blank">0xaE32C29AfE1eB46B4fCa7E5f77e95217eF987332</a>.
   - Sepolia testnet Power Agent V2 Lens contract - <a href="https://sepolia.etherscan.io/address/0x937991108511f1850bd476b9ab56433afde7c92a" target="_blank">0x937991108511f1850bd476b9ab56433afde7c92a</a>.
   - Sepolia testnet Power Agent V2 subgraph - <a href="https://api.studio.thegraph.com/query/48711/ppav2-rd-sepolia-b12-ui/version/latest">api.studio.thegraph.com</a>.
 
@@ -23,6 +24,13 @@ Detailed instructions on how to setup a Keeper Node:
   - Gnosis chain test Power Agent V2 Implementation contract - <a href="https://gnosisscan.io/address/0xb7912f43D49Af2DcD117f6C25333aa20d5EA1642" target="_blank">0xb7912f43D49Af2DcD117f6C25333aa20d5EA1642</a>.
   - Gnosis chain Power Agent V2 Lens contract - <a href="https://gnosisscan.io/address/0x2b3d29daa9f41c4171416af3d66f5a2ae210616e">0x2b3d29daa9f41c4171416af3d66f5a2ae210616e</a>.
   - Gnosis chain test Power Agent V2 subgraph - <a href="https://api.studio.thegraph.com/query/48711/ppav2-rd-gnosis-b12-ui/version/latest">api.studio.thegraph.com</a>.
+
+- Ethereum mainnet test contracts:
+  - Ethereum mainnet test Power Agent V2 Proxy Admin contract - <a href="https://etherscan.io/address/0x96c1AA4E6eD3a0579C78038Da7e4A17A19A72106" target="_blank">0x96c1AA4E6eD3a0579C78038Da7e4A17A19A72106</a>.
+  - Ethereum mainnet test Power Agent V2 Proxy contract - <a href="https://etherscan.io/address/0xc9ce4CdA5897707546F3904C0FfCC6e429bC4546" target="_blank">0xc9ce4CdA5897707546F3904C0FfCC6e429bC4546</a>.
+  - Ethereum mainnet test Power Agent V2 Implementation contract - <a href="https://etherscan.io/address/0x31779098cf5da5e16e4b74cef8608aeac216eda3" target="_blank">0x31779098cf5da5e16e4b74cef8608aeac216eda3</a>.
+  - Ethereum mainnet Power Agent V2 Lens contract - <a href="https://etherscan.io/address/0xbB8dAC006c8B6F67c4bc2563b64ed669Faa54F07" target="_blank">0xbB8dAC006c8B6F67c4bc2563b64ed669Faa54F07</a>.
+  - Ethereum mainnet test Power Agent V2 subgraph - <a href="https://api.studio.thegraph.com/query/48711/ppav2-rd-maintest-ui/version/latest">api.studio.thegraph.com</a>.
 
 To see active Power Agent V2 deployments, go to <a href="https://app.powerpool.finance/#/sepolia/ppv2/agents-contracts" target="_blank">app.powerpool.finance</a>.
 
@@ -92,8 +100,8 @@ networks:
       rpc: 'wss://sepolia-1.powerpool.finance'
       agents:
         '0xbdE2Aed54521000DC033B67FB522034e0F93A7e5':
-          # data_source: subgraph
-          # subgraph_url: https://api.studio.thegraph.com/query/48711/ppav2-rd-sepolia-b12-ui/version/latest
+          data_source: subgraph
+          subgraph_url: https://api.studio.thegraph.com/query/48711/ppav2-rd-sepolia-b12-ui/version/latest
           executor: pga
           keeper_worker_address: '0x840ccC99c425eDCAfebb0e7ccAC022CD15Fd49Ca'
           key_pass: 'Very%ReliablePassword292'
@@ -111,13 +119,30 @@ networks:
       rpc: 'wss://gnosis-1.powerpool.finance'
       agents:
         '0x071412e301C2087A4DAA055CF4aFa2683cE1e499':
-          # data_source: subgraph
-          # subgraph_url: https://api.studio.thegraph.com/query/48711/ppav2-rd-gnosis-b12-ui/version/latest
+          data_source: subgraph
+          subgraph_url: https://api.studio.thegraph.com/query/48711/ppav2-rd-gnosis-b12-ui/version/latest
           executor: pga
           keeper_worker_address: '0x840ccC99c425eDCAfebb0e7ccAC022CD15Fd49Ca'
           key_pass: 'Very%ReliablePassword292'
           accrue_reward: false
+```
+* The main.yaml file should look like this example for Ethereum mainnet:
 
+```yaml
+networks:
+  enabled:
+    - mainnet
+  details:
+    mainnet:
+      rpc: 'wss://mainnet-1.powerpool.finance'
+      agents:
+        '0x071412e301C2087A4DAA055CF4aFa2683cE1e499':
+          data_source: subgraph
+          subgraph_url: https://api.studio.thegraph.com/query/48711/ppav2-rd-gnosis-b12-ui/version/latest
+          executor: pga
+          keeper_worker_address: '0x840ccC99c425eDCAfebb0e7ccAC022CD15Fd49Ca'
+          key_pass: 'Very%ReliablePassword292'
+          accrue_reward: false
 ```
 * To start the node and ensure that everything is okay:
 ```sh
@@ -140,8 +165,8 @@ NETWORK_NAME='sepolia' NETWORK_RPC='wss://sepolia-1.powerpool.finance' AGENT_ADD
   * `AGENT_ADDRESS` - Power Agent smart contract address
   * `KEEPER_WORKER_ADDRESS` - Your Worker address
   * `KEYPASSWORD` - Password for your keyfile
-  * `DATA_SOURCE` - Currently only 'subgraph'. If not provided, the node will use events.
-  * `SUBGRAPH_URL` - URL for the subgraph (e.g., `https://api.studio.thegraph.com/query/48711/ppav2-rd-sepolia-b12-ui/version/latest`). Should be provided if `DATA_SOURCE='subgraph'`.
+  * `DATA_SOURCE` - Currently only 'subgraph'.
+  * `SUBGRAPH_URL` - URL for the subgraph (e.g., `https://api.studio.thegraph.com/query/48711/ppav2-rd-sepolia-b12-ui/version/latest`).
 
   * `ACCRUE_REWARD` - If provided, will be set to `true`
 
