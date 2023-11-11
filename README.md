@@ -191,4 +191,4 @@ docker buildx build -t power-agent-node:latest .
 2. Non-critical errors. Should restart the app. For ex. hanged WS endpoint connection.
 
 ## Privacy
-The Power Agent node sends basic, anonymous data about transactions to the backend for debugging. This data includes gas price and when the transaction was sent and added to the block. No IP addresses are recorded.
+The Power Agent node sends basic, anonymous data about transactions to the backend for debugging.
