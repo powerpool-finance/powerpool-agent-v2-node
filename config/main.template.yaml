@@ -6,8 +6,8 @@ networks:
       rpc: 'wss://sepolia-1.powerpool.finance'
       agents:
         '0xf4583fc017D82c3462944A5d7E7aD380e5bfAD74':
-          # data_source: subgraph
-          # subgraph_url: https://api.studio.thegraph.com/query/44364/ppav2-rd-sepolia-b11/version/latest
+          data_source: subgraph
+          subgraph_url: https://api.studio.thegraph.com/query/44364/ppav2-rd-sepolia-b11/version/latest
           executor: pga
           keeper_worker_address: '0x0000000000000000000000000000000000000000'
           key_pass: myPass

@@ -73,11 +73,11 @@ export function getDefaultExecutorConfig() {
     gas_price_priority_add_gwei: 2,
   };
 }
-
+//TODO: use AVERAGE_BLOCK_TIME_SECONDS
 const maxNewBlockDelayByNetwork = {
   gnosis: 10,
   sepolia: 20,
-  ethereum: 20,
+  mainnet: 20,
 };
 
 export function getDefaultNetworkConfig(name) {
