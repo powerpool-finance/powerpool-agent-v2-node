@@ -73,17 +73,12 @@ export function getDefaultExecutorConfig() {
     gas_price_priority_add_gwei: 2,
   };
 }
-//TODO: use AVERAGE_BLOCK_TIME_SECONDS
-const maxNewBlockDelayByNetwork = {
-  gnosis: 10,
-  sepolia: 20,
-  mainnet: 20,
-};
 
 export function getDefaultNetworkConfig(name) {
+  const avgBlockTime = AVERAGE_BLOCK_TIME_SECONDS[name];
   return {
     max_block_delay: 60,
-    max_new_block_delay: maxNewBlockDelayByNetwork[name] || 10,
+    max_new_block_delay: avgBlockTime ? avgBlockTime * 3 : 10,
     resolve_min_success_count: 3,
     block_logs_mode: false,
   };
