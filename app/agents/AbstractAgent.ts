@@ -230,6 +230,9 @@ export abstract class AbstractAgent implements IAgent {
     const keeperConfig = await this.queryKeeperDetails(this.keeperId);
     this.myStake = keeperConfig.currentStake;
     this.myKeeperIsActive = keeperConfig.isActive;
+    if (!this.myKeeperIsActive) {
+      this.clog('warn', `Your keeper(${this.keeperId}) is not active in agent contract(${this.contract.address})`);
+    }
 
     if (toChecksummedAddress(this.workerSigner.address) !== toChecksummedAddress(keeperConfig.worker)) {
       throw this.err(
