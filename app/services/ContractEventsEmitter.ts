@@ -13,11 +13,12 @@ export default class ContractEventsEmitter {
   emitByBlockCount = {};
 
   constructor(_blockLogsMode) {
-    this.blockLogsMode = _blockLogsMode;
+    this.setBlockLogsMode(_blockLogsMode);
   }
 
   setBlockLogsMode(_blockLogsMode) {
     this.blockLogsMode = _blockLogsMode;
+    console.log('[ContractEventsEmitter] setBlockLogsMode', _blockLogsMode);
   }
 
   emitByContractAddress(address, eventName, value) {
@@ -28,38 +29,46 @@ export default class ContractEventsEmitter {
     if (!this.blockLogsMode && !forceEmit) {
       return;
     }
-    let address, blockNumber;
+    let blockNumber;
+    const contractAddresses = {};
     logs.forEach(l => {
-      address = l.address.toLowerCase();
+      const address = l.address.toLowerCase();
       if (!this.contractEmitterByAddress[address]) {
         return;
-      }
-      if (!this.emitByBlockCount[address]) {
-        this.emitByBlockCount[address] = {};
       }
       const eventName = this.eventByContractTopic[address][l.topics[0]];
       if (!eventName) {
         return;
       }
+      if (!this.emitByBlockCount[address]) {
+        this.emitByBlockCount[address] = {};
+      }
+      if (!this.contractEmitterCount[address]) {
+        this.contractEmitterCount[address] = {};
+      }
+      contractAddresses[address] = true;
       blockNumber = l.blockNumber;
       this.emitByBlockCount[address][blockNumber] = (this.emitByBlockCount[address][blockNumber] || 0) + 1;
       this.emitByContractAddress(address, eventName, this.contractByAddress[address].parseLog(l));
     });
-    if (blockNumber && address) {
-      const diff = this.emitByBlockCount[address][blockNumber] - this.contractEmitterCount[address][blockNumber];
-      console.log(
-        blockNumber + ' block logs count( query:',
-        this.emitByBlockCount[address][blockNumber],
-        'websocket:',
-        this.contractEmitterCount[address][blockNumber],
-        ')',
-      );
-      if (diff != 0) {
-        console.log(`❗️ ${blockNumber} Block Events Mismatch Error! Diff: ${diff}`);
+
+    Object.keys(contractAddresses).forEach(address => {
+      if (blockNumber && this.emitByBlockCount[address] && this.contractEmitterCount[address]) {
+        const diff = this.emitByBlockCount[address][blockNumber] - this.contractEmitterCount[address][blockNumber];
+        console.log(
+          '[ContractEventsEmitter] ' + blockNumber + ' block logs count ( query:',
+          this.emitByBlockCount[address][blockNumber],
+          'websocket:',
+          this.contractEmitterCount[address][blockNumber],
+          ')',
+        );
+        if (diff != 0) {
+          console.log(`❗️ ${blockNumber} Block Events Mismatch Error! Diff: ${diff}`);
+        }
+        delete this.emitByBlockCount[address][blockNumber];
+        delete this.contractEmitterCount[address][blockNumber];
       }
-      delete this.emitByBlockCount[address][blockNumber];
-      delete this.contractEmitterCount[address][blockNumber];
-    }
+    });
   }
 
   on(contract: ContractWrapper, eventName, callback) {
