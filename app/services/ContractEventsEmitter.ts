@@ -46,12 +46,19 @@ export default class ContractEventsEmitter {
       this.emitByContractAddress(address, eventName, this.contractByAddress[address].parseLog(l));
     });
     if (blockNumber && address) {
+      const diff = this.emitByBlockCount[address][blockNumber] - this.contractEmitterCount[address][blockNumber];
       console.log(
-        blockNumber + ' block logs count(query:',
+        blockNumber + ' block logs count( query:',
         this.emitByBlockCount[address][blockNumber],
         'websocket:',
-        this.contractEmitterCount[address][blockNumber] + ')',
+        this.contractEmitterCount[address][blockNumber],
+        ')',
       );
+      if (diff != 0) {
+        console.log(`❗️ ${blockNumber} Block Events Mismatch Error! Diff: ${diff}`);
+      }
+      delete this.emitByBlockCount[address][blockNumber];
+      delete this.contractEmitterCount[address][blockNumber];
     }
   }
 
