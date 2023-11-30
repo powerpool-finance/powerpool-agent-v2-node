@@ -343,7 +343,7 @@ export class Network {
       setTimeout(() => {
         this._onNewBlockCallback(blockNumber);
       }, 1000);
-      this.clog('error', `⚠️ Block not found (number=${blockNumber},nowMs=${this.nowMs()})`);
+      this.clog('error', `⚠️ Block not found (number=${blockNumber},before=${before},nowMs=${this.nowMs()})`);
       return null;
     }
     const fetchBlockDelay = this.nowMs() - before;
@@ -380,13 +380,13 @@ export class Network {
         return;
       }
       this.contractEventsEmitter.setBlockLogsMode(true);
+      this.newBlockEventEmitter.emit('newBlockDelay', blockNumber);
       this.clog(
         'error',
         `⏲ New block timeout: (number=${blockNumber},before=${before},nowMs=${this.nowMs()},maxNewBlockDelay=${
           this.maxNewBlockDelay
         })`,
       );
-      this.newBlockEventEmitter.emit('newBlockDelay', blockNumber);
       let block;
       do {
         block = await this._onNewBlockCallback(++blockNumber);
@@ -544,7 +544,10 @@ export class Network {
   // }
 
   public async queryBlock(number): Promise<ethers.providers.Block> {
-    return this.provider.getBlock(parseInt(number.toString()));
+    return this.provider.getBlock(parseInt(number.toString())).catch(e => {
+      this.clog('error', `queryBlock error: ${e.message}`);
+      return null;
+    });
   }
 
   public async queryLatestBlock(): Promise<ethers.providers.Block> {
