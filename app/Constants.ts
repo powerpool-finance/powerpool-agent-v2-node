@@ -7,6 +7,7 @@ export const DEFAULT_SYNC_FROM_CHAINS: { [network: string]: number } = {
   mainnet: 18533834,
   goerli: 10064335,
   rinkeby: 11096966,
+  arbitrumOne: 157531675,
 };
 
 export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: AgentHardcodedConfig } } = {
@@ -25,6 +26,13 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
   gnosis: {
     '0x071412e301C2087A4DAA055CF4aFa2683cE1e499': {
       deployedAt: 30393450,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
+  },
+  arbitrumOne: {
+    '0xad1e507f8A0cB1B91421F3bb86BBE29f001CbcC6': {
+      deployedAt: 157531675,
       version: '2.3.0',
       strategy: 'randao',
     },
@@ -150,12 +158,7 @@ export const MULTICALL_CONTRACTS: { [network: string]: string } = {
   goerli: '0x5ba1e12693dc8f9c48aad8770482f4739beed696',
   gnosis: '0xe79dfe2f36afa066dd501fd9c89a3e7d5843c0c2',
   sepolia: '0x3BEDdA2f411409448e0033024d68f1cDb0EEDd7B',
-};
-
-export const EXTERNAL_LENS_CONTRACTS_2_2_0: { [network: string]: string } = {
-  mainnet: '0x18d1e7b86dcea9e9c723eb25e0f2ba2a305acf88',
-  goerli: '0xEAb11e3fF42FFb76f96df9e1F5b6f1AfAFc0C55A',
-  sepolia: '0xbbDf835B2F1b6886911C0A6Be9E056D35a55bcac',
+  arbitrumOne: '0x842ec2c7d803033edf55e478f461fc547bc54eb2',
 };
 
 export const EXTERNAL_LENS_CONTRACTS_2_3_0: { [network: string]: string } = {
@@ -163,6 +166,7 @@ export const EXTERNAL_LENS_CONTRACTS_2_3_0: { [network: string]: string } = {
   gnosis: '0x2b3d29dAa9F41c4171416Af3D66f5a2aE210616E', // v2
   goerli: '0x3DC4d2774377791aC6DA345f6f13734C9E314f86', // v2
   sepolia: '0x42a2D286Bac644CfdB4030d96b4f7b2ad9dFA998', // v2
+  arbitrumOne: '0xad1e507f8A0cB1B91421F3bb86BBE29f001CbcC6', // v2
 };
 
 export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {
@@ -171,6 +175,7 @@ export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {
   goerli: 12,
   gnosis: 5,
   testnet: 5,
+  arbitrumOne: 0.25,
 };
 
 // export const FLAG_ACCEPT_MAX_BASE_FEE_LIMIT = 0x01;
