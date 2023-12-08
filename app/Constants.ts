@@ -166,7 +166,7 @@ export const EXTERNAL_LENS_CONTRACTS_2_3_0: { [network: string]: string } = {
   gnosis: '0x2b3d29dAa9F41c4171416Af3D66f5a2aE210616E', // v2
   goerli: '0x3DC4d2774377791aC6DA345f6f13734C9E314f86', // v2
   sepolia: '0x42a2D286Bac644CfdB4030d96b4f7b2ad9dFA998', // v2
-  arbitrumOne: '0xad1e507f8A0cB1B91421F3bb86BBE29f001CbcC6', // v2
+  arbitrumOne: '0xa1be5a9d961aae6c6895e1579ce470e708e7cedb', // v2
 };
 
 export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {
