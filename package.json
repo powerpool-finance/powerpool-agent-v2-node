@@ -11,6 +11,7 @@
     "lint": "eslint --ext .ts app/ tests/",
     "lint:fix": "eslint --fix --ext .ts app/ tests/",
     "test": "NODE_ENV=test LOG_LEVEL=error mocha tests/**/*.test.ts",
+    "test:debug": "NODE_ENV=test LOG_LEVEL=debug mocha tests/**/*.test.ts",
     "write-version-data": "DIR=dist ts-node ./writeVersionData.ts"
   },
   "author": "PowerPool",

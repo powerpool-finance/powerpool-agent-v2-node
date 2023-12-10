@@ -48,4 +48,12 @@ export abstract class AbstractSource implements IDataSource {
       return objectKey ? value[objectKey] : value;
     }
   }
+
+  public getType(): string {
+    return this.type;
+  }
+
+  async getBlocksDelay(): Promise<bigint> {
+    return null;
+  }
 }

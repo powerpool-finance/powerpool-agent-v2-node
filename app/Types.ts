@@ -359,6 +359,8 @@ export interface IRandaoAgent extends IAgent {
 }
 
 export interface IDataSource {
+  getType(): string;
+  getBlocksDelay(): Promise<bigint>;
   getRegisteredJobs(_context): Promise<Map<string, RandaoJob | LightJob>>;
   getOwnersBalances(context, jobOwnersSet: Set<string>): Promise<Map<string, BigNumber>>;
   addLensFieldsToOneJob(newJobs: RandaoJob | LightJob): void;

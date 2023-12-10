@@ -76,12 +76,21 @@ export function getDefaultExecutorConfig() {
 
 export function getDefaultNetworkConfig(name) {
   const avgBlockTime = AVERAGE_BLOCK_TIME_SECONDS[name];
+  const max_new_block_delay = avgBlockTime ? avgBlockTime * 10 : 15;
   return {
     max_block_delay: 60,
-    max_new_block_delay: avgBlockTime ? avgBlockTime * 3 : 10,
+    max_new_block_delay: max_new_block_delay < 15 ? 15 : max_new_block_delay,
     resolve_min_success_count: 3,
     block_logs_mode: false,
   };
+}
+
+export function getMaxBlocksSubgraphDelay(networkName) {
+  return (
+    {
+      arbitrumOne: 1000,
+    }[networkName] || 10
+  );
 }
 
 export function setConfigDefaultValues(config, defaultValues) {

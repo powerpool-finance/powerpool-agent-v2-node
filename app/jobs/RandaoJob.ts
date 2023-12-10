@@ -301,7 +301,12 @@ export class RandaoJob extends AbstractJob {
 
   protected _executeTxEstimationFailedRewatch(err: Error, _txData: string) {
     if (this._getCurrentPeriod() === 3) {
-      this.clog('info', 'Scheduling self-unassign since the current period is #3...');
+      this.clog(
+        'info',
+        `Scheduling self-unassign since the current period is #3 and transaction failed: ${
+          err ? err.message : 'Unknown error'
+        }`,
+      );
       this._selfUnassign();
       this.watch();
       return;

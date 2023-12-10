@@ -55,7 +55,6 @@ export class Network {
   private flashbotsAddress: string;
   private flashbotsPass: string;
   private flashbotsRpc: string;
-  private newBlockNotifications: Map<number, Set<string>>;
   private contractWrapperFactory: ContractWrapperFactory;
   private newBlockEventEmitter: EventEmitter;
   private contractEventsEmitter: ContractEventsEmitter;
@@ -97,8 +96,6 @@ export class Network {
     this.multicall2Address = networkConfig.multicall2 || getMulticall2Address(name);
     this.newBlockEventEmitter = new EventEmitter();
     this.contractEventsEmitter = new ContractEventsEmitter(networkConfig.block_logs_mode);
-
-    this.newBlockNotifications = new Map();
 
     if (!this.rpc && !this.rpc.startsWith('ws')) {
       throw this.err(
@@ -338,6 +335,12 @@ export class Network {
   private async _onNewBlockCallback(blockNumber) {
     blockNumber = BigInt(blockNumber.toString());
     const before = this.nowMs();
+
+    if (this.latestBlockNumber && blockNumber <= this.latestBlockNumber) {
+      return null;
+    }
+    this.latestBlockNumber = blockNumber;
+
     const block = await this.queryBlock(blockNumber);
     if (!block) {
       setTimeout(() => {
@@ -353,27 +356,13 @@ export class Network {
         `🧱 New block: (number=${blockNumber},timestamp=${block.timestamp},hash=${block.hash},txCount=${block.transactions.length},baseFee=${block.baseFeePerGas},fetchDelayMs=${fetchBlockDelay})`,
       );
     }
-
-    if (this.latestBlockNumber && blockNumber <= this.latestBlockNumber) {
-      return null;
-    }
-    this.latestBlockNumber = blockNumber;
     this.latestBaseFee = BigInt(block.baseFeePerGas.toString());
     this.latestBlockTimestamp = BigInt(block.timestamp.toString());
     this.currentBlockDelay = this.nowS() - parseInt(block.timestamp.toString());
 
     this.newBlockEventEmitter.emit('newBlock', block.timestamp, blockNumber);
 
-    if (this.newBlockNotifications.has(blockNumber)) {
-      const emittedBlockHashes = this.newBlockNotifications.get(blockNumber);
-      if (emittedBlockHashes && !emittedBlockHashes.has(block.hash)) {
-        emittedBlockHashes.add(block.hash);
-        this.walkThroughTheJobs(blockNumber, block.timestamp);
-      }
-    } else {
-      this.newBlockNotifications.set(blockNumber, new Set([block.hash]));
-      this.walkThroughTheJobs(blockNumber, block.timestamp);
-    }
+    this.walkThroughTheJobs(blockNumber, block.timestamp);
 
     setTimeout(async () => {
       if (this.latestBlockNumber > blockNumber) {
