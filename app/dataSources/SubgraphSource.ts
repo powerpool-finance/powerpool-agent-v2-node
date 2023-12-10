@@ -8,6 +8,7 @@ import { IAgent } from '../Types';
 import { BigNumber, utils } from 'ethers';
 import { toChecksummedAddress } from '../Utils.js';
 import logger from '../services/Logger.js';
+import { getMaxBlocksSubgraphDelay } from '../ConfigGetters.js';
 
 export const QUERY_ALL_JOBS = `{
   jobs(first: 1000) {
@@ -105,13 +106,8 @@ export class SubgraphSource extends AbstractSource {
    */
   async isGraphOk(): Promise<boolean> {
     try {
-      const [latestBock, { _meta }] = await Promise.all([
-        this.network.getLatestBlockNumber(),
-        this.query(this.subgraphUrl, QUERY_META),
-      ]);
-
-      const diff = latestBock - BigInt(_meta.block.number);
-      const isSynced = diff <= 10; // Our graph is desynced if its behind for more than 10 blocks
+      const diff = await this.getBlocksDelay();
+      const isSynced = diff <= getMaxBlocksSubgraphDelay(this.network.getName()); // Our graph is desynced if its behind for more than 10 blocks
       if (!isSynced) {
         this.clog('error', `Subgraph is ${diff} blocks behind.`);
       }
@@ -120,6 +116,14 @@ export class SubgraphSource extends AbstractSource {
       this.clog('error', 'Graph meta query error:', e);
       return false;
     }
+  }
+
+  async getBlocksDelay(): Promise<bigint> {
+    const [latestBock, { _meta }] = await Promise.all([
+      this.network.getLatestBlockNumber(),
+      this.query(this.subgraphUrl, QUERY_META),
+    ]);
+    return latestBock - BigInt(_meta.block.number);
   }
 
   /**
@@ -132,8 +136,8 @@ export class SubgraphSource extends AbstractSource {
    */
   async getRegisteredJobs(context): Promise<Map<string, RandaoJob | LightJob>> {
     let newJobs = new Map<string, RandaoJob | LightJob>();
-    const graphIsFine = await this.isGraphOk();
-    if (!graphIsFine) {
+    const isSynced = await this.isGraphOk();
+    if (!isSynced) {
       this.clog('warn', 'Subgraph is not ok, falling back to the blockchain datasource.');
       newJobs = await this.blockchainSource.getRegisteredJobs(context);
       return newJobs;
@@ -225,8 +229,8 @@ export class SubgraphSource extends AbstractSource {
   public async getOwnersBalances(context, jobOwnersSet: Set<string>): Promise<Map<string, BigNumber>> {
     let result = new Map<string, BigNumber>();
     try {
-      const graphIsFine = await this.isGraphOk();
-      if (!graphIsFine) {
+      const isSynced = await this.isGraphOk();
+      if (!isSynced) {
         this.clog('warn', 'Subgraph is not ok, falling back to the blockchain datasource.');
         result = await this.blockchainSource.getOwnersBalances(context, jobOwnersSet);
         return result;

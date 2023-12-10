@@ -58,9 +58,16 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       let txSimulation;
       try {
         txSimulation = await this.genericProvider.call(prepareTx(tx));
-      } catch (e) {
-        envelope.executorCallbacks.txEstimationFailed(e, tx.data as string);
-        return callback(this.err(`gasLimitEstimation failed with error: ${e.message}`));
+      } catch (_e) {
+        envelope.executorCallbacks.txEstimationFailed(_e, tx.data as string);
+        return callback(this.err(`gasLimitEstimation failed with error: ${_e.message}`));
+      }
+      if (e.message && e.message.includes('insufficient funds')) {
+        try {
+          await this.genericProvider.estimateGas(prepareTx(tx, true));
+        } catch (_e) {
+          e = _e;
+        }
       }
       printSolidityCustomError(
         this.clog.bind(this),

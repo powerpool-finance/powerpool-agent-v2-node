@@ -109,7 +109,7 @@ export class EthersContract implements ContractWrapper {
     return {
       name: decoded.name,
       signature: decoded.signature,
-      args: filterFunctionResultObject(decoded.args),
+      args: filterFunctionResultObject(decoded.args, true),
     };
   }
   public decodeTxData(data: string): TxDataWrapper {
@@ -159,39 +159,51 @@ export class EthersContract implements ContractWrapper {
     if (!(method in this.contract)) {
       throw this.err(`Contract ${this.address} doesn't have method '${method}' in the provided abi.`);
     }
-    let errorCounter = this.attempts;
 
+    let timeout,
+      tries = 0;
     do {
-      const timeout = setTimeout(() => {
-        throw new Error(
-          `Call execution took more than
-           ${Math.ceil(this.wsCallTimeout / 1000)}
-           seconds: method=${method},args=${JSON.stringify(args)}.`,
-        );
-      }, this.wsCallTimeout);
-      try {
-        let res;
+      const res = await new Promise(async (resolve, reject) => {
+        let callRes;
+        timeout = setTimeout(() => {
+          console.log('callRes', callRes);
+          reject(
+            new Error(
+              `${Math.round(new Date().getTime() / 1000)}: Call execution took more than ` +
+                `${Math.ceil(this.wsCallTimeout / 1000)} seconds: ` +
+                `method=${method},args=${JSON.stringify(args)}.`,
+            ),
+          );
+        }, this.wsCallTimeout);
+
         if (callStatic) {
-          res = await this.contract.callStatic[method](...args);
+          callRes = await this.contract.callStatic[method](...args);
         } else {
-          res = await this.contract[method](...args);
+          callRes = await this.contract[method](...args);
         }
-        clearTimeout(timeout);
-        return filterFunctionResultObject(res);
-      } catch (e) {
-        this.clog(
-          'error',
-          `Error executing a ethCall(): (attempt=${this.attempts - errorCounter}/${
-            this.attempts
-          }): querying method '${method}' with arguments ${JSON.stringify(args)} and overrides ${JSON.stringify(
-            overrides,
-          )}:
-${e.message}: ${Error().stack}`,
-        );
-        clearTimeout(timeout);
+        resolve(filterFunctionResultObject(callRes));
+      }).catch(async e => {
+        if (e.message && e.message.includes('Call execution took more than')) {
+          this.clog('error', `${e.message} (attempt=${tries}/${this.attempts})`);
+        } else {
+          this.clog(
+            'error',
+            `Error executing a ethCall(): (attempt=${tries}/${this.attempts}): ` +
+              `querying method '${method}' with arguments ${JSON.stringify(args)} and overrides ` +
+              `${JSON.stringify(overrides)}: ${e.message}: ${Error().stack}`,
+          );
+        }
         await sleep(this.attemptTimeoutSeconds * 1000);
+        if (tries >= this.attempts) {
+          throw e;
+        }
+      });
+
+      clearTimeout(timeout);
+      if (res) {
+        return res;
       }
-    } while (errorCounter-- > 0);
+    } while (tries++ < this.attempts);
   }
 
   public async getPastEvents(eventName: string, from: number, to: number): Promise<EventWrapper[]> {
@@ -246,8 +258,20 @@ ${e.message}: ${Error().stack}`,
   }
 }
 
-function filterFunctionResultObject(res: Result): { [key: string]: any } {
+function filterFunctionResultObject(res: Result, numberToString = false): { [key: string]: any } {
   if (!Array.isArray(res)) {
+    if (typeof res === 'object' && numberToString) {
+      const clone = { ...res };
+      console.log('clone', clone);
+      Object.keys(clone).map(key => {
+        if (clone[key] && clone[key].hex) {
+          console.log('clone[key]', clone[key]);
+          console.log('BigInt(clone[key].hex)', BigInt(clone[key].hex));
+          clone[key] = BigInt(clone[key].hex).toString(10);
+        }
+      });
+      return clone;
+    }
     return res;
   }
 

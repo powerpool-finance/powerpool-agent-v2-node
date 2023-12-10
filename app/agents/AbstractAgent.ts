@@ -16,7 +16,7 @@ import {
 } from '../Types.js';
 import { BigNumber, ethers, Wallet } from 'ethers';
 import { getEncryptedJson } from '../services/KeyService.js';
-import { BN_ZERO, DEFAULT_SYNC_FROM_CHAINS } from '../Constants.js';
+import { AVERAGE_BLOCK_TIME_SECONDS, BN_ZERO, DEFAULT_SYNC_FROM_CHAINS } from '../Constants.js';
 import { numberToBigInt, toChecksummedAddress, weiValueToEth } from '../Utils.js';
 import { FlashbotsExecutor } from '../executors/FlashbotsExecutor.js';
 import { PGAExecutor } from '../executors/PGAExecutor.js';
@@ -427,7 +427,8 @@ export abstract class AbstractAgent implements IAgent {
    * 4. Handle SetJobResolver events
    * @private
    */
-  private async resyncAllJobs(): Promise<number> {
+  private async resyncAllJobs(skipRepeat = false): Promise<number> {
+    this.clog('info', 'resyncAllJobs start');
     const latestBock = this.network.getLatestBlockNumber();
     // 1. init jobs
     let newJobs = new Map<string, RandaoJob | LightJob>();
@@ -454,6 +455,17 @@ export abstract class AbstractAgent implements IAgent {
     this.jobs = newJobs;
 
     await this.startAllJobs();
+
+    if (!skipRepeat && this.dataSource.getType() === 'subgraph' && this.networkName !== 'testnet') {
+      const blockDelay = await this.dataSource.getBlocksDelay().catch(() => null);
+      if (blockDelay > 10) {
+        setTimeout(() => {
+          this.resyncAllJobs(true);
+        }, parseInt(blockDelay.toString()) * AVERAGE_BLOCK_TIME_SECONDS[this.networkName]);
+      }
+    }
+
+    this.clog('info', `resyncAllJobs end (${Array.from(this.jobs.keys()).length} synced)`);
 
     return Number(latestBock);
   }
@@ -591,8 +603,13 @@ export abstract class AbstractAgent implements IAgent {
   private parseAndSetUnrecognizedErrorMessage(err) {
     try {
       let decodedError;
-      const reason = err.reason || (err.message && err.message.toString());
-      if (reason && reason.includes('unrecognized custom error')) {
+      const reason =
+        err.reason && err.reason !== 'execution reverted' ? err.reason : err.message && err.message.toString();
+      if (reason && reason.includes('response":"')) {
+        decodedError = this.contract.decodeError(
+          JSON.parse(JSON.parse(`"${reason.split('response":"')[1].split('"},')[0]}"`)).error.data,
+        );
+      } else if (reason && reason.includes('unrecognized custom error')) {
         decodedError = this.contract.decodeError(reason.split('data: ')[1].slice(0, -1));
       } else if (reason && reason.includes('error={"code":3')) {
         // 'cannot estimate gas; transaction may fail or may require manual gas limit [ See: https://links.ethers.org/v5-errors-UNPREDICTABLE_GAS_LIMIT ] (reason="execution reverted", method="estimateGas", transaction={"from":"0x779bEfe2b4C43cD1F87924defd13c8b9d3B1E1d8","maxPriorityFeePerGas":{"type":"BigNumber","hex":"0x05196259dd"},"maxFeePerGas":{"type":"BigNumber","hex":"0x05196259ed"},"to":"0x071412e301C2087A4DAA055CF4aFa2683cE1e499","data":"0x00000000ef0b5a45ff9b79d4b9162130bf0cd44dcf68b90d0000010200003066f23ebc0000000000000000000000000000000000000000000000000000000000000000","type":2,"accessList":null}, error={"code":3,"response":"{\"jsonrpc\":\"2.0\",\"id\":20442,\"error\":{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0xbe32c0ad\"}}\n"}, code=UNPREDICTABLE_GAS_LIMIT, version=providers/5.7.2)'
@@ -609,7 +626,9 @@ export abstract class AbstractAgent implements IAgent {
       err.message =
         `Error: VM Exception while processing transaction: reverted with ${decodedError.name} ` +
         `decoded error and ${JSON.stringify(decodedError.args)} args`;
-    } catch (_) {}
+    } catch (_) {
+      console.error('decode error', _);
+    }
   }
 
   private async trySendExecuteEnvelope(envelope: TxEnvelope) {
