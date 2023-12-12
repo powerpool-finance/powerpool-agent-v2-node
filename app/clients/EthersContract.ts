@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
-import { sleep } from '../Utils.js';
+import { sleep, filterFunctionResultObject } from '../Utils.js';
 import { ContractWrapper, ErrorWrapper, EventWrapper, TxDataWrapper, WrapperListener } from '../Types.js';
-import { Result, Fragment, ErrorFragment, FunctionFragment, EventFragment } from 'ethers/lib/utils.js';
+import { Fragment, ErrorFragment, FunctionFragment, EventFragment } from 'ethers/lib/utils.js';
 import logger from '../services/Logger.js';
 import QueueEmitter from '../services/QueueEmitter.js';
 
@@ -256,53 +256,4 @@ export class EthersContract implements ContractWrapper {
   public getAbiEventsByLogs() {
     return this.abiEventByTopic;
   }
-}
-
-function filterFunctionResultObject(res: Result, numberToString = false): { [key: string]: any } {
-  if (!Array.isArray(res)) {
-    if (typeof res === 'object' && numberToString) {
-      const clone = { ...res };
-      console.log('clone', clone);
-      Object.keys(clone).map(key => {
-        if (clone[key] && clone[key].hex) {
-          console.log('clone[key]', clone[key]);
-          console.log('BigInt(clone[key].hex)', BigInt(clone[key].hex));
-          clone[key] = BigInt(clone[key].hex).toString(10);
-        }
-      });
-      return clone;
-    }
-    return res;
-  }
-
-  const filteredResult = {};
-
-  if (res.length === 0) {
-    return {};
-  }
-  if (res.length === 1) {
-    return [filterFunctionResultObject(res['0'])];
-  } else if (res.length > 1) {
-    // For a fake array the object keys length is twice bigger than its length
-    const isRealArray = Array.isArray(res) && Object.keys(res).length === res.length;
-    // if is a real array, it's items could be an unfiltered object
-    if (isRealArray) {
-      return res.map(v => filterFunctionResultObject(v));
-    } else {
-      // else it is a fake object
-      let i = 0;
-      for (const field in res) {
-        if (i++ < res.length) {
-          continue;
-        }
-        if (Array.isArray(res[field])) {
-          filteredResult[field] = filterFunctionResultObject(res[field]);
-        } else {
-          filteredResult[field] = res[field];
-        }
-      }
-    }
-  }
-
-  return filteredResult;
 }

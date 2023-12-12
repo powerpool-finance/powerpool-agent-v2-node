@@ -336,6 +336,7 @@ export class Network {
     blockNumber = BigInt(blockNumber.toString());
     const before = this.nowMs();
 
+    const oldLatestBlockNumber = this.latestBlockNumber;
     if (this.latestBlockNumber && blockNumber <= this.latestBlockNumber) {
       return null;
     }
@@ -343,6 +344,7 @@ export class Network {
 
     const block = await this.queryBlock(blockNumber);
     if (!block) {
+      this.latestBlockNumber = oldLatestBlockNumber;
       setTimeout(() => {
         this._onNewBlockCallback(blockNumber);
       }, 1000);
