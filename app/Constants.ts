@@ -26,7 +26,7 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
   gnosis: {
     '0x071412e301C2087A4DAA055CF4aFa2683cE1e499': {
       deployedAt: 30393450,
-      version: '2.3.0',
+      version: '2.4.0',
       strategy: 'randao',
     },
   },
