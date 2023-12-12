@@ -312,7 +312,13 @@ export class RandaoJob extends AbstractJob {
       return;
     }
 
-    if (this.isResolverJob() && !this.isNotSuitableForBlacklistError(err)) {
+    this.incrementFailedExecutesInARow(err);
+
+    this.watch();
+  }
+
+  protected incrementFailedExecutesInARow(err) {
+    if (!this.isNotSuitableForBlacklistError(err)) {
       // Assume that a failed execution behaviour is equal to a failed estimation
       this.failedExecuteEstimationsInARow += 1;
       if (this.failedExecuteEstimationsInARow > this.BLACKLIST_ESTIMATIONS_LIMIT) {
@@ -320,7 +326,6 @@ export class RandaoJob extends AbstractJob {
         this.failedExecuteEstimationsInARow = 0;
       }
     }
-    this.watch();
   }
 
   protected _executeTxEstimationFailed(error, _txData: string): any {
