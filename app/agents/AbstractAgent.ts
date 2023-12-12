@@ -624,7 +624,7 @@ export abstract class AbstractAgent implements IAgent {
         decodedError = this.contract.decodeError(JSON.parse(responseJson).response.error.data);
       }
       if (decodedError) {
-        const filteredArgs = filterFunctionResultObject(decodedError.args);
+        const filteredArgs = filterFunctionResultObject(decodedError.args, true);
         err.message =
           `Error: VM Exception while processing transaction: reverted with ${decodedError.name} ` +
           `decoded error and ${JSON.stringify(filteredArgs)} args`;
