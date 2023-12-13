@@ -6,10 +6,8 @@ export class AgentLight_2_2_0 extends AbstractAgent {
   // jobKey => keeper
   private assignedKeepers: Map<string, number>;
 
-  // jobKeys
-
-  _getSupportedAgentVersions(): string[] {
-    return ['2.2.0'];
+  _isVersionSupported(version): boolean {
+    return version.startsWith('2.');
   }
 
   async _beforeInit() {
