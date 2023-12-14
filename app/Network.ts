@@ -367,11 +367,11 @@ export class Network {
       this.clog('info', `Sync diff between sources: ${diff}. Start fetching this blocks manually...`);
 
       const step = 10;
-      while (diff > step) {
+      do {
         const count = diff > step ? step : diff;
         const before = this.nowMs();
         const blocks = await pIteration.map(Array.from(Array(Number(count)).keys()), n => {
-          return this.queryBlock(+n + 1);
+          return this.queryBlock(startBlockNumber + n + 1);
         });
 
         blocks.forEach(block => this._handleNewBlock(block, before));
@@ -387,7 +387,8 @@ export class Network {
 
         startBlockNumber += count;
         diff = parseInt(await this.queryLatestBlock().then(b => b.number.toString())) - startBlockNumber;
-      }
+      } while (diff > step);
+
       this.contractEventsEmitter.setBlockLogsMode(false);
     }
   }
