@@ -1,5 +1,5 @@
 import { Network } from '../Network';
-import { IAgent, IDataSource } from '../Types';
+import { IAgent, IDataSource, SourceMetadata } from '../Types';
 import { RandaoJob } from '../jobs/RandaoJob';
 import { LightJob } from '../jobs/LightJob';
 import { BigNumber } from 'ethers';
@@ -31,8 +31,11 @@ export abstract class AbstractSource implements IDataSource {
     return new Error(`AbstractDataSourceError${this.toString()}: ${args.join(' ')}`);
   }
 
-  abstract getRegisteredJobs(_context): Promise<Map<string, RandaoJob | LightJob>>;
-  abstract getOwnersBalances(context, jobOwnersSet: Set<string>): Promise<Map<string, BigNumber>>;
+  abstract getRegisteredJobs(_context): Promise<{ data: Map<string, RandaoJob | LightJob>; meta: SourceMetadata }>;
+  abstract getOwnersBalances(
+    context,
+    jobOwnersSet: Set<string>,
+  ): Promise<{ data: Map<string, BigNumber>; meta: SourceMetadata }>;
   abstract addLensFieldsToOneJob(newJobs: RandaoJob | LightJob): void;
 
   /**
@@ -53,7 +56,7 @@ export abstract class AbstractSource implements IDataSource {
     return this.type;
   }
 
-  async getBlocksDelay(): Promise<bigint> {
+  async getBlocksDelay(): Promise<{ diff: bigint; nodeBlockNumber: bigint; sourceBlockNumber: bigint }> {
     return null;
   }
 }

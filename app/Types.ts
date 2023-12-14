@@ -360,10 +360,20 @@ export interface IRandaoAgent extends IAgent {
 
 export interface IDataSource {
   getType(): string;
-  getBlocksDelay(): Promise<bigint>;
-  getRegisteredJobs(_context): Promise<Map<string, RandaoJob | LightJob>>;
-  getOwnersBalances(context, jobOwnersSet: Set<string>): Promise<Map<string, BigNumber>>;
+  getBlocksDelay(): Promise<{ diff: bigint; nodeBlockNumber: bigint; sourceBlockNumber: bigint }>;
+  getRegisteredJobs(_context): Promise<{ data: Map<string, RandaoJob | LightJob>; meta: SourceMetadata }>;
+  getOwnersBalances(
+    context,
+    jobOwnersSet: Set<string>,
+  ): Promise<{ data: Map<string, BigNumber>; meta: SourceMetadata }>;
   addLensFieldsToOneJob(newJobs: RandaoJob | LightJob): void;
+}
+
+export interface SourceMetadata {
+  isSynced: boolean;
+  diff: bigint;
+  nodeBlockNumber: bigint;
+  sourceBlockNumber: bigint;
 }
 
 export interface IAgent {

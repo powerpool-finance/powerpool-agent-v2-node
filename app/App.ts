@@ -1,13 +1,7 @@
-import { Config, AllNetworksConfig, IAgent, AgentConfig } from './Types';
+import { Config, AllNetworksConfig } from './Types';
 import { Network } from './Network.js';
-import { toChecksummedAddress } from './Utils.js';
 import { initApi } from './Api.js';
-import { getAgentVersionAndType } from './ConfigGetters.js';
-import { AgentRandao_2_3_0 } from './agents/Agent.2.3.0.randao.js';
-import { AgentLight_2_2_0 } from './agents/Agent.2.2.0.light.js';
-import { SubgraphSource } from './dataSources/SubgraphSource.js';
-import { BlockchainSource } from './dataSources/BlockchainSource.js';
-import logger, { updateSentryScope } from './services/Logger.js';
+import logger from './services/Logger.js';
 
 export class App {
   private networks: { [key: string]: Network };
@@ -87,8 +81,7 @@ export class App {
 
     for (const [netName, netConfig] of Object.entries(allNetworkConfigs.details)) {
       if (allNetworkConfigs.enabled.includes(netName)) {
-        const agents = this.buildAgents(netName, netConfig.agents);
-        networks[netName] = new Network(netName, netConfig, this, agents);
+        networks[netName] = new Network(netName, netConfig, this);
       } else {
         logger.debug(`App: Skipping ${netName} network...`);
       }
@@ -97,65 +90,16 @@ export class App {
     return networks;
   }
 
-  public buildAgents(networkName: string, agentsConfig: { [key: string]: AgentConfig }): IAgent[] {
-    const agents = [];
-    // TODO: get type & AgentConfig
-    for (const [address, agentConfig] of Object.entries(agentsConfig)) {
-      const checksummedAddress = toChecksummedAddress(address);
-      let { version, strategy } = agentConfig;
-      if (!version || !strategy) {
-        [version, strategy] = getAgentVersionAndType(checksummedAddress, networkName);
-      }
-      let agent;
-
-      if (version.startsWith('2.') && strategy === 'randao') {
-        agent = new AgentRandao_2_3_0(checksummedAddress, agentConfig, networkName);
-      } else if (version.startsWith('2.') && strategy === 'light') {
-        agent = new AgentLight_2_2_0(checksummedAddress, agentConfig, networkName);
-      } else {
-        throw new Error(
-          `App: Not supported agent version/strategy: network=${networkName},version=${version},strategy=${strategy}`,
-        );
-      }
-
-      agents.push(agent);
-    }
-    return agents;
-  }
-
   public async initNetworks(networks: { [netName: string]: Network }) {
     this.networks = networks;
     logger.debug('App: Network initialization start...');
-    const inits = [];
     for (const network of Object.values(this.networks)) {
-      inits.push(network.init());
-
-      for (const agent of network.getAgents()) {
-        let dataSource;
-        // TODO: Add support for different agents. Now if there are multiple agents, the tags linked to the latest one.
-        updateSentryScope(
-          network.getName(),
-          network.getFlashbotsRpc(),
-          agent.address,
-          agent.getKeyAddress(),
-          agent.dataSourceType,
-          agent.subgraphUrl,
-        );
-        if (agent.dataSourceType === 'subgraph') {
-          dataSource = new SubgraphSource(network, agent, agent.subgraphUrl);
-        } else if (agent.dataSourceType === 'blockchain') {
-          dataSource = new BlockchainSource(network, agent);
-        } else {
-          throw new Error(`App: missing dataSource for agent ${agent.address}`);
-        }
-        await agent.init(network, dataSource);
-      }
+      await network.init().catch(e => {
+        logger.error(`App: Network ${network.getName()} initialization failed ${e}`);
+      });
     }
-    logger.debug('App: Waiting for all networks to be initialized...');
-    try {
-      await Promise.all(inits);
-    } catch (e) {
-      logger.error(`App: Networks initialization failed ${e}`);
+    if (!Object.values(this.networks).some(n => !!n.getChainId())) {
+      logger.error('App: Networks initialization failed');
       process.exit(1);
     }
     logger.info('App: Networks initialization done!');

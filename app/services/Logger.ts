@@ -14,7 +14,6 @@ const isTest = process.env.NODE_ENV === 'test';
 
 let useSentry = false;
 
-// @ts-ignore
 class SentryTransport extends Transport {
   constructor(opts?: TransportStreamOptions) {
     super(opts);
@@ -38,6 +37,38 @@ class SentryTransport extends Transport {
     }
 
     callback();
+  }
+
+  eventNames(): Array<string | symbol> {
+    return undefined;
+  }
+
+  getMaxListeners(): number {
+    return 0;
+  }
+
+  listenerCount(_: string | symbol, __?: any): number {
+    return 0;
+  }
+
+  listeners(_: string | symbol): any[] {
+    return [];
+  }
+
+  off(_: string | symbol, __: (...args: any[]) => void): this {
+    return undefined;
+  }
+
+  rawListeners(_: string | symbol): any[] {
+    return [];
+  }
+
+  removeAllListeners(_?: string | symbol): this {
+    return undefined;
+  }
+
+  setMaxListeners(_: number): this {
+    return undefined;
   }
 }
 

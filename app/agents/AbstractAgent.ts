@@ -10,13 +10,14 @@ import {
   IAgent,
   IDataSource,
   Resolver,
+  SourceMetadata,
   TxEnvelope,
   TxGasUpdate,
   UnsignedTransaction,
 } from '../Types.js';
 import { BigNumber, ethers, Wallet } from 'ethers';
 import { getEncryptedJson } from '../services/KeyService.js';
-import { AVERAGE_BLOCK_TIME_SECONDS, BN_ZERO, DEFAULT_SYNC_FROM_CHAINS } from '../Constants.js';
+import { BN_ZERO, DEFAULT_SYNC_FROM_CHAINS } from '../Constants.js';
 import { filterFunctionResultObject, numberToBigInt, toChecksummedAddress, weiValueToEth } from '../Utils.js';
 import { FlashbotsExecutor } from '../executors/FlashbotsExecutor.js';
 import { PGAExecutor } from '../executors/PGAExecutor.js';
@@ -167,7 +168,7 @@ export abstract class AbstractAgent implements IAgent {
     this.clog('debug', 'Sync from', this.fullSyncFrom);
   }
 
-  public async init(network: Network, dataSource: IDataSource) {
+  public async init(network: Network, dataSource: IDataSource): Promise<number> {
     this.network = network;
     this.dataSource = dataSource;
 
@@ -273,6 +274,7 @@ export abstract class AbstractAgent implements IAgent {
 
     await this._afterInit();
     this.clog('info', '✅ Agent initialization done!');
+    return upTo;
   }
 
   private async initKeeperWorkerKey() {
@@ -426,13 +428,14 @@ export abstract class AbstractAgent implements IAgent {
    * 4. Handle SetJobResolver events
    * @private
    */
-  private async resyncAllJobs(skipRepeat = false): Promise<number> {
+  private async resyncAllJobs(): Promise<number> {
     this.clog('info', 'resyncAllJobs start');
-    const latestBock = this.network.getLatestBlockNumber();
+    let latestBock = this.network.getLatestBlockNumber();
     // 1. init jobs
-    let newJobs = new Map<string, RandaoJob | LightJob>();
+    let newJobs = new Map<string, RandaoJob | LightJob>(),
+      sourceMeta: SourceMetadata = null;
     //TODO: handle timeout error on getting all jobs from blockchain
-    newJobs = await this.dataSource.getRegisteredJobs(this);
+    ({ data: newJobs, meta: sourceMeta } = await this.dataSource.getRegisteredJobs(this));
 
     // 2. set owners
     const jobOwnersSet = new Set<string>();
@@ -450,18 +453,13 @@ export abstract class AbstractAgent implements IAgent {
     }
 
     // 3. Load job owner balances
-    this.ownerBalances = await this.dataSource.getOwnersBalances(this, jobOwnersSet);
+    this.ownerBalances = await this.dataSource.getOwnersBalances(this, jobOwnersSet).then(r => r.data);
     this.jobs = newJobs;
 
     await this.startAllJobs();
 
-    if (!skipRepeat && this.dataSource.getType() === 'subgraph' && this.networkName !== 'testnet') {
-      const blockDelay = await this.dataSource.getBlocksDelay().catch(() => null);
-      if (blockDelay > 10) {
-        setTimeout(() => {
-          this.resyncAllJobs(true);
-        }, parseInt(blockDelay.toString()) * AVERAGE_BLOCK_TIME_SECONDS[this.networkName]);
-      }
+    if (this.dataSource.getType() === 'subgraph' && this.networkName !== 'testnet' && sourceMeta.diff > 10) {
+      latestBock = sourceMeta.sourceBlockNumber;
     }
 
     this.clog('info', `resyncAllJobs end (${Array.from(this.jobs.keys()).length} synced)`);
