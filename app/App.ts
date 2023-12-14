@@ -108,9 +108,9 @@ export class App {
       }
       let agent;
 
-      if (version === '2.3.0' && strategy === 'randao') {
+      if (version.startsWith('2.') && strategy === 'randao') {
         agent = new AgentRandao_2_3_0(checksummedAddress, agentConfig, networkName);
-      } else if (version === '2.2.0' && strategy === 'light') {
+      } else if (version.startsWith('2.') && strategy === 'light') {
         agent = new AgentLight_2_2_0(checksummedAddress, agentConfig, networkName);
       } else {
         throw new Error(

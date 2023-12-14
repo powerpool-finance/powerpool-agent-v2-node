@@ -69,7 +69,7 @@ export abstract class AbstractAgent implements IAgent {
   // blacklisting by a job key
   protected blacklistedJobs: Set<string>;
 
-  abstract _getSupportedAgentVersions(): string[];
+  abstract _isVersionSupported(version): boolean;
 
   protected toString(): string {
     return `(network: ${this.networkName}, address: ${this.address}, keeperId: ${this.keeperId || 'Fetching...'})`;
@@ -184,7 +184,7 @@ export abstract class AbstractAgent implements IAgent {
     // Ensure version matches
     // TODO: extract check
     const version = await this.queryContractVersion();
-    if (!this._getSupportedAgentVersions().includes(version)) {
+    if (!this._isVersionSupported(version)) {
       throw this.err(`Invalid version: ${version}`);
     }
 
@@ -401,7 +401,6 @@ export abstract class AbstractAgent implements IAgent {
       workerAddress: this.keyAddress,
       keeperId: this.keeperId,
       keeperConfigNumeric: this.keeperConfig,
-      supportedAgentVersions: this._getSupportedAgentVersions(),
       fullSyncFrom: this.fullSyncFrom,
       minKeeperCvpWei: this.minKeeperCvp?.toString(),
       minKeeperCvp: weiValueToEth(this.minKeeperCvp),
