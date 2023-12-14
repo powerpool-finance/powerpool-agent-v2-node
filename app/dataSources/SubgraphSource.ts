@@ -4,7 +4,7 @@ import { BlockchainSource } from './BlockchainSource.js';
 import { RandaoJob } from '../jobs/RandaoJob';
 import { LightJob } from '../jobs/LightJob';
 import { Network } from '../Network';
-import { IAgent } from '../Types';
+import { IAgent, SourceMetadata } from '../Types';
 import { BigNumber, utils } from 'ethers';
 import { toChecksummedAddress } from '../Utils.js';
 import logger from '../services/Logger.js';
@@ -104,26 +104,30 @@ export class SubgraphSource extends AbstractSource {
   /**
    * Checking if our graph is existing and synced
    */
-  async isGraphOk(): Promise<boolean> {
+  async getGraphStatus(): Promise<SourceMetadata> {
     try {
-      const diff = await this.getBlocksDelay();
+      const { diff, nodeBlockNumber, sourceBlockNumber } = await this.getBlocksDelay();
       const isSynced = diff <= getMaxBlocksSubgraphDelay(this.network.getName()); // Our graph is desynced if its behind for more than 10 blocks
       if (!isSynced) {
         this.clog('error', `Subgraph is ${diff} blocks behind.`);
       }
-      return isSynced;
+      return { isSynced, diff, nodeBlockNumber, sourceBlockNumber };
     } catch (e) {
       this.clog('error', 'Graph meta query error:', e);
-      return false;
+      return { isSynced: false, diff: null, nodeBlockNumber: null, sourceBlockNumber: null };
     }
   }
 
-  async getBlocksDelay(): Promise<bigint> {
+  async getBlocksDelay(): Promise<{ diff: bigint; nodeBlockNumber: bigint; sourceBlockNumber: bigint }> {
     const [latestBock, { _meta }] = await Promise.all([
       this.network.getLatestBlockNumber(),
       this.query(this.subgraphUrl, QUERY_META),
     ]);
-    return latestBock - BigInt(_meta.block.number);
+    return {
+      diff: latestBock - BigInt(_meta.block.number),
+      nodeBlockNumber: latestBock,
+      sourceBlockNumber: latestBock,
+    };
   }
 
   /**
@@ -134,13 +138,13 @@ export class SubgraphSource extends AbstractSource {
    *
    * @return Promise<Map<string, RandaoJob | LightJob>>
    */
-  async getRegisteredJobs(context): Promise<Map<string, RandaoJob | LightJob>> {
+  async getRegisteredJobs(context): Promise<{ data: Map<string, RandaoJob | LightJob>; meta: SourceMetadata }> {
     let newJobs = new Map<string, RandaoJob | LightJob>();
-    const isSynced = await this.isGraphOk();
-    if (!isSynced) {
+    const graphStatus = await this.getGraphStatus();
+    if (!graphStatus.isSynced) {
       this.clog('warn', 'Subgraph is not ok, falling back to the blockchain datasource.');
-      newJobs = await this.blockchainSource.getRegisteredJobs(context);
-      return newJobs;
+      ({ data: newJobs } = await this.blockchainSource.getRegisteredJobs(context));
+      return { data: newJobs, meta: graphStatus };
     }
     try {
       const res = await this.query(this.subgraphUrl, QUERY_ALL_JOBS);
@@ -165,7 +169,7 @@ export class SubgraphSource extends AbstractSource {
     } catch (e) {
       throw this.err(e);
     }
-    return newJobs;
+    return { data: newJobs, meta: graphStatus };
   }
 
   /**
@@ -226,14 +230,18 @@ export class SubgraphSource extends AbstractSource {
    * @param context - agent context
    * @param jobOwnersSet - array of jobOwners addresses
    */
-  public async getOwnersBalances(context, jobOwnersSet: Set<string>): Promise<Map<string, BigNumber>> {
-    let result = new Map<string, BigNumber>();
+  public async getOwnersBalances(
+    context,
+    jobOwnersSet: Set<string>,
+  ): Promise<{ data: Map<string, BigNumber>; meta: SourceMetadata }> {
+    let result = new Map<string, BigNumber>(),
+      graphStatus;
     try {
-      const isSynced = await this.isGraphOk();
-      if (!isSynced) {
+      graphStatus = await this.getGraphStatus();
+      if (!graphStatus.isSynced) {
         this.clog('warn', 'Subgraph is not ok, falling back to the blockchain datasource.');
-        result = await this.blockchainSource.getOwnersBalances(context, jobOwnersSet);
-        return result;
+        ({ data: result } = await this.blockchainSource.getOwnersBalances(context, jobOwnersSet));
+        return { data: result, meta: graphStatus };
       }
 
       const { jobOwners } = await this.query(this.subgraphUrl, QUERY_JOB_OWNERS);
@@ -243,6 +251,6 @@ export class SubgraphSource extends AbstractSource {
     } catch (e) {
       throw this.err(e);
     }
-    return result;
+    return { data: result, meta: graphStatus };
   }
 }

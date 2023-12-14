@@ -2,7 +2,7 @@ import { AbstractSource } from './AbstractSource.js';
 import { RandaoJob } from '../jobs/RandaoJob';
 import { LightJob } from '../jobs/LightJob';
 import { Network } from '../Network';
-import { IAgent } from '../Types';
+import { IAgent, SourceMetadata } from '../Types';
 import { BigNumber } from 'ethers';
 import { chunkArray, flattenArray, parseConfig } from '../Utils.js';
 import pIteration from 'p-iteration';
@@ -24,7 +24,7 @@ export class BlockchainSource extends AbstractSource {
    *
    * @return Promise<Map<string, RandaoJob | LightJob>>
    */
-  async getRegisteredJobs(context): Promise<Map<string, RandaoJob | LightJob>> {
+  async getRegisteredJobs(context): Promise<{ data: Map<string, RandaoJob | LightJob>; meta: SourceMetadata }> {
     const latestBock = this.network.getLatestBlockNumber();
     // TODO: check latestBlock not null
     const registerLogs = await this.agent.queryPastEvents('RegisterJob', context.fullSyncFrom, Number(latestBock));
@@ -35,7 +35,7 @@ export class BlockchainSource extends AbstractSource {
 
     // fetching additional fields from lens
     await this.addLensFieldsToJobs(newJobs);
-    return newJobs;
+    return { data: newJobs, meta: null };
   }
 
   /**
@@ -43,7 +43,10 @@ export class BlockchainSource extends AbstractSource {
    * @param context - agent context
    * @param jobOwnersSet - array of jobOwners addresses
    */
-  async getOwnersBalances(context, jobOwnersSet: Set<string>): Promise<Map<string, BigNumber>> {
+  async getOwnersBalances(
+    context,
+    jobOwnersSet: Set<string>,
+  ): Promise<{ data: Map<string, BigNumber>; meta: SourceMetadata }> {
     const jobOwnersArray = Array.from(jobOwnersSet);
     const res = await this.network.queryLensOwnerBalances(context.address, jobOwnersArray);
     const jobOwnerBalances: Array<BigNumber> = res.results;
@@ -51,7 +54,7 @@ export class BlockchainSource extends AbstractSource {
     for (let i = 0; i < jobOwnersArray.length; i++) {
       result.set(jobOwnersArray[i], jobOwnerBalances[i]);
     }
-    return result;
+    return { data: result, meta: null };
   }
 
   /**

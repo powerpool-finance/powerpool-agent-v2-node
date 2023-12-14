@@ -6,9 +6,12 @@ import {
   NetworkConfig,
   Resolver,
 } from './Types.js';
-import { bigintToHex } from './Utils.js';
+import { bigintToHex, toChecksummedAddress } from './Utils.js';
+import pIteration from 'p-iteration';
 import { ethers } from 'ethers';
+import EventEmitter from 'events';
 import {
+  getAgentVersionAndType,
   getAverageBlockTime,
   getDefaultNetworkConfig,
   getExternalLensAddress,
@@ -17,10 +20,13 @@ import {
 } from './ConfigGetters.js';
 import { getExternalLensAbi, getMulticall2Abi } from './services/AbiService.js';
 import { EthersContractWrapperFactory } from './clients/EthersContractWrapperFactory.js';
-import EventEmitter from 'events';
-import { App } from './App';
-import logger from './services/Logger.js';
+import { App } from './App.js';
+import logger, { updateSentryScope } from './services/Logger.js';
 import ContractEventsEmitter from './services/ContractEventsEmitter.js';
+import { SubgraphSource } from './dataSources/SubgraphSource.js';
+import { BlockchainSource } from './dataSources/BlockchainSource.js';
+import { AgentRandao_2_3_0 } from './agents/Agent.2.3.0.randao.js';
+import { AgentLight_2_2_0 } from './agents/Agent.2.2.0.light.js';
 
 interface ResolverJobWithCallback {
   lastSuccessBlock?: bigint;
@@ -61,6 +67,7 @@ export class Network {
 
   private currentBlockDelay: number;
   private latestBaseFee: bigint;
+  private agentsStartBlockNumber: bigint;
   private latestBlockNumber: bigint;
   private latestBlockTimestamp: bigint;
 
@@ -76,7 +83,7 @@ export class Network {
     return new Error(`NetworkError${this.toString()}: ${args.join(' ')}`);
   }
 
-  constructor(name: string, networkConfig: NetworkConfig, app: App, agents: IAgent[]) {
+  constructor(name: string, networkConfig: NetworkConfig, app: App) {
     this.initialized = false;
     this.app = app;
     this.name = name;
@@ -85,7 +92,7 @@ export class Network {
     this.maxBlockDelay = networkConfig.max_block_delay;
     this.maxNewBlockDelay = networkConfig.max_new_block_delay;
     this.networkConfig = networkConfig;
-    this.agents = agents;
+    this.agents = this.buildAgents();
 
     this.flashbotsRpc = networkConfig?.flashbots?.rpc;
     this.flashbotsAddress = networkConfig?.flashbots?.address;
@@ -231,6 +238,32 @@ export class Network {
     };
   }
 
+  private buildAgents(): IAgent[] {
+    const agents = [];
+    // TODO: get type & AgentConfig
+    for (const [address, agentConfig] of Object.entries(this.networkConfig.agents)) {
+      const checksummedAddress = toChecksummedAddress(address);
+      let { version, strategy } = agentConfig;
+      if (!version || !strategy) {
+        [version, strategy] = getAgentVersionAndType(checksummedAddress, this.name);
+      }
+      let agent;
+
+      if (version.startsWith('2.') && strategy === 'randao') {
+        agent = new AgentRandao_2_3_0(checksummedAddress, agentConfig, this.name);
+      } else if (version.startsWith('2.') && strategy === 'light') {
+        agent = new AgentLight_2_2_0(checksummedAddress, agentConfig, this.name);
+      } else {
+        throw new Error(
+          `App: Not supported agent version/strategy: network=${this.name},version=${version},strategy=${strategy}`,
+        );
+      }
+
+      agents.push(agent);
+    }
+    return agents;
+  }
+
   private initProvider() {
     this.provider = new ethers.providers.WebSocketProvider(this.rpc);
     this.fixProvider(this.provider);
@@ -323,6 +356,75 @@ export class Network {
       'info',
       `The network '${this.getName()}' has been initialized. The last block number: ${this.latestBlockNumber}`,
     );
+
+    await this.initAgents();
+
+    if (this.agentsStartBlockNumber < this.latestBlockNumber) {
+      let startBlockNumber = Number(this.agentsStartBlockNumber);
+      let diff = Number(this.latestBlockNumber) - startBlockNumber;
+      this.latestBlockNumber = this.agentsStartBlockNumber;
+      this.contractEventsEmitter.setBlockLogsMode(true);
+      this.clog('info', `Sync diff between sources: ${diff}. Start fetching this blocks manually...`);
+
+      const step = 10;
+      do {
+        const count = diff > step ? step : diff;
+        const before = this.nowMs();
+        const blocks = await pIteration.map(Array.from(Array(Number(count)).keys()), n => {
+          return this.queryBlock(startBlockNumber + n + 1);
+        });
+
+        blocks.forEach(block => this._handleNewBlock(block, before));
+
+        if (this.contractEventsEmitter.blockLogsMode) {
+          this.contractEventsEmitter.emitByBlockLogs(
+            await this.provider.getLogs({
+              fromBlock: Number(this.agentsStartBlockNumber) + 1,
+              toBlock: Number(this.agentsStartBlockNumber) + count,
+            }),
+          );
+        }
+
+        startBlockNumber += count;
+        diff = parseInt(await this.queryLatestBlock().then(b => b.number.toString())) - startBlockNumber;
+      } while (diff > step);
+
+      this.contractEventsEmitter.setBlockLogsMode(false);
+    }
+  }
+
+  private async initAgents() {
+    let lowBlockNumber;
+    for (const agent of this.getAgents()) {
+      let dataSource;
+      // TODO: Add support for different agents. Now if there are multiple agents, the tags linked to the latest one.
+      updateSentryScope(
+        this.getName(),
+        this.getFlashbotsRpc(),
+        agent.address,
+        agent.getKeyAddress(),
+        agent.dataSourceType,
+        agent.subgraphUrl,
+      );
+      if (agent.dataSourceType === 'subgraph') {
+        dataSource = this.getAgentSubgraphDataSource(agent);
+      } else if (agent.dataSourceType === 'blockchain') {
+        dataSource = this.getAgentBlockchainDataSource(agent);
+      } else {
+        throw new Error(`App: missing dataSource for agent ${agent.address}`);
+      }
+      const syncBlockNumber = await agent.init(this, dataSource);
+      lowBlockNumber = !lowBlockNumber || syncBlockNumber < lowBlockNumber ? syncBlockNumber : lowBlockNumber;
+    }
+    this.agentsStartBlockNumber = lowBlockNumber;
+  }
+
+  public getAgentSubgraphDataSource(agent) {
+    return new SubgraphSource(this, agent, agent.subgraphUrl);
+  }
+
+  public getAgentBlockchainDataSource(agent) {
+    return new BlockchainSource(this, agent);
   }
 
   public stop() {
@@ -351,20 +453,14 @@ export class Network {
       this.clog('error', `⚠️ Block not found (number=${blockNumber},before=${before},nowMs=${this.nowMs()})`);
       return null;
     }
-    const fetchBlockDelay = this.nowMs() - before;
-    if (process.env.NODE_ENV !== 'test') {
-      this.clog(
-        'info',
-        `🧱 New block: (number=${blockNumber},timestamp=${block.timestamp},hash=${block.hash},txCount=${block.transactions.length},baseFee=${block.baseFeePerGas},fetchDelayMs=${fetchBlockDelay})`,
-      );
+
+    this._handleNewBlock(block, before);
+    this._walkThroughTheJobs(block.number, block.timestamp);
+
+    if (this.contractEventsEmitter.blockLogsMode) {
+      const fromBlock = bigintToHex(blockNumber);
+      this.contractEventsEmitter.emitByBlockLogs(await this.provider.getLogs({ fromBlock, toBlock: fromBlock }));
     }
-    this.latestBaseFee = BigInt(block.baseFeePerGas.toString());
-    this.latestBlockTimestamp = BigInt(block.timestamp.toString());
-    this.currentBlockDelay = this.nowS() - parseInt(block.timestamp.toString());
-
-    this.newBlockEventEmitter.emit('newBlock', block.timestamp, blockNumber);
-
-    this.walkThroughTheJobs(blockNumber, block.timestamp);
 
     setTimeout(async () => {
       if (this.latestBlockNumber > blockNumber) {
@@ -384,12 +480,22 @@ export class Network {
       } while (block);
     }, this.maxNewBlockDelay * 1000);
 
-    if (this.contractEventsEmitter.blockLogsMode) {
-      const fromBlock = bigintToHex(blockNumber);
-      this.contractEventsEmitter.emitByBlockLogs(await this.provider.getLogs({ fromBlock, toBlock: fromBlock }));
-    }
-
     return block;
+  }
+
+  private _handleNewBlock(block, before) {
+    const fetchBlockDelay = this.nowMs() - before;
+    if (process.env.NODE_ENV !== 'test') {
+      this.clog(
+        'info',
+        `🧱 New block: (number=${block.number},timestamp=${block.timestamp},hash=${block.hash},txCount=${block.transactions.length},baseFee=${block.baseFeePerGas},fetchDelayMs=${fetchBlockDelay})`,
+      );
+    }
+    this.latestBaseFee = BigInt(block.baseFeePerGas.toString());
+    this.latestBlockTimestamp = BigInt(block.timestamp.toString());
+    this.currentBlockDelay = this.nowS() - parseInt(block.timestamp.toString());
+
+    this.newBlockEventEmitter.emit('newBlock', block.timestamp, block.number);
   }
 
   public isBlockDelayAboveMax() {
@@ -412,7 +518,7 @@ export class Network {
     return this.contractEventsEmitter.contractEmitter(contract);
   }
 
-  private walkThroughTheJobs(blockNumber: number, blockTimestamp: number) {
+  private _walkThroughTheJobs(blockNumber: number, blockTimestamp: number) {
     this.triggerIntervalCallbacks(blockNumber, blockTimestamp);
     this.callResolversAndTriggerCallbacks(blockNumber);
   }
@@ -482,12 +588,6 @@ export class Network {
 
   private _validateKeyNotInMap(key: string, map: { [key: string]: object }, type: string): void {
     if (map[key]) {
-      throw this.err(`Callback key already exists: type=${type},key=${key}`);
-    }
-  }
-
-  private _validateKeyInMap(key: string, map: { [key: string]: object }, type: string): void {
-    if (!map[key]) {
       throw this.err(`Callback key already exists: type=${type},key=${key}`);
     }
   }
