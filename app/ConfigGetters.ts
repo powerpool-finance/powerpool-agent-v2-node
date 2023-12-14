@@ -85,12 +85,8 @@ export function getDefaultNetworkConfig(name) {
   };
 }
 
-export function getMaxBlocksSubgraphDelay(networkName) {
-  return (
-    {
-      arbitrumOne: 10000,
-    }[networkName] || 10
-  );
+export function getMaxBlocksSubgraphDelay(_ /*networkName*/) {
+  return 10000;
 }
 
 export function setConfigDefaultValues(config, defaultValues) {
