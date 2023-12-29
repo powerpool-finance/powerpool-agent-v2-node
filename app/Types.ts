@@ -12,11 +12,17 @@ export type AvailableNetworkNames = 'mainnet' | 'bsc' | 'polygon' | 'goerli';
 export type ExecutorType = 'flashbots' | 'pga';
 export type Strategy = 'randao' | 'light';
 export type DataSourceType = 'blockchain' | 'subgraph';
+export type EnvValueType = 'string' | 'number' | 'boolean' | 'address';
 
 export enum CALLDATA_SOURCE {
   SELECTOR,
   PRE_DEFINED_CALLDATA,
   RESOLVER,
+}
+export interface EnvConfigMapType {
+  path: string;
+  type: EnvValueType;
+  validValues?: string[];
 }
 
 export interface ExecutorConfig {
