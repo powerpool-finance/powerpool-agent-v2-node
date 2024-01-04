@@ -349,6 +349,9 @@ export class Network {
         instance.provider.on('block', instance._onNewBlockCallback.bind(instance));
 
 
+        return Promise.resolve();
+
+
       }
     });
   }
