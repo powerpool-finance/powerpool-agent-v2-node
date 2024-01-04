@@ -342,7 +342,7 @@ export class Network {
       onConnect() {
         instance.clog('info', `Ws connection ${instance.rpc} established`);
         instance.contractWrapperFactory = new EthersContractWrapperFactory(instance, instance.networkConfig.ws_timeout);
-        // instance.fixProvider(instance.contractWrapperFactory.getDefaultProvider());
+        instance.fixProvider(instance.contractWrapperFactory.getDefaultProvider());
         instance.multicall = instance.contractWrapperFactory.build(instance.multicall2Address, getMulticall2Abi());
         // TODO: initialize this after we know agent version and strategy
         instance.externalLens = instance.contractWrapperFactory.build(instance.externalLensAddress, getExternalLensAbi());
