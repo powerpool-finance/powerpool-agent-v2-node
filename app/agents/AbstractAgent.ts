@@ -532,13 +532,25 @@ export abstract class AbstractAgent implements IAgent {
   protected async populateTxExtraFields(tx: UnsignedTransaction) {
     tx.chainId = this.network.getChainId();
     tx['from'] = this.workerSigner.address;
-    const baseFeePerGas = this.getBaseFeePerGas();
-    const priorityFeeAddGwei = BigInt(this.executorConfig.gas_price_priority_add_gwei);
-    const maxPriorityFeePerGas = await this.network
-      .getMaxPriorityFeePerGas()
-      .catch(() => priorityFeeAddGwei * 1000000000n);
-    tx.maxPriorityFeePerGas = BigInt(maxPriorityFeePerGas) + priorityFeeAddGwei * 1000000000n;
-    tx.maxFeePerGas = baseFeePerGas + tx.maxPriorityFeePerGas;
+    // const baseFeePerGas = this.getBaseFeePerGas();
+    // const priorityFeeAddGwei = BigInt(this.executorConfig.gas_price_priority_add_gwei);
+    // const maxPriorityFeePerGas = await this.network
+    //   .getMaxPriorityFeePerGas()
+    //   .catch(() => priorityFeeAddGwei * 1000000000n);
+    // tx.maxPriorityFeePerGas = BigInt(maxPriorityFeePerGas) + priorityFeeAddGwei * 1000000000n;
+    // tx.maxFeePerGas = baseFeePerGas + tx.maxPriorityFeePerGas;
+    let fee = await this.network.getFeeData();
+    const baseFeePerGas = fee.lastBaseFeePerGas;
+    const priorityFeeAddGwei = fee.maxPriorityFeePerGas;
+    // const priorityFeeAddGwei = BigInt(this.executorConfig.gas_price_priority_add_gwei);
+    // const maxPriorityFeePerGas = await this.network
+    //   .getMaxPriorityFeePerGas()
+    //   .catch(() => priorityFeeAddGwei.mul(1000000000n).toNumber());
+    const maxPriorityFeePerGas = fee.maxPriorityFeePerGas;
+    // tx.maxPriorityFeePerGas = maxPriorityFeePerGas.add( priorityFeeAddGwei.mul(1000000000n)).toBigInt();
+    // tx.maxPriorityFeePerGas = maxPriorityFeePerGas.toBigInt();
+    tx.maxFeePerGas = baseFeePerGas.toBigInt();
+    // tx.maxFeePerGas = baseFeePerGas.add(tx.maxPriorityFeePerGas).toBigInt();
   }
 
   public async buildTx(calldata: string): Promise<UnsignedTransaction> {
@@ -574,7 +586,10 @@ export abstract class AbstractAgent implements IAgent {
     if (priorityIncrease < 110n) {
       tx.maxPriorityFeePerGas = (maxPriorityFeePerGas * 111n) / 100n;
     }
-    const newMax = this.getBaseFeePerGas() + tx.maxPriorityFeePerGas;
+    //const newMax = this.getBaseFeePerGas() + tx.maxPriorityFeePerGas;
+    // FIXME
+    let fee = await this.network.getFeeData();
+    const newMax = (fee.lastBaseFeePerGas).add(tx.maxPriorityFeePerGas).toBigInt();
     //TODO: check nonce
     //TODO: check resends count and max feePerGas
 

@@ -264,9 +264,10 @@ export class Network {
     return agents;
   }
 
-  private initProvider() {
+  private async initProvider() {
     this.provider = new ethers.providers.WebSocketProvider(this.rpc);
     this.fixProvider(this.provider);
+    // instance.fixProvider(instance.contractWrapperFactory.getDefaultProvider());
     this.contractWrapperFactory = new EthersContractWrapperFactory([this.rpc], this.networkConfig.ws_timeout);
     this.fixProvider(this.contractWrapperFactory.getDefaultProvider());
     this.multicall = this.contractWrapperFactory.build(this.multicall2Address, getMulticall2Abi());
@@ -338,7 +339,7 @@ export class Network {
       return;
     }
 
-    this.initProvider();
+    await this.initProvider();
 
     try {
       const latestBlock = await this.queryLatestBlock();
@@ -672,5 +673,8 @@ export class Network {
   ): Promise<LensGetJobBytes32AndNextBlockSlasherIdResponse> {
     const res = await this.externalLens.ethCall('getJobBytes32AndNextBlockSlasherId', [agent, jobKey]);
     return { binJob: res.binJob, nextBlockSlasherId: res.nextBlockSlasherId.toNumber() };
+  }
+  public async getFeeData() {
+    return this.provider.getFeeData();
   }
 }
