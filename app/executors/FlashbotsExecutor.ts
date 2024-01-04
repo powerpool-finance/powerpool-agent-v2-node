@@ -61,14 +61,14 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
     const { tx } = envelope;
     let gasLimitEstimation;
     try {
-      gasLimitEstimation = await this.genericProvider.estimateGas(prepareTx(tx));
+      gasLimitEstimation = await this.network.getProvider().estimateGas(prepareTx(tx));
     } catch (e) {
       // TODO (DANGER): hard limit
       tx.gasLimit = 700_000n;
-      tx.nonce = await this.genericProvider.getTransactionCount(this.workerSigner.address);
+      tx.nonce = await this.network.getProvider().getTransactionCount(this.workerSigner.address);
       let txSimulation;
       try {
-        txSimulation = await this.genericProvider.call(prepareTx(tx));
+        txSimulation = await this.network.getProvider().call(prepareTx(tx));
         printSolidityCustomError(
           this.clog.bind(this),
           this.agentContract.decodeError.bind(this.agentContract),
@@ -82,7 +82,7 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
       return;
     }
 
-    tx.nonce = await this.genericProvider.getTransactionCount(this.workerSigner.address);
+    tx.nonce = await this.network.getProvider().getTransactionCount(this.workerSigner.address);
     tx.gasLimit = gasLimitEstimation.mul(15).div(10);
     this.clog('debug', `Signing tx with calldata=${tx.data} ...`);
     const signedBundle = await this.fbProvider.signBundle([
@@ -95,7 +95,7 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const targetBlock = (await this.genericProvider.getBlockNumber()) + 1;
+      const targetBlock = (await this.network.getProvider().getBlockNumber()) + 1;
       const simulation = await this.fbProvider.simulate(signedBundle, targetBlock);
       this.clog('debug', `Tx ${txHash}: The tx target block is ${targetBlock}...`);
       if ('error' in simulation) {
