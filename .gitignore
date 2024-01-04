@@ -5,3 +5,6 @@ keys/*.json
 keys/UTC*
 config/*
 *.log
+logs/*.log
+logs/*.json
+logs/*.gz

@@ -1,4 +1,5 @@
 import winston from 'winston';
+import  DailyRotateFile from 'winston-daily-rotate-file';
 import Transport, { TransportStreamOptions } from 'winston-transport';
 import * as Sentry from '@sentry/node';
 import { Event as SentryEvent } from '@sentry/node';
@@ -82,17 +83,39 @@ const consoleFormat = winston.format.combine(
 );
 let logger;
 
+
+const allTransport: DailyRotateFile = new DailyRotateFile({
+  filename: `debug-%DATE%.log`,
+  dirname: `${projectRoot}/logs/`,
+  datePattern: 'YYYY-MM-DD',
+  zippedArchive: true,
+  maxSize: '30m',
+  maxFiles: '30d',
+  level: 'debug'
+});
+
+const errorTransport: DailyRotateFile = new DailyRotateFile({
+  filename: `error-%DATE%.log`,
+  dirname: `${projectRoot}/logs/`,
+  datePattern: 'YYYY-MM-DD',
+  zippedArchive: true,
+  maxSize: '30m',
+  maxFiles: '30d',
+  level: 'error',
+});
+
+
 if (isDev) {
   logger = winston.createLogger({
     level: process.env.LOG_LEVEL || 'debug',
     format: consoleFormat,
-    transports: [new winston.transports.Console({ format: consoleFormat })],
+    transports: [new winston.transports.Console({ format: consoleFormat }), allTransport, errorTransport],
   });
 } else if (isTest) {
   logger = winston.createLogger({
     level: process.env.LOG_LEVEL || 'error',
     format: consoleFormat,
-    transports: [new winston.transports.Console({ format: consoleFormat })],
+    transports: [new winston.transports.Console({ format: consoleFormat }), allTransport, errorTransport],
   });
 } else {
   // isProd
@@ -101,7 +124,8 @@ if (isDev) {
     format: winston.format.simple(),
     transports: [
       new winston.transports.Console({ format: consoleFormat }),
-      new winston.transports.File({ filename: 'error.log', level: 'error' }),
+      //new winston.transports.File({ filename: 'error.log', level: 'error' }),
+      errorTransport
     ],
   });
 }
