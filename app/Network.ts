@@ -207,6 +207,10 @@ export class Network {
     return null;
   }
 
+  public getRpc() {
+    return this.rpc
+  }
+
   // TODO: throttle node requests
   public async getMaxPriorityFeePerGas(): Promise<number> {
     return this.provider.send('eth_maxPriorityFeePerGas', []);
@@ -330,14 +334,14 @@ export class Network {
         // console.error('The ws connection was closed', JSON.stringify(err, null, 2));
 
         setTimeout(()=>{
-          this.stop();
+          // this.stop();
           this.initProvider(); //restart the connection
         },3000)
 
       },
       onConnect() {
         instance.clog('info', `Ws connection ${instance.rpc} established`);
-        instance.contractWrapperFactory = new EthersContractWrapperFactory([instance.rpc], instance.networkConfig.ws_timeout);
+        instance.contractWrapperFactory = new EthersContractWrapperFactory(instance, instance.networkConfig.ws_timeout);
         // instance.fixProvider(instance.contractWrapperFactory.getDefaultProvider());
         instance.multicall = instance.contractWrapperFactory.build(instance.multicall2Address, getMulticall2Abi());
         // TODO: initialize this after we know agent version and strategy
