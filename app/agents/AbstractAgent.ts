@@ -114,6 +114,14 @@ export abstract class AbstractAgent implements IAgent {
         }
         this.dataSourceType = 'subgraph';
         this.subgraphUrl = agentConfig.subgraph_url;
+      } else if (agentConfig.data_source === 'subquery') {
+        if (!agentConfig.subgraph_url) {
+          throw new Error(
+            "Please set 'subgraph_url' if you want to proceed with {'data_source': 'subquery'}. Notice that 'graph_url' is deprecated so please change it to 'subgraph_url'.",
+          );
+        }
+        this.dataSourceType = 'subquery';
+        this.subgraphUrl = agentConfig.subgraph_url;
       } else if (agentConfig.data_source === 'blockchain') {
         this.dataSourceType = 'blockchain';
       } else {

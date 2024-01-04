@@ -10,8 +10,11 @@ import { toChecksummedAddress } from '../Utils.js';
 import logger from '../services/Logger.js';
 import { getMaxBlocksSubgraphDelay } from '../ConfigGetters.js';
 
+//the different structure mirrors the structure of the subquery database, made this way due to a lack of priori documentation on subgraph
+//everything else mirrors the subgraph exactly
 export const QUERY_ALL_JOBS = `{
   jobs(first: 1000) {
+  nodes {
     id
     active
     jobAddress
@@ -39,27 +42,28 @@ export const QUERY_ALL_JOBS = `{
     jobReservedSlasherId
     jobSlashingPossibleAfter
   }
+  }
 }`;
 
 export const QUERY_META = `{
-  _meta {
-    block {
-      number
-    }
+  _metadata {
+    lastProcessedHeight
   }
 }`;
 
 export const QUERY_JOB_OWNERS = `{
   jobOwners {
-    id
-    credits
+    nodes {
+      id
+      credits
+    }
   }
 }`;
 
 /**
  * This class used for fetching data from subgraph
  */
-export class SubgraphSource extends AbstractSource {
+export class SubquerySource extends AbstractSource {
   private blockchainSource: BlockchainSource;
   private readonly subgraphUrl: string;
 
@@ -119,12 +123,12 @@ export class SubgraphSource extends AbstractSource {
   }
 
   async getBlocksDelay(): Promise<{ diff: bigint; nodeBlockNumber: bigint; sourceBlockNumber: bigint }> {
-    const [latestBock, { _meta }] = await Promise.all([
+    const [latestBock, { _metadata }] = await Promise.all([
       this.network.getLatestBlockNumber(),
       this.query(this.subgraphUrl, QUERY_META),
     ]);
     return {
-      diff: latestBock - BigInt(_meta.block.number),
+      diff: latestBock - BigInt(_metadata.lastProcessedHeight),
       nodeBlockNumber: latestBock,
       sourceBlockNumber: latestBock,
     };
@@ -149,7 +153,8 @@ export class SubgraphSource extends AbstractSource {
     try {
       const res = await this.query(this.subgraphUrl, QUERY_ALL_JOBS);
       const { jobs } = res;
-      jobs.forEach(job => {
+      const { nodes } = jobs;
+      nodes.forEach(job => {
         const newJob = context._buildNewJob({
           name: 'RegisterJob',
           args: {
@@ -211,7 +216,7 @@ export class SubgraphSource extends AbstractSource {
       intervalSeconds: parseInt(graphData.intervalSeconds),
       lastExecutionAt: parseInt(graphData.lastExecutionAt),
     };
-    // with subgraphSource you don't need to use parseConfig. You can create config field right here.
+    // with SubquerySource you don't need to use parseConfig. You can create config field right here.
     lensFields.config = {
       isActive: graphData.active,
       useJobOwnerCredits: graphData.useJobOwnerCredits,
@@ -245,7 +250,8 @@ export class SubgraphSource extends AbstractSource {
       }
 
       const { jobOwners } = await this.query(this.subgraphUrl, QUERY_JOB_OWNERS);
-      jobOwners.forEach(JobOwner => {
+      const { nodes } = jobOwners;
+      nodes.forEach(JobOwner => {
         result.set(toChecksummedAddress(JobOwner.id), BigNumber.from(JobOwner.credits));
       });
     } catch (e) {

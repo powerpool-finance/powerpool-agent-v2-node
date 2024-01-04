@@ -24,6 +24,7 @@ import { App } from './App.js';
 import logger, { updateSentryScope } from './services/Logger.js';
 import ContractEventsEmitter from './services/ContractEventsEmitter.js';
 import { SubgraphSource } from './dataSources/SubgraphSource.js';
+import { SubquerySource } from './dataSources/SubquerySource.js';
 import { BlockchainSource } from './dataSources/BlockchainSource.js';
 import { AgentRandao_2_3_0 } from './agents/Agent.2.3.0.randao.js';
 import { AgentLight_2_2_0 } from './agents/Agent.2.2.0.light.js';
@@ -408,6 +409,8 @@ export class Network {
       );
       if (agent.dataSourceType === 'subgraph') {
         dataSource = this.getAgentSubgraphDataSource(agent);
+      } else if (agent.dataSourceType === 'subquery') { //allows subquery source alongside the subgraph one
+        dataSource = this.getAgentSubqueryDataSource(agent);
       } else if (agent.dataSourceType === 'blockchain') {
         dataSource = this.getAgentBlockchainDataSource(agent);
       } else {
@@ -421,6 +424,10 @@ export class Network {
 
   public getAgentSubgraphDataSource(agent) {
     return new SubgraphSource(this, agent, agent.subgraphUrl);
+  }
+
+  public getAgentSubqueryDataSource(agent) {
+    return new SubquerySource(this, agent, agent.subgraphUrl);
   }
 
   public getAgentBlockchainDataSource(agent) {
