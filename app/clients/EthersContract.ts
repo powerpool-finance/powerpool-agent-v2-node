@@ -166,7 +166,6 @@ export class EthersContract implements ContractWrapper {
       const res = await new Promise(async (resolve, reject) => {
         let callRes;
         timeout = setTimeout(() => {
-          console.log('callRes', callRes);
           reject(
             new Error(
               `${Math.round(new Date().getTime() / 1000)}: Call execution took more than ` +

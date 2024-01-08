@@ -11,7 +11,7 @@ import { AbstractJob } from './jobs/AbstractJob';
 export type AvailableNetworkNames = 'mainnet' | 'bsc' | 'polygon' | 'goerli';
 export type ExecutorType = 'flashbots' | 'pga';
 export type Strategy = 'randao' | 'light';
-export type DataSourceType = 'blockchain' | 'subgraph';
+export type DataSourceType = 'blockchain' | 'subgraph' | 'subquery';
 
 export enum CALLDATA_SOURCE {
   SELECTOR,

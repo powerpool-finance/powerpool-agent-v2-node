@@ -3,21 +3,17 @@ import { ContractWrapper, ContractWrapperFactory } from '../Types.js';
 import { EthersContract } from './EthersContract.js';
 import { Fragment } from '@ethersproject/abi/src.ts/fragments';
 import logger from '../services/Logger.js';
+import { Network } from '../Network';
 
 export class EthersContractWrapperFactory implements ContractWrapperFactory {
   private readonly primaryEndpoint: string;
   private readonly wsCallTimeout: number;
   private provider: ethers.providers.BaseProvider;
 
-  constructor(wsRpcEndpoints: string[], wsTimeout) {
-    if (wsRpcEndpoints.length === 0) {
-      throw new Error('EthersClient: missing endpoint list');
-    }
-    const [primaryEndpoint] = wsRpcEndpoints;
-    this.primaryEndpoint = primaryEndpoint;
+  constructor(network: Network, wsTimeout) {
     this.wsCallTimeout = wsTimeout;
     this.clog('info', 'Contract factory initialized');
-    this.provider = new ethers.providers.WebSocketProvider(primaryEndpoint);
+    this.provider = network.getProvider();
   }
 
   private toString(): string {
@@ -25,7 +21,7 @@ export class EthersContractWrapperFactory implements ContractWrapperFactory {
   }
 
   private clog(level: string, ...args) {
-    logger.log(level, `EthersContractFactory${this.toString()}:`, ...args);
+    logger.log(level, `EthersContractFactory${this.toString()}: ${args.join(' ')}`);
   }
 
   private err(...args): Error {
