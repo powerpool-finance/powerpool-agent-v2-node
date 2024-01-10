@@ -34,6 +34,12 @@ export function toNumber(value: number | BigNumber): number {
 }
 
 export function numberToBigInt(n) {
+  if (!n) {
+    return n;
+  }
+  if (n.toBigInt) {
+    return n.toBigInt();
+  }
   return BigInt(n.toString());
 }
 

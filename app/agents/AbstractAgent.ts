@@ -105,24 +105,17 @@ export abstract class AbstractAgent implements IAgent {
     setConfigDefaultValues(this.executorConfig, getDefaultExecutorConfig());
 
     // Check if all data for subgraph is provided
-    if (agentConfig.data_source) {
-      if (agentConfig.data_source === 'subgraph') {
-        if (!agentConfig.subgraph_url) {
-          throw new Error(
-            "Please set 'subgraph_url' if you want to proceed with {'data_source': 'subgraph'}. Notice that 'graph_url' is deprecated so please change it to 'subgraph_url'.",
-          );
-        }
-        this.dataSourceType = 'subgraph';
-        this.subgraphUrl = agentConfig.subgraph_url;
-      } else if (agentConfig.data_source === 'blockchain') {
-        this.dataSourceType = 'blockchain';
-      } else {
-        throw this.err(
-          `Invalid agent data_source: ${agentConfig.data_source}. Can be either 'blockchain' or 'subgraph'.`,
-        );
+    this.dataSourceType = (agentConfig.data_source || 'blockchain') as DataSourceType;
+    this.subgraphUrl = agentConfig.subgraph_url;
+
+    if (this.dataSourceType === 'subgraph' || this.dataSourceType === 'subquery') {
+      if (!this.subgraphUrl) {
+        throw new Error(`Please set 'subgraph_url' if you want to use {'data_source': '${this.dataSourceType}'}.`);
       }
-    } else {
-      this.dataSourceType = 'blockchain';
+    } else if (this.dataSourceType !== 'blockchain') {
+      throw this.err(
+        `Invalid data_source: ${agentConfig.data_source}. Can be either 'blockchain', 'subgraph' or 'subquery'.`,
+      );
     }
 
     if (
@@ -143,16 +136,6 @@ export abstract class AbstractAgent implements IAgent {
 
     this.keyAddress = ethers.utils.getAddress(agentConfig.keeper_worker_address);
     this.keyPass = agentConfig.key_pass;
-
-    // TODO: move acceptMaxBaseFeeLimit logic to Light agent only
-    // if ('accept_max_base_fee_limit' in agentConfig) {
-    //   this.acceptMaxBaseFeeLimit = !!agentConfig.accept_max_base_fee_limit;
-    //   if (this.acceptMaxBaseFeeLimit) {
-    //     this.keeperConfig = this.keeperConfig | FLAG_ACCEPT_MAX_BASE_FEE_LIMIT;
-    //   }
-    // } else {
-    //   this.acceptMaxBaseFeeLimit = false;
-    // }
 
     // accrueReward
     this.accrueReward = !!agentConfig.accrue_reward;
@@ -521,6 +504,17 @@ export abstract class AbstractAgent implements IAgent {
     this.network.unregisterResolver(`${this.address}/${jobKey}`);
   }
 
+  public async buildTx(calldata: string): Promise<UnsignedTransaction> {
+    return {
+      to: this.getAddress(),
+      data: calldata,
+      // Typed-Transaction features
+      type: 2,
+      // EIP-1559; Type 2
+      // maxFeePerGas: this.getBaseFeePerGas(),
+    };
+  }
+
   public async sendTxEnvelope(envelope: TxEnvelope) {
     await this.trySendExecuteEnvelope(envelope);
   }
@@ -529,30 +523,35 @@ export abstract class AbstractAgent implements IAgent {
     return BigInt(this.network.getBaseFee() * multiplier);
   }
 
+  protected async getTxFeeData() {
+    let baseFeePerGas, maxPriority;
+    try {
+      const fee = await this.network.getFeeData();
+      maxPriority = numberToBigInt(fee.maxPriorityFeePerGas);
+      baseFeePerGas = numberToBigInt(fee.lastBaseFeePerGas);
+    } catch (e) {
+      this.clog(
+        'warn',
+        `Failed to fetch getFeeData(), error message: ${e.message}. Fetching getMaxPriorityFeePerGas...`,
+      );
+      const priorityFeeAddGwei = BigInt(this.executorConfig.gas_price_priority_add_gwei);
+      const maxPriorityFeePerGas = await this.network
+        .getMaxPriorityFeePerGas()
+        .catch(() => priorityFeeAddGwei * 1000000000n);
+      maxPriority = BigInt(maxPriorityFeePerGas);
+      baseFeePerGas = this.getBaseFeePerGas();
+    }
+    return { baseFeePerGas, maxPriority };
+  }
+
   protected async populateTxExtraFields(tx: UnsignedTransaction) {
     tx.chainId = this.network.getChainId();
     tx['from'] = this.workerSigner.address;
-    const baseFeePerGas = this.getBaseFeePerGas();
+
     const priorityFeeAddGwei = BigInt(this.executorConfig.gas_price_priority_add_gwei);
-    const maxPriorityFeePerGas = await this.network
-      .getMaxPriorityFeePerGas()
-      .catch(() => priorityFeeAddGwei * 1000000000n);
-    tx.maxPriorityFeePerGas = BigInt(maxPriorityFeePerGas) + priorityFeeAddGwei * 1000000000n;
+    const { baseFeePerGas, maxPriority } = await this.getTxFeeData();
+    tx.maxPriorityFeePerGas = maxPriority + priorityFeeAddGwei * 1000000000n;
     tx.maxFeePerGas = baseFeePerGas + tx.maxPriorityFeePerGas;
-  }
-
-  public async buildTx(calldata: string): Promise<UnsignedTransaction> {
-    return {
-      to: this.getAddress(),
-
-      data: calldata,
-
-      // Typed-Transaction features
-      type: 2,
-
-      // EIP-1559; Type 2
-      // maxFeePerGas: this.getBaseFeePerGas(),
-    };
   }
 
   async txNotMinedInBlock(tx: UnsignedTransaction, txHash: string): Promise<TxGasUpdate> {
@@ -563,18 +562,11 @@ export abstract class AbstractAgent implements IAgent {
     const { maxPriorityFeePerGas } = tx;
     await this.populateTxExtraFields(tx);
     const priorityIncrease = (tx.maxPriorityFeePerGas * 100n) / maxPriorityFeePerGas;
-    // console.log(
-    //   'tx.maxPriorityFeePerGas',
-    //   tx.maxPriorityFeePerGas,
-    //   'maxPriorityFeePerGas',
-    //   maxPriorityFeePerGas,
-    //   'priorityIncrease',
-    //   priorityIncrease,
-    // );
     if (priorityIncrease < 110n) {
       tx.maxPriorityFeePerGas = (maxPriorityFeePerGas * 111n) / 100n;
     }
-    const newMax = this.getBaseFeePerGas() + tx.maxPriorityFeePerGas;
+    const { baseFeePerGas } = await this.getTxFeeData();
+    const newMax = baseFeePerGas + tx.maxPriorityFeePerGas;
     //TODO: check nonce
     //TODO: check resends count and max feePerGas
 

@@ -7,7 +7,6 @@ import axios from 'axios';
 export abstract class AbstractExecutor {
   protected network: Network;
   protected agentContract: ContractWrapper;
-  protected genericProvider: ethers.providers.BaseProvider;
   protected workerSigner: ethers.Wallet;
 
   protected executorConfig: ExecutorConfig;
@@ -34,6 +33,10 @@ export abstract class AbstractExecutor {
   protected abstract clog(level: string, ...args: any[]);
   protected abstract err(...args: any[]);
   protected abstract process(tx: TxEnvelope);
+
+  public getProvider() {
+    return this.network.getProvider();
+  }
 
   public getStatusObjectForApi(): any {
     return {
@@ -78,8 +81,8 @@ export abstract class AbstractExecutor {
 
   // NOTICE: Use this function as a sync one unless you really want to wait for the tx be mined.
   public async push(key: string, envelope: TxEnvelope) {
-    if (!this.genericProvider) {
-      throw this.err('Generic Provider misconfigured');
+    if (!this.getProvider()) {
+      throw this.err('Provider misconfigured');
     }
     if (!this.workerSigner) {
       throw this.err('Worker signer misconfigured');
