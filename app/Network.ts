@@ -284,6 +284,7 @@ export class Network {
         onDisconnect: err => {
           this.clog('error', `Ws connection ${this.rpc} interrupt. Retrying.  ${JSON.stringify(err, null, 2)}`);
           setTimeout(() => {
+            this.stop();
             this.initProvider();
           }, 3000);
         },
