@@ -4,6 +4,7 @@ import { ContractWrapper, ErrorWrapper, EventWrapper, TxDataWrapper, WrapperList
 import { Fragment, ErrorFragment, FunctionFragment, EventFragment } from 'ethers/lib/utils.js';
 import logger from '../services/Logger.js';
 import QueueEmitter from '../services/QueueEmitter.js';
+import { Network } from '../Network';
 
 // DANGER: DOES NOT support method override
 export class EthersContract implements ContractWrapper {
@@ -14,8 +15,7 @@ export class EthersContract implements ContractWrapper {
   private readonly attempts = 3;
   private readonly attemptTimeoutSeconds = 1;
 
-  private readonly primaryEndpoint: string;
-  private readonly providers: Map<string, ethers.providers.BaseProvider>;
+  private readonly network: Network;
 
   private readonly abiFunctionOutputKeys: Map<string, Array<string>>;
   private readonly abiEventKeys: Map<string, Array<string>>;
@@ -29,14 +29,12 @@ export class EthersContract implements ContractWrapper {
   constructor(
     addressOrName: string,
     contractInterface: ReadonlyArray<Fragment>,
-    primaryEndpoint: string,
-    providers: Map<string, ethers.providers.BaseProvider>,
+    network: Network,
     wsCallTimeout: number,
   ) {
     this.address = addressOrName;
-    this.contract = new ethers.Contract(addressOrName, contractInterface, providers.get(primaryEndpoint));
-    this.primaryEndpoint = primaryEndpoint;
-    this.providers = providers;
+    this.network = network;
+    this.contract = new ethers.Contract(addressOrName, contractInterface, network.getProvider());
     this.abiFunctionOutputKeys = new Map();
     this.abiEventKeys = new Map();
     this.abiEvents = new Map();
@@ -77,12 +75,10 @@ export class EthersContract implements ContractWrapper {
       }
     }
 
-    providers.get(primaryEndpoint).on(
+    network.getProvider().on(
       {
         address: this.address,
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        fromBlock: 'latest',
+        // fromBlock: 'latest',
       },
       async log => {
         await this.processLog(log);
@@ -122,7 +118,7 @@ export class EthersContract implements ContractWrapper {
   }
 
   private toString(): string {
-    return `EthersContract: (rpc=${this.primaryEndpoint})`;
+    return `EthersContract: (rpc=${this.network.getRpc()})`;
   }
 
   private clog(level: string, ...args: any[]) {
@@ -138,10 +134,10 @@ export class EthersContract implements ContractWrapper {
   }
 
   public getDefaultProvider(): ethers.providers.BaseProvider {
-    if (!this.providers) {
+    if (!this.network.getProvider()) {
       throw this.err('Provider not initialized');
     }
-    return this.providers.get(this.primaryEndpoint);
+    return this.network.getProvider();
   }
 
   public encodeABI(method: string, args = []): string {
