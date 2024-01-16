@@ -11,8 +11,8 @@ export class EthersContractWrapperFactory implements ContractWrapperFactory {
 
   constructor(network: Network, wsTimeout) {
     this.wsCallTimeout = wsTimeout;
-    this.clog('info', 'Contract factory initialized');
     this.network = network;
+    this.clog('info', 'Contract factory initialized');
   }
 
   private toString(): string {
