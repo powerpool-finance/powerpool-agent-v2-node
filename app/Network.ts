@@ -23,7 +23,7 @@ import { EthersContractWrapperFactory } from './clients/EthersContractWrapperFac
 import { App } from './App.js';
 import logger, { updateSentryScope } from './services/Logger.js';
 import ContractEventsEmitter from './services/ContractEventsEmitter.js';
-import keepAlive from './services/KeepAlive.js';
+import WebSocketProvider from './services/WebSocketProvider.js';
 import { SubgraphSource } from './dataSources/SubgraphSource.js';
 import { BlockchainSource } from './dataSources/BlockchainSource.js';
 import { SubquerySource } from './dataSources/SubquerySource.js';
@@ -275,31 +275,15 @@ export class Network {
   }
 
   private initProvider() {
-    this.provider = new ethers.providers.WebSocketProvider(this.rpc);
+    this.provider = new WebSocketProvider(this.rpc);
     this.fixProvider(this.provider);
+    this.clog('info', `Ws connection ${this.rpc} established`);
 
-    return new Promise(resolve => {
-      keepAlive({
-        provider: this.provider,
-        onDisconnect: err => {
-          this.clog('error', `Ws connection ${this.rpc} interrupt. Retrying.  ${JSON.stringify(err, null, 2)}`);
-          setTimeout(() => {
-            this.stop();
-            this.initProvider();
-          }, 3000);
-        },
-        onConnect: () => {
-          this.clog('info', `Ws connection ${this.rpc} established`);
-          this.contractWrapperFactory = new EthersContractWrapperFactory(this, this.networkConfig.ws_timeout);
-          this.fixProvider(this.contractWrapperFactory.getDefaultProvider());
-          this.multicall = this.contractWrapperFactory.build(this.multicall2Address, getMulticall2Abi());
-          // TODO: initialize this after we know agent version and strategy
-          this.externalLens = this.contractWrapperFactory.build(this.externalLensAddress, getExternalLensAbi());
-          this.provider.on('block', this._onNewBlockCallback.bind(this));
-          resolve(this.provider);
-        },
-      });
-    });
+    this.contractWrapperFactory = new EthersContractWrapperFactory(this, this.networkConfig.ws_timeout);
+    this.multicall = this.contractWrapperFactory.build(this.multicall2Address, getMulticall2Abi());
+    // TODO: initialize this after we know agent version and strategy
+    this.externalLens = this.contractWrapperFactory.build(this.externalLensAddress, getExternalLensAbi());
+    this.provider.on('block', this._onNewBlockCallback.bind(this));
   }
 
   private fixProvider(provider) {
@@ -463,8 +447,8 @@ export class Network {
   public stop() {
     this.provider?.removeAllListeners();
     this.contractWrapperFactory?.stop();
-    this.provider = null;
-    this.agents = null;
+    // this.provider = null;
+    // this.agents = null;
   }
 
   private async _onNewBlockCallback(blockNumber) {
