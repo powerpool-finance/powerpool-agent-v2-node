@@ -247,11 +247,7 @@ export abstract class AbstractAgent implements IAgent {
     // this.workerNonce = await this.network.getProvider().getTransactionCount(this.workerSigner.address);
     await this.executor.init();
 
-    await this._beforeResyncAllJobs();
-
-    // Task #2
-    this.isAgentUp = this.myKeeperIsActive && this.myStakeIsSufficient();
-    const upTo = await this.resyncAllJobs();
+    const upTo = await this.checkStatusAndResyncAllJobs();
     this.initializeListeners(upTo);
     // setTimeout(this.verifyLastExecutionAtLoop.bind(this), 3 * 60 * 1000);
 
@@ -403,6 +399,14 @@ export abstract class AbstractAgent implements IAgent {
     };
   }
 
+  public async checkStatusAndResyncAllJobs(): Promise<number> {
+    await this._beforeResyncAllJobs();
+
+    // Task #2
+    this.isAgentUp = this.myKeeperIsActive && this.myStakeIsSufficient();
+    return this.resyncAllJobs();
+  }
+
   /**
    * Job Update Pipeline:
    * 1. Handle RegisterJob events
@@ -413,6 +417,9 @@ export abstract class AbstractAgent implements IAgent {
    */
   private async resyncAllJobs(): Promise<number> {
     this.clog('info', 'resyncAllJobs start');
+
+    this.stopAllJobs();
+
     let latestBock = this.network.getLatestBlockNumber();
     // 1. init jobs
     let newJobs = new Map<string, RandaoJob | LightJob>(),

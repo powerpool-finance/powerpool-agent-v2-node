@@ -35,6 +35,7 @@ export default class WebSocketProvider extends WebSocketProviderClass() {
     const provider = new ethers.providers.WebSocketProvider(this.providerUrl, this.provider?.network?.chainId);
     let pingInterval: NodeJS.Timer | undefined;
     let pongTimeout: NodeJS.Timeout | undefined;
+    let firstOpen = true;
 
     provider._websocket.on('open', () => {
       pingInterval = setInterval(() => {
@@ -57,6 +58,11 @@ export default class WebSocketProvider extends WebSocketProviderClass() {
         delete this.requests[key];
       }
       console.log('connection established.');
+      if (firstOpen) {
+        firstOpen = false;
+      } else {
+        provider.emit('reconnect');
+      }
     });
 
     provider._websocket.on('pong', () => {
