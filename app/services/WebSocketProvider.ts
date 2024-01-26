@@ -84,6 +84,14 @@ export default class WebSocketProvider extends WebSocketProviderClass() {
       }
     });
 
+    const originalStartEvent = provider._startEvent.bind(provider);
+    provider._startEvent = event => {
+      if (event.type === 'reconnect') {
+        return;
+      }
+      return originalStartEvent(event);
+    };
+
     this.provider = provider;
   }
 }
