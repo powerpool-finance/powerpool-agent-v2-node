@@ -402,6 +402,8 @@ export interface IAgent {
   // METHODS
   init(network: Network, dataSource: IDataSource): void;
 
+  checkStatusAndResyncAllJobs(): Promise<number>;
+
   registerIntervalJobExecution(jobKey: string, timestamp: number, callback: (calldata) => void);
 
   unregisterIntervalJobExecution(jobKey: string);

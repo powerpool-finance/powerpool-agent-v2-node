@@ -284,6 +284,7 @@ export class Network {
     // TODO: initialize this after we know agent version and strategy
     this.externalLens = this.contractWrapperFactory.build(this.externalLensAddress, getExternalLensAbi());
     this.provider.on('block', this._onNewBlockCallback.bind(this));
+    this.provider.on('reconnect', this._resyncAgents.bind(this));
   }
 
   private fixProvider(provider) {
@@ -430,6 +431,13 @@ export class Network {
       lowBlockNumber = !lowBlockNumber || syncBlockNumber < lowBlockNumber ? syncBlockNumber : lowBlockNumber;
     }
     this.agentsStartBlockNumber = lowBlockNumber;
+  }
+
+  private async _resyncAgents() {
+    this.clog('info', `Resync agents on network: '${this.getName()}'`);
+    for (const agent of this.getAgents()) {
+      await agent.checkStatusAndResyncAllJobs();
+    }
   }
 
   public getAgentSubgraphDataSource(agent) {
