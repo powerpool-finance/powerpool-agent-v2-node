@@ -50,7 +50,7 @@ export const QUERY_META = `{
 }`;
 
 export const QUERY_JOB_OWNERS = `{
-  jobOwners {
+  jobOwners(first: 1000) {
     id
     credits
   }
