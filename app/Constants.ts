@@ -37,6 +37,13 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
       strategy: 'randao',
     },
   },
+  polygon: {
+    '0x20D4029c783D5c9f47569940c656Af4189e53799': {
+      deployedAt: 52818115,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
+  },
   goerli: {
     '0x96cb9B293eB7695904B4Ea0FA73eB3650e07e8E4': {
       deployedAt: 7977609,
@@ -159,6 +166,7 @@ export const MULTICALL_CONTRACTS: { [network: string]: string } = {
   gnosis: '0xe79dfe2f36afa066dd501fd9c89a3e7d5843c0c2',
   sepolia: '0x3BEDdA2f411409448e0033024d68f1cDb0EEDd7B',
   arbitrumOne: '0x842ec2c7d803033edf55e478f461fc547bc54eb2',
+  polygon: '0xed386fe855c1eff2f843b910923dd8846e45c5a4',
 };
 
 export const EXTERNAL_LENS_CONTRACTS_2_3_0: { [network: string]: string } = {
@@ -167,6 +175,7 @@ export const EXTERNAL_LENS_CONTRACTS_2_3_0: { [network: string]: string } = {
   goerli: '0x3DC4d2774377791aC6DA345f6f13734C9E314f86', // v2
   sepolia: '0x42a2D286Bac644CfdB4030d96b4f7b2ad9dFA998', // v2
   arbitrumOne: '0xa1be5a9d961aae6c6895e1579ce470e708e7cedb', // v2
+  polygon: '0xB712Ab1263fd2D992E39Df1CF3F81EA9BB83e548'
 };
 
 export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {
@@ -176,6 +185,7 @@ export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {
   gnosis: 5,
   testnet: 5,
   arbitrumOne: 0.25,
+  polygon: 2,
 };
 
 // export const FLAG_ACCEPT_MAX_BASE_FEE_LIMIT = 0x01;
