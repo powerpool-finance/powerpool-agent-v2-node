@@ -175,7 +175,7 @@ export const EXTERNAL_LENS_CONTRACTS_2_3_0: { [network: string]: string } = {
   goerli: '0x3DC4d2774377791aC6DA345f6f13734C9E314f86', // v2
   sepolia: '0x42a2D286Bac644CfdB4030d96b4f7b2ad9dFA998', // v2
   arbitrumOne: '0xa1be5a9d961aae6c6895e1579ce470e708e7cedb', // v2
-  polygon: '0xB712Ab1263fd2D992E39Df1CF3F81EA9BB83e548'
+  polygon: '0xB712Ab1263fd2D992E39Df1CF3F81EA9BB83e548',
 };
 
 export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {
