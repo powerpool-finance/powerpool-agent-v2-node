@@ -11,6 +11,8 @@ export default class WebSocketProvider extends WebSocketProviderClass() {
   private events: ethers.providers.WebSocketProvider['_events'] = [];
   private requests: ethers.providers.WebSocketProvider['_requests'] = {};
 
+  firstOpen = true;
+
   private handler = {
     get(target: WebSocketProvider, prop: string, receiver: unknown) {
       const value = target.provider && Reflect.get(target.provider, prop, receiver);
@@ -35,7 +37,6 @@ export default class WebSocketProvider extends WebSocketProviderClass() {
     const provider = new ethers.providers.WebSocketProvider(this.providerUrl, this.provider?.network?.chainId);
     let pingInterval: NodeJS.Timer | undefined;
     let pongTimeout: NodeJS.Timeout | undefined;
-    let firstOpen = true;
 
     provider._websocket.on('open', () => {
       pingInterval = setInterval(() => {
@@ -57,9 +58,9 @@ export default class WebSocketProvider extends WebSocketProviderClass() {
         provider._websocket.send(this.requests[key].payload);
         delete this.requests[key];
       }
-      console.log('connection established.');
-      if (firstOpen) {
-        firstOpen = false;
+      console.log('connection established (firstOpen=' + this.firstOpen + ')');
+      if (this.firstOpen) {
+        this.firstOpen = false;
       } else {
         provider.emit('reconnect');
       }
