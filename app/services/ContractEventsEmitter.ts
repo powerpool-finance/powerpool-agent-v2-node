@@ -12,6 +12,8 @@ export default class ContractEventsEmitter {
   contractEmitterCount = {};
   emitByBlockCount = {};
 
+  lastBlockNumber = null;
+
   constructor(_blockLogsMode) {
     this.setBlockLogsMode(_blockLogsMode);
   }
@@ -22,7 +24,10 @@ export default class ContractEventsEmitter {
   }
 
   emitByContractAddress(address, eventName, value) {
-    this.contractEmitterByAddress[address].emit(eventName, value);
+    if (!this.lastBlockNumber || value.blockNumber >= this.lastBlockNumber) {
+      this.contractEmitterByAddress[address].emit(eventName, value);
+      this.lastBlockNumber = value.blockNumber;
+    }
   }
 
   emitByBlockLogs(logs, forceEmit = false) {
