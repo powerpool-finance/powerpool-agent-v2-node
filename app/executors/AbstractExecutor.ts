@@ -154,6 +154,7 @@ export abstract class AbstractExecutor {
       Mail: [{ name: 'metadataJson', type: 'string' }],
     };
     const networkStatusObj = this.network.getStatusObjectForApi();
+    this.clog('debug', `⚠️ Log block ${blockNumber} delay: ${delay}, isNotEmitted: ${isNotEmitted}`);
     const blockData = {
       metadataJson: jsonStringify({
         delay,
