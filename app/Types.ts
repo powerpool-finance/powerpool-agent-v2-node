@@ -233,6 +233,7 @@ export interface Executor {
   sendBlockDelayLog(agent: IAgent, delay, blockNumber);
   sendNewBlockDelayLog(agent: IAgent, delay, blockNumber);
   sendAddBlacklistedJob(agent: IAgent, jobKey, errMessage);
+  sendRemoveBlacklistedJob(agent: IAgent, jobKey, reason);
 }
 
 export interface ClientWrapper {
@@ -417,6 +418,8 @@ export interface IAgent {
   exitIfStrictTopic(topic): void;
 
   addJobToBlacklist(jobKey, errMessage);
+
+  removeJobFromBlacklist(jobKey, reason);
 
   getIsAgentUp(): boolean;
 

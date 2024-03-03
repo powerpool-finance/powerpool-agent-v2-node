@@ -9,7 +9,6 @@ import {
   RegisterJobEventArgs,
   Resolver,
   UnsignedTransaction,
-  UpdateJobEventArgs,
 } from '../Types.js';
 import { BigNumber, Event } from 'ethers';
 import { encodeExecute, parseConfig, parseRawJob, toNumber, weiValueToEth, weiValueToGwei } from '../Utils.js';
@@ -117,31 +116,6 @@ export abstract class AbstractJob {
     }
   }
 
-  // APPLIERS (only applies, but doesn't resubscribe).
-
-  // TODO: deprecate
-  public applyUpdateEvent(event: Event): boolean {
-    this.assertEvent(event, 'JobUpdate');
-
-    const args: UpdateJobEventArgs = event.args as never;
-    this.clog('debug', 'JobUpdateEvent: params, args (TODO: ensure types match):', this.details, args);
-
-    let requiresRestart = false;
-
-    if (this.details.intervalSeconds !== args.intervalSeconds) {
-      requiresRestart = true;
-    }
-
-    // TODO: ensure types match
-    this.details.maxBaseFeeGwei = args.maxBaseFeeGwei;
-    this.details.rewardPct = args.rewardPct;
-    this.details.fixedReward = args.fixedReward;
-    this.details.intervalSeconds = args.intervalSeconds;
-    this.jobLevelMinKeeperCvp = args.jobMinCvp;
-
-    return requiresRestart;
-  }
-
   //assignFields
 
   public applyJob(job: GetJobResponse): boolean {
@@ -245,6 +219,7 @@ export abstract class AbstractJob {
   public applyWasExecuted() {
     this.failedExecuteEstimationsInARow = 0;
     this.failedResolverEstimationsInARow = 0;
+    this.agent.removeJobFromBlacklist(this.key, 'execute');
   }
 
   public applyUpdate(
