@@ -38,6 +38,7 @@ export abstract class AbstractJob {
 
   private initializing = true;
   protected failedExecuteEstimationsInARow = 0;
+  protected failedResolverEstimationsInARow = 0;
 
   protected abstract clog(...args): void;
   protected abstract err(...args): Error;
@@ -243,6 +244,7 @@ export abstract class AbstractJob {
 
   public applyWasExecuted() {
     this.failedExecuteEstimationsInARow = 0;
+    this.failedResolverEstimationsInARow = 0;
   }
 
   public applyUpdate(
@@ -332,8 +334,13 @@ export abstract class AbstractJob {
     return (
       e.message &&
       (e.message.includes("sender doesn't have enough funds to send tx") ||
-        e.message.includes('Tx not mined, max attempts'))
+        e.message.includes('Tx not mined, max attempts') ||
+        e.message.includes('0xaf605803')) // OnlyCurrentSlasher
     );
+  }
+
+  protected isResolverError(e) {
+    return e.message && e.message.includes('0x74ab6781'); // SelectorCheckFailed
   }
 
   // 1 is 1 wei
