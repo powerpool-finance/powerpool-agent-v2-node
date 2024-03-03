@@ -317,6 +317,9 @@ export abstract class AbstractAgent implements IAgent {
   }
 
   public removeJobFromBlacklist(jobKey, reason) {
+    if (!this.isJobBlacklisted(jobKey)) {
+      return;
+    }
     this.clog('info', `removeJobFromBlacklist: ${jobKey}, reason ${reason}`);
     this.blacklistedJobs.delete(jobKey);
     this.executor.sendRemoveBlacklistedJob(this, jobKey, reason);
