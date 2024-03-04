@@ -49,11 +49,23 @@ describe('AgentRandao_2_3_0', () => {
         .expects('query')
         .twice()
         .withArgs(subgraphUrl, QUERY_META)
-        .returns({
-          _meta: { block: { number: 4000530 } },
-        });
-      mock.expects('query').once().withArgs(subgraphUrl, QUERY_ALL_JOBS).returns(jobsResponse);
-      mock.expects('query').once().withArgs(subgraphUrl, QUERY_JOB_OWNERS).returns(JOB_OWNERS_RESPONSE);
+        .returns(
+          new Promise(resolve =>
+            resolve({
+              _meta: { block: { number: 4000530 } },
+            }),
+          ),
+        );
+      mock
+        .expects('query')
+        .once()
+        .withArgs(subgraphUrl, QUERY_ALL_JOBS)
+        .returns(new Promise(resolve => resolve(jobsResponse)));
+      mock
+        .expects('query')
+        .once()
+        .withArgs(subgraphUrl, QUERY_JOB_OWNERS)
+        .returns(new Promise(resolve => resolve(JOB_OWNERS_RESPONSE)));
 
       return dataSource;
     });

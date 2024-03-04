@@ -23,8 +23,10 @@ import { EthersContractWrapperFactory } from './clients/EthersContractWrapperFac
 import { App } from './App.js';
 import logger, { updateSentryScope } from './services/Logger.js';
 import ContractEventsEmitter from './services/ContractEventsEmitter.js';
+import WebSocketProvider from './services/WebSocketProvider.js';
 import { SubgraphSource } from './dataSources/SubgraphSource.js';
 import { BlockchainSource } from './dataSources/BlockchainSource.js';
+import { SubquerySource } from './dataSources/SubquerySource.js';
 import { AgentRandao_2_3_0 } from './agents/Agent.2.3.0.randao.js';
 import { AgentLight_2_2_0 } from './agents/Agent.2.2.0.light.js';
 
@@ -126,6 +128,10 @@ export class Network {
     this.app.exitIfStrictTopic(topic);
   }
 
+  public getRpc() {
+    return this.rpc;
+  }
+
   public getAppVersion() {
     return this.app.getVersion();
   }
@@ -162,6 +168,10 @@ export class Network {
   // TODO: throttle node requests
   public async getMaxPriorityFeePerGas(): Promise<number> {
     return this.provider.send('eth_maxPriorityFeePerGas', []);
+  }
+
+  public async getFeeData() {
+    return this.provider.getFeeData();
   }
 
   public async getClientVersion(): Promise<string> {
@@ -265,14 +275,16 @@ export class Network {
   }
 
   private initProvider() {
-    this.provider = new ethers.providers.WebSocketProvider(this.rpc);
+    this.provider = new WebSocketProvider(this.rpc);
     this.fixProvider(this.provider);
-    this.contractWrapperFactory = new EthersContractWrapperFactory([this.rpc], this.networkConfig.ws_timeout);
-    this.fixProvider(this.contractWrapperFactory.getDefaultProvider());
+    this.clog('info', `Ws connection ${this.rpc} established`);
+
+    this.contractWrapperFactory = new EthersContractWrapperFactory(this, this.networkConfig.ws_timeout);
     this.multicall = this.contractWrapperFactory.build(this.multicall2Address, getMulticall2Abi());
     // TODO: initialize this after we know agent version and strategy
     this.externalLens = this.contractWrapperFactory.build(this.externalLensAddress, getExternalLensAbi());
     this.provider.on('block', this._onNewBlockCallback.bind(this));
+    this.provider.on('reconnect', this._resyncAgents.bind(this));
   }
 
   private fixProvider(provider) {
@@ -338,7 +350,7 @@ export class Network {
       return;
     }
 
-    this.initProvider();
+    await this.initProvider();
 
     try {
       const latestBlock = await this.queryLatestBlock();
@@ -408,6 +420,8 @@ export class Network {
       );
       if (agent.dataSourceType === 'subgraph') {
         dataSource = this.getAgentSubgraphDataSource(agent);
+      } else if (agent.dataSourceType === 'subquery') {
+        dataSource = this.getAgentSubqueryDataSource(agent);
       } else if (agent.dataSourceType === 'blockchain') {
         dataSource = this.getAgentBlockchainDataSource(agent);
       } else {
@@ -419,8 +433,19 @@ export class Network {
     this.agentsStartBlockNumber = lowBlockNumber;
   }
 
+  private async _resyncAgents() {
+    this.clog('info', `Resync agents on network: '${this.getName()}'`);
+    for (const agent of this.getAgents()) {
+      await agent.checkStatusAndResyncAllJobs();
+    }
+  }
+
   public getAgentSubgraphDataSource(agent) {
     return new SubgraphSource(this, agent, agent.subgraphUrl);
+  }
+
+  public getAgentSubqueryDataSource(agent) {
+    return new SubquerySource(this, agent, agent.subgraphUrl);
   }
 
   public getAgentBlockchainDataSource(agent) {
@@ -430,8 +455,8 @@ export class Network {
   public stop() {
     this.provider?.removeAllListeners();
     this.contractWrapperFactory?.stop();
-    this.provider = null;
-    this.agents = null;
+    // this.provider = null;
+    // this.agents = null;
   }
 
   private async _onNewBlockCallback(blockNumber) {

@@ -29,7 +29,6 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
     super(agentContract);
 
     this.network = network;
-    this.genericProvider = network.getProvider();
     this.workerSigner = workerSigner;
     this.executorConfig = executorConfig;
   }
@@ -53,18 +52,18 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
     this.clog('debug', `📩 Starting to process tx with calldata=${tx.data} ...`);
     let gasLimitEstimation;
     try {
-      gasLimitEstimation = await this.genericProvider.estimateGas(prepareTx(tx));
+      gasLimitEstimation = await this.network.getProvider().estimateGas(prepareTx(tx));
     } catch (e) {
       let txSimulation;
       try {
-        txSimulation = await this.genericProvider.call(prepareTx(tx));
+        txSimulation = await this.network.getProvider().call(prepareTx(tx));
       } catch (_e) {
         envelope.executorCallbacks.txEstimationFailed(_e, tx.data as string);
         return callback(this.err(`gasLimitEstimation failed with error: ${_e.message}`));
       }
       if (e.message && e.message.includes('insufficient funds')) {
         try {
-          await this.genericProvider.estimateGas(prepareTx(tx, true));
+          await this.network.getProvider().estimateGas(prepareTx(tx, true));
         } catch (_e) {
           e = _e;
         }
@@ -92,7 +91,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       }
       return callback();
     } finally {
-      tx.nonce = tx.nonce || (await this.genericProvider.getTransactionCount(this.workerSigner.address));
+      tx.nonce = tx.nonce || (await this.getProvider().getTransactionCount(this.workerSigner.address));
     }
     if (!gasLimitEstimation) {
       return callback(this.err(`gasLimitEstimation is not set: ${gasLimitEstimation}`));
@@ -110,17 +109,17 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       waitForResendTransaction.call(this);
     }
 
-    this.clog('debug', `Tx ${txHash}: 📮 Sending to the mempool...`);
+    this.clog('info', `Tx ${txHash}: 📮 Sending to the mempool...`);
     try {
       this.sendTransactionLog(tx, txHash, resendCount, 'sign', prevTxHash).catch(() => {});
-      const sendRes = await this.genericProvider.sendTransaction(signedTx);
-      this.clog('debug', `Tx ${txHash}: 🚬 Waiting for the tx to be mined...`);
+      const sendRes = await this.getProvider().sendTransaction(signedTx);
+      this.clog('info', `Tx ${txHash}: 🚬 Waiting for the tx to be mined...`);
       res = await sendRes.wait(1);
       envelope.executorCallbacks.txExecutionSuccess(res, tx.data as string);
       this.sendTransactionLog(tx, txHash, resendCount, 'confirm', prevTxHash).catch(() => {});
       callback(null, res);
       this.clog(
-        'debug',
+        'info',
         `Tx ${txHash}: ⛓ Successfully mined in block #${res.blockNumber} with nonce ${tx.nonce}. The queue length is: ${this.queue.length}.`,
       );
     } catch (e) {
@@ -167,11 +166,11 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       const onNewBlock = () => {
         blocksPast++;
         if (blocksPast >= eConfig.tx_resend_or_drop_after_blocks) {
-          this.genericProvider.off('block', onNewBlock);
+          this.getProvider().off('block', onNewBlock);
           resend();
         }
       };
-      this.genericProvider.on('block', onNewBlock);
+      this.getProvider().on('block', onNewBlock);
     }
   }
 

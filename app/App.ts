@@ -113,7 +113,7 @@ export class App {
       }
       this.networks = null;
     }
-    await this.stopApi();
+    // await this.stopApi();
 
     logger.warn('App: The App has stopped successfully...');
   }
