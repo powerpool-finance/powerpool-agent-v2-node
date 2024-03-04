@@ -9,7 +9,6 @@ import {
   RegisterJobEventArgs,
   Resolver,
   UnsignedTransaction,
-  UpdateJobEventArgs,
 } from '../Types.js';
 import { BigNumber, Event } from 'ethers';
 import { encodeExecute, parseConfig, parseRawJob, toNumber, weiValueToEth, weiValueToGwei } from '../Utils.js';
@@ -38,6 +37,7 @@ export abstract class AbstractJob {
 
   private initializing = true;
   protected failedExecuteEstimationsInARow = 0;
+  protected failedResolverEstimationsInARow = 0;
 
   protected abstract clog(...args): void;
   protected abstract err(...args): Error;
@@ -114,31 +114,6 @@ export abstract class AbstractJob {
     if (event.removed) {
       throw this.err(`Unexpected "removed === true" flag for this event: ${event}`);
     }
-  }
-
-  // APPLIERS (only applies, but doesn't resubscribe).
-
-  // TODO: deprecate
-  public applyUpdateEvent(event: Event): boolean {
-    this.assertEvent(event, 'JobUpdate');
-
-    const args: UpdateJobEventArgs = event.args as never;
-    this.clog('debug', 'JobUpdateEvent: params, args (TODO: ensure types match):', this.details, args);
-
-    let requiresRestart = false;
-
-    if (this.details.intervalSeconds !== args.intervalSeconds) {
-      requiresRestart = true;
-    }
-
-    // TODO: ensure types match
-    this.details.maxBaseFeeGwei = args.maxBaseFeeGwei;
-    this.details.rewardPct = args.rewardPct;
-    this.details.fixedReward = args.fixedReward;
-    this.details.intervalSeconds = args.intervalSeconds;
-    this.jobLevelMinKeeperCvp = args.jobMinCvp;
-
-    return requiresRestart;
   }
 
   //assignFields
@@ -243,6 +218,8 @@ export abstract class AbstractJob {
 
   public applyWasExecuted() {
     this.failedExecuteEstimationsInARow = 0;
+    this.failedResolverEstimationsInARow = 0;
+    this.agent.removeJobFromBlacklist(this.key, 'execute');
   }
 
   public applyUpdate(
@@ -332,8 +309,13 @@ export abstract class AbstractJob {
     return (
       e.message &&
       (e.message.includes("sender doesn't have enough funds to send tx") ||
-        e.message.includes('Tx not mined, max attempts'))
+        e.message.includes('Tx not mined, max attempts') ||
+        e.message.includes('0xaf605803')) // OnlyCurrentSlasher
     );
+  }
+
+  protected isResolverError(e) {
+    return e.message && e.message.includes('0x74ab6781'); // SelectorCheckFailed
   }
 
   // 1 is 1 wei
