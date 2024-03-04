@@ -295,6 +295,15 @@ export abstract class AbstractAgent implements IAgent {
     this.executor.sendAddBlacklistedJob(this, jobKey, errMessage);
   }
 
+  public removeJobFromBlacklist(jobKey, reason) {
+    if (!this.isJobBlacklisted(jobKey)) {
+      return;
+    }
+    this.clog('info', `removeJobFromBlacklist: ${jobKey}, reason ${reason}`);
+    this.blacklistedJobs.delete(jobKey);
+    this.executor.sendRemoveBlacklistedJob(this, jobKey, reason);
+  }
+
   public getJobOwnerBalance(address: string): BigNumber {
     if (!this.ownerBalances.has(address)) {
       throw this.err(`getJobOwnerBalance(): Address ${address} not tracked`);
