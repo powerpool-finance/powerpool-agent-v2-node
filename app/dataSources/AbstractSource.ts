@@ -32,6 +32,7 @@ export abstract class AbstractSource implements IDataSource {
   }
 
   abstract getRegisteredJobs(_context): Promise<{ data: Map<string, RandaoJob | LightJob>; meta: SourceMetadata }>;
+  abstract getJob(_context, jobKey): Promise<RandaoJob | LightJob>;
   abstract getOwnersBalances(
     context,
     jobOwnersSet: Set<string>,

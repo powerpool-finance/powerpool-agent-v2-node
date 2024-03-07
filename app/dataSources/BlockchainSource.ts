@@ -17,6 +17,33 @@ export class BlockchainSource extends AbstractSource {
   }
 
   /**
+   * Getting a RegisterJob event and initialise a job.
+   * Returns Map structure which key is jobKey and value is instance of RandaoJob or LightJob. Await is required.
+   *
+   * @param context - agent caller context. This can be Agent.2.2.0.light or Agent.2.3.0.randao
+   * @param jobKey - Job key
+   *
+   * @return Promise<RandaoJob | LightJob>
+   */
+  async getJob(context, jobKey): Promise<RandaoJob | LightJob> {
+    const latestBock = this.network.getLatestBlockNumber();
+    // TODO: check latestBlock not null
+    const registerLog = await this.agent
+      .queryPastEvents('RegisterJob', context.fullSyncFrom, Number(latestBock), [jobKey])
+      .then(list => list[0]);
+    const newJob = context._buildNewJob(registerLog);
+    // fetching additional fields from lens
+
+    const lensJob = await this.network.queryLensJobs(this.agent.address, [jobKey]).then(r => r.results[0]);
+    newJob.applyJob({
+      ...lensJob,
+      owner: lensJob.owner,
+      config: parseConfig(BigNumber.from(lensJob.details.config)),
+    });
+    return newJob;
+  }
+
+  /**
    * Getting a RegisterJob events and initialise a job.
    * Returns Map structure which key is jobKey and value is instance of RandaoJob or LightJob. Await is required.
    *

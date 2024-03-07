@@ -362,6 +362,7 @@ export interface IRandaoAgent extends IAgent {
 export interface IDataSource {
   getType(): string;
   getBlocksDelay(): Promise<{ diff: bigint; nodeBlockNumber: bigint; sourceBlockNumber: bigint }>;
+  getJob(_context, jobKey): Promise<RandaoJob | LightJob>;
   getRegisteredJobs(_context): Promise<{ data: Map<string, RandaoJob | LightJob>; meta: SourceMetadata }>;
   getOwnersBalances(
     context,
@@ -427,7 +428,7 @@ export interface IAgent {
 
   getBaseFeePerGas(): bigint;
 
-  queryPastEvents(eventName: string, from: number, to: number): Promise<any>;
+  queryPastEvents(eventName: string, from: number, to: number, filters?: [any]): Promise<any>;
 
   buildTx(calldata: string): Promise<UnsignedTransaction>;
 
