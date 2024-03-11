@@ -440,6 +440,8 @@ export interface IAgent {
 
   updateJob(jobObj: AbstractJob): Promise<any>;
 
+  parseAndSetUnrecognizedErrorMessage(err);
+
   nowS(): number;
 
   nowMs(): number;

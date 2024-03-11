@@ -610,18 +610,17 @@ export abstract class AbstractAgent implements IAgent {
     this.clog('error', `txEstimationFailed: ${err.message}, txData: ${txData}`);
   }
 
-  private parseAndSetUnrecognizedErrorMessage(err) {
+  public parseAndSetUnrecognizedErrorMessage(err) {
     try {
       let decodedError;
-      const reason =
-        err.reason && err.reason !== 'execution reverted' ? err.reason : err.message && err.message.toString();
-      if (reason && reason.includes('response":"')) {
-        decodedError = this.contract.decodeError(
-          JSON.parse(JSON.parse(`"${reason.split('response":"')[1].split('"},')[0]}"`)).error.data,
-        );
-      } else if (reason && reason.includes('unrecognized custom error')) {
-        decodedError = this.contract.decodeError(reason.split('data: ')[1].slice(0, -1));
-      } else if (reason && reason.includes('error={"code":3')) {
+      let reason;
+      if (err.reason && err.reason !== 'execution reverted' && !err.reason.includes('without a reason string')) {
+        reason = err.reason;
+      } else {
+        reason = err.message && err.message.toString();
+      }
+
+      if (reason && reason.includes('error={"code":3')) {
         // 'cannot estimate gas; transaction may fail or may require manual gas limit [ See: https://links.ethers.org/v5-errors-UNPREDICTABLE_GAS_LIMIT ] (reason="execution reverted", method="estimateGas", transaction={"from":"0x779bEfe2b4C43cD1F87924defd13c8b9d3B1E1d8","maxPriorityFeePerGas":{"type":"BigNumber","hex":"0x05196259dd"},"maxFeePerGas":{"type":"BigNumber","hex":"0x05196259ed"},"to":"0x071412e301C2087A4DAA055CF4aFa2683cE1e499","data":"0x00000000ef0b5a45ff9b79d4b9162130bf0cd44dcf68b90d0000010200003066f23ebc0000000000000000000000000000000000000000000000000000000000000000","type":2,"accessList":null}, error={"code":3,"response":"{\"jsonrpc\":\"2.0\",\"id\":20442,\"error\":{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0xbe32c0ad\"}}\n"}, code=UNPREDICTABLE_GAS_LIMIT, version=providers/5.7.2)'
         // ->
         // '{"code":3,"response":{"jsonrpc":"2.0","id":20442,"error":{"code":3,"message":"execution reverted","data":"0xbe32c0ad"}}}'
@@ -632,15 +631,35 @@ export abstract class AbstractAgent implements IAgent {
           .replace('}"', '}')
           .replace('"{', '{');
         decodedError = this.contract.decodeError(JSON.parse(responseJson).response.error.data);
+      } else if (reason && reason.includes('error={"code":-32015')) {
+        // Error: PGAExecutorError(network: gnosis, signer: 0x840ccC99c425eDCAfebb0e7ccAC022CD15Fd49Ca): gasLimitEstimation failed with error: missing revert data in call exception; Transaction reverted without a reason string [ See: https://links.ethers.org/v5-errors-CALL_EXCEPTION ] (data="0x", transaction={"from":"0x840ccC99c425eDCAfebb0e7ccAC022CD15Fd49Ca","gasLimit":{"type":"BigNumber","hex":"0x4c4b40"},"maxPriorityFeePerGas":{"type":"BigNumber","hex":"0xd09dc300"},"maxFeePerGas":{"type":"BigNumber","hex":"0xd0a004f5"},"to":"0x071412e301C2087A4DAA055CF4aFa2683cE1e499","data":"0x52ee5b350000000000000000000000000b98057ea310f4d31f2a452b414647007d1645d900000000000000000000000000000000000000000000000000000000000000070000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000024a3066aab0000000000000000000000007ca19667f10d8642cd9c9834fae340db58ac925f00000000000000000000000000000000000000000000000000000000","type":2,"accessList":null}, error={"code":-32015,"response":"{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32015,\"message\":\"VM execution error.\",\"data\":\"Reverted 0xaf6058030000000000000000000000000000000000000000000000000000000000000051\"},\"id\":1270}"}, code=CALL_EXCEPTION, version=providers/5.7.2)
+        // ->
+        // '{"code":-32015,"response":{"jsonrpc":"2.0","error":{"code":-32015,"message":"VM execution error.","data":"Reverted 0xaf6058030000000000000000000000000000000000000000000000000000000000000051"},"id":1270}}'
+        const responseJson = reason
+          .split('error=')[1]
+          .split(', code=CALL_EXCEPTION')[0]
+          .replace('\n', '')
+          .replace('}"', '}')
+          .replace('"{', '{');
+        decodedError = this.contract.decodeError(
+          JSON.parse(responseJson.replace(/\\"/g, '"')).response.error.data.replace('Reverted ', ''),
+        );
+      } else if (reason && reason.includes('response":"')) {
+        decodedError = this.contract.decodeError(
+          JSON.parse(JSON.parse(`"${reason.split('response":"')[1].split('"},')[0]}"`)).error.data,
+        );
+      } else if (reason && reason.includes('unrecognized custom error')) {
+        decodedError = this.contract.decodeError(reason.split('data: ')[1].slice(0, -1));
       }
+
       if (decodedError) {
         const filteredArgs = filterFunctionResultObject(decodedError.args, true);
         err.message =
           `Error: VM Exception while processing transaction: reverted with ${decodedError.name} ` +
           `decoded error and ${JSON.stringify(filteredArgs)} args`;
       }
-    } catch (_) {
-      console.error('decode error', _);
+    } catch (e) {
+      console.error('decode error', e);
     }
   }
 
