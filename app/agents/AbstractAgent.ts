@@ -355,8 +355,13 @@ export abstract class AbstractAgent implements IAgent {
     return this.blacklistedJobs.has(jobKey);
   }
 
-  public getJob(jobKey: string): RandaoJob | LightJob | null {
-    return this.jobs.get(jobKey);
+  public async getJob(jobKey: string): Promise<RandaoJob | LightJob | null> {
+    let job = this.jobs.get(jobKey);
+    if (!job) {
+      job = await this.dataSource.getJob(this, jobKey);
+      await this.addJob(job);
+    }
+    return job;
   }
   public getJobsCount(): { total: number; interval: number; resolver: number } {
     const counters = {
@@ -467,24 +472,24 @@ export abstract class AbstractAgent implements IAgent {
   }
   abstract _buildNewJob(event): LightJob | RandaoJob;
 
-  private async addJob(creationEvent: EventWrapper) {
-    const jobKey = creationEvent.args.jobKey;
-    const owner = creationEvent.args.owner;
+  private async addJobByRegisterEvent(creationEvent: EventWrapper) {
+    return this.addJob(this._buildNewJob(creationEvent));
+  }
 
-    const job = this._buildNewJob(creationEvent);
-    this.jobs.set(jobKey, job);
+  private async addJob(job: LightJob | RandaoJob) {
+    this.jobs.set(job.getKey(), job);
 
     await this.dataSource.addLensFieldsToOneJob(job);
     job.clearJobCredits();
 
-    if (!this.ownerJobs.has(owner)) {
-      this.ownerJobs.set(owner, new Set());
+    if (!this.ownerJobs.has(job.getOwner())) {
+      this.ownerJobs.set(job.getOwner(), new Set());
     }
-    const set = this.ownerJobs.get(owner);
-    set.add(jobKey);
+    const set = this.ownerJobs.get(job.getOwner());
+    set.add(job.getKey());
 
-    if (!this.ownerBalances.has(owner)) {
-      this.ownerBalances.set(owner, BN_ZERO);
+    if (!this.ownerBalances.has(job.getOwner())) {
+      this.ownerBalances.set(job.getOwner(), BN_ZERO);
     }
   }
 
@@ -605,18 +610,17 @@ export abstract class AbstractAgent implements IAgent {
     this.clog('error', `txEstimationFailed: ${err.message}, txData: ${txData}`);
   }
 
-  private parseAndSetUnrecognizedErrorMessage(err) {
+  public parseAndSetUnrecognizedErrorMessage(err) {
     try {
       let decodedError;
-      const reason =
-        err.reason && err.reason !== 'execution reverted' ? err.reason : err.message && err.message.toString();
-      if (reason && reason.includes('response":"')) {
-        decodedError = this.contract.decodeError(
-          JSON.parse(JSON.parse(`"${reason.split('response":"')[1].split('"},')[0]}"`)).error.data,
-        );
-      } else if (reason && reason.includes('unrecognized custom error')) {
-        decodedError = this.contract.decodeError(reason.split('data: ')[1].slice(0, -1));
-      } else if (reason && reason.includes('error={"code":3')) {
+      let reason;
+      if (err.reason && err.reason !== 'execution reverted' && !err.reason.includes('without a reason string')) {
+        reason = err.reason;
+      } else {
+        reason = err.message && err.message.toString();
+      }
+
+      if (reason && reason.includes('error={"code":3')) {
         // 'cannot estimate gas; transaction may fail or may require manual gas limit [ See: https://links.ethers.org/v5-errors-UNPREDICTABLE_GAS_LIMIT ] (reason="execution reverted", method="estimateGas", transaction={"from":"0x779bEfe2b4C43cD1F87924defd13c8b9d3B1E1d8","maxPriorityFeePerGas":{"type":"BigNumber","hex":"0x05196259dd"},"maxFeePerGas":{"type":"BigNumber","hex":"0x05196259ed"},"to":"0x071412e301C2087A4DAA055CF4aFa2683cE1e499","data":"0x00000000ef0b5a45ff9b79d4b9162130bf0cd44dcf68b90d0000010200003066f23ebc0000000000000000000000000000000000000000000000000000000000000000","type":2,"accessList":null}, error={"code":3,"response":"{\"jsonrpc\":\"2.0\",\"id\":20442,\"error\":{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0xbe32c0ad\"}}\n"}, code=UNPREDICTABLE_GAS_LIMIT, version=providers/5.7.2)'
         // ->
         // '{"code":3,"response":{"jsonrpc":"2.0","id":20442,"error":{"code":3,"message":"execution reverted","data":"0xbe32c0ad"}}}'
@@ -627,15 +631,35 @@ export abstract class AbstractAgent implements IAgent {
           .replace('}"', '}')
           .replace('"{', '{');
         decodedError = this.contract.decodeError(JSON.parse(responseJson).response.error.data);
+      } else if (reason && reason.includes('error={"code":-32015')) {
+        // Error: PGAExecutorError(network: gnosis, signer: 0x840ccC99c425eDCAfebb0e7ccAC022CD15Fd49Ca): gasLimitEstimation failed with error: missing revert data in call exception; Transaction reverted without a reason string [ See: https://links.ethers.org/v5-errors-CALL_EXCEPTION ] (data="0x", transaction={"from":"0x840ccC99c425eDCAfebb0e7ccAC022CD15Fd49Ca","gasLimit":{"type":"BigNumber","hex":"0x4c4b40"},"maxPriorityFeePerGas":{"type":"BigNumber","hex":"0xd09dc300"},"maxFeePerGas":{"type":"BigNumber","hex":"0xd0a004f5"},"to":"0x071412e301C2087A4DAA055CF4aFa2683cE1e499","data":"0x52ee5b350000000000000000000000000b98057ea310f4d31f2a452b414647007d1645d900000000000000000000000000000000000000000000000000000000000000070000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000024a3066aab0000000000000000000000007ca19667f10d8642cd9c9834fae340db58ac925f00000000000000000000000000000000000000000000000000000000","type":2,"accessList":null}, error={"code":-32015,"response":"{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32015,\"message\":\"VM execution error.\",\"data\":\"Reverted 0xaf6058030000000000000000000000000000000000000000000000000000000000000051\"},\"id\":1270}"}, code=CALL_EXCEPTION, version=providers/5.7.2)
+        // ->
+        // '{"code":-32015,"response":{"jsonrpc":"2.0","error":{"code":-32015,"message":"VM execution error.","data":"Reverted 0xaf6058030000000000000000000000000000000000000000000000000000000000000051"},"id":1270}}'
+        const responseJson = reason
+          .split('error=')[1]
+          .split(', code=CALL_EXCEPTION')[0]
+          .replace('\n', '')
+          .replace('}"', '}')
+          .replace('"{', '{');
+        decodedError = this.contract.decodeError(
+          JSON.parse(responseJson.replace(/\\"/g, '"')).response.error.data.replace('Reverted ', ''),
+        );
+      } else if (reason && reason.includes('response":"')) {
+        decodedError = this.contract.decodeError(
+          JSON.parse(JSON.parse(`"${reason.split('response":"')[1].split('"},')[0]}"`)).error.data,
+        );
+      } else if (reason && reason.includes('unrecognized custom error')) {
+        decodedError = this.contract.decodeError(reason.split('data: ')[1].slice(0, -1));
       }
+
       if (decodedError) {
         const filteredArgs = filterFunctionResultObject(decodedError.args, true);
         err.message =
           `Error: VM Exception while processing transaction: reverted with ${decodedError.name} ` +
           `decoded error and ${JSON.stringify(filteredArgs)} args`;
       }
-    } catch (_) {
-      console.error('decode error', _);
+    } catch (e) {
+      console.error('decode error', e);
     }
   }
 
@@ -723,7 +747,10 @@ export abstract class AbstractAgent implements IAgent {
     return await this.contract.ethCall('getKeeper', [keeperId]);
   }
 
-  public async queryPastEvents(eventName: string, from: number, to: number): Promise<any> {
+  public async queryPastEvents(eventName: string, from: number, to: number, filters = []): Promise<any> {
+    if (filters.length) {
+      eventName = this.contract[eventName](filters);
+    }
     return this.contract.getPastEvents(eventName, from, to);
   }
 
@@ -733,7 +760,7 @@ export abstract class AbstractAgent implements IAgent {
 
   protected initializeListeners(blockNumber: number) {
     // Job events
-    this.on('DepositJobCredits', event => {
+    this.on('DepositJobCredits', async event => {
       const { jobKey, amount, fee } = event.args;
 
       this.clog(
@@ -745,17 +772,17 @@ export abstract class AbstractAgent implements IAgent {
         this.clog('error', `Ignoring DepositJobCredits event due the job missing: (jobKey=${jobKey})`);
       }
 
-      const job = this.jobs.get(jobKey);
+      const job = await this.getJob(jobKey);
       job.applyJobCreditsDeposit(BigNumber.from(amount));
       job.watch();
     });
 
-    this.on('WithdrawJobCredits', event => {
+    this.on('WithdrawJobCredits', async event => {
       const { jobKey, amount } = event.args;
 
       this.clog('debug', `'WithdrawJobCredits' event: (block=${event.blockNumber},jobKey=${jobKey},amount=${amount})`);
 
-      const job = this.jobs.get(jobKey);
+      const job = await this.getJob(jobKey);
       job.applyJobCreditWithdrawal(BigNumber.from(amount));
       job.watch();
     });
@@ -804,7 +831,7 @@ export abstract class AbstractAgent implements IAgent {
       }
     });
 
-    this.on('AcceptJobTransfer', event => {
+    this.on('AcceptJobTransfer', async event => {
       const { jobKey_, to_: ownerAfter } = event.args;
 
       this.clog(
@@ -812,7 +839,7 @@ export abstract class AbstractAgent implements IAgent {
         `'AcceptJobTransfer' event: (block=${event.blockNumber},jobKey_=${jobKey_},to_=${ownerAfter})`,
       );
 
-      const job = this.jobs.get(jobKey_);
+      const job = await this.getJob(jobKey_);
       const ownerBefore = job.getOwner();
       this.ownerJobs.get(ownerBefore).delete(jobKey_);
 
@@ -825,7 +852,7 @@ export abstract class AbstractAgent implements IAgent {
       job.watch();
     });
 
-    this.on('JobUpdate', event => {
+    this.on('JobUpdate', async event => {
       const { jobKey, maxBaseFeeGwei, rewardPct, fixedReward, jobMinCvp, intervalSeconds } = event.args;
 
       this.clog(
@@ -833,12 +860,12 @@ export abstract class AbstractAgent implements IAgent {
         `'JobUpdate' event: (block=${event.blockNumber},jobKey=${jobKey},maxBaseFeeGwei=${maxBaseFeeGwei},reardPct=${rewardPct},fixedReward=${fixedReward},jobMinCvp=${jobMinCvp},intervalSeconds=${intervalSeconds})`,
       );
 
-      const job = this.jobs.get(jobKey);
+      const job = await this.getJob(jobKey);
       job.applyUpdate(maxBaseFeeGwei, rewardPct, fixedReward, jobMinCvp, intervalSeconds);
       job.watch();
     });
 
-    this.on('SetJobPreDefinedCalldata', event => {
+    this.on('SetJobPreDefinedCalldata', async event => {
       const { jobKey, preDefinedCalldata } = event.args;
 
       this.clog(
@@ -846,12 +873,12 @@ export abstract class AbstractAgent implements IAgent {
         `'SetJobPreDefinedCalldata' event: (block=${event.blockNumber},jobKey=${jobKey},preDefinedCalldata=${preDefinedCalldata})`,
       );
 
-      const job = this.jobs.get(jobKey);
+      const job = await this.getJob(jobKey);
       job.applyPreDefinedCalldata(preDefinedCalldata);
       job.watch();
     });
 
-    this.on('SetJobResolver', event => {
+    this.on('SetJobResolver', async event => {
       const { jobKey, resolverAddress, resolverCalldata } = event.args;
 
       this.clog(
@@ -859,7 +886,7 @@ export abstract class AbstractAgent implements IAgent {
         `'SetJobResolver' event: (block=${event.blockNumber},jobKey=${jobKey},resolverAddress=${resolverAddress},useJobOwnerCredits_=${resolverCalldata})`,
       );
 
-      const job = this.jobs.get(jobKey);
+      const job = await this.getJob(jobKey);
       job.applyResolver(resolverAddress, resolverCalldata);
       job.watch();
     });
@@ -872,7 +899,7 @@ export abstract class AbstractAgent implements IAgent {
         `'SetJobConfig' event: (block=${event.blockNumber},jobKey=${jobKey},isActive=${isActive_},useJobOwnerCredits_=${useJobOwnerCredits_},assertResolverSelector_=${assertResolverSelector_})`,
       );
 
-      const job = this.jobs.get(jobKey);
+      const job = await this.getJob(jobKey);
       const binJob = await this.network.queryLensJobsRawBytes32(this.address, jobKey);
       job.applyBinJobData(binJob);
       job.watch();
@@ -888,10 +915,10 @@ export abstract class AbstractAgent implements IAgent {
         },jobKey=${jobKey},jobAddress=${jobAddress},jobId=${jobId},owner=${owner},params=${JSON.stringify(params)})`,
       );
 
-      await this.addJob(event);
+      await this.addJobByRegisterEvent(event);
     });
 
-    this.on('Execute', event => {
+    this.on('Execute', async event => {
       const { jobKey, job: jobAddress, keeperId, gasUsed, baseFee, gasPrice, compensation, binJobAfter } = event.args;
 
       this.clog(
@@ -905,7 +932,7 @@ export abstract class AbstractAgent implements IAgent {
         )}eth/${numberToBigInt(compensation)}wei,binJobAfter=${binJobAfter})`,
       );
 
-      const job = this.jobs.get(jobKey);
+      const job = await this.getJob(jobKey);
       job.applyBinJobData(binJobAfter);
       job.applyWasExecuted();
 

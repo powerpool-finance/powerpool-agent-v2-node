@@ -114,7 +114,7 @@ describe('AgentRandao_2_3_0', () => {
         assert.equal(Object.values(timeoutCallbacks).length, 0);
         assert.equal(Object.values(resolverCallbacks).length, 1);
 
-        const job = agent.getJob(GOOD_RESOLVER_JOB_KEY);
+        const job = await agent.getJob(GOOD_RESOLVER_JOB_KEY);
         assert.isTrue(job.isActive());
         assert.isFalse(job.isIntervalJob());
         assert.isTrue(job.isResolverJob());
