@@ -311,7 +311,8 @@ export abstract class AbstractJob {
       (e.message.includes("sender doesn't have enough funds to send tx") ||
         e.message.includes('Tx not mined, max attempts') ||
         e.message.includes('replacement transaction underpriced') ||
-        e.message.includes('0xaf605803')) // OnlyCurrentSlasher
+        e.message.includes('0xaf605803') || // OnlyCurrentSlasher
+        e.message.includes('0xe096085e')) // IntervalNotReached
     );
   }
 
