@@ -391,6 +391,8 @@ export interface IAgent {
 
   getKeyAddress(): string;
 
+  getWorkerSignerAddress(): string;
+
   getKeeperId(): number;
 
   getCfg(): number;
