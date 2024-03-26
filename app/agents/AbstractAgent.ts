@@ -565,9 +565,13 @@ export abstract class AbstractAgent implements IAgent {
     return { baseFeePerGas, maxPriority };
   }
 
+  public getWorkerSignerAddress() {
+    return this.workerSigner.address;
+  }
+
   protected async populateTxExtraFields(tx: UnsignedTransaction) {
     tx.chainId = this.network.getChainId();
-    tx['from'] = this.workerSigner.address;
+    tx['from'] = this.getWorkerSignerAddress();
 
     const priorityFeeAddGwei = BigInt(this.executorConfig.gas_price_priority_add_gwei);
     const { baseFeePerGas, maxPriority } = await this.getTxFeeData();

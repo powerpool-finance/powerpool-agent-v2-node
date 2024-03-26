@@ -580,7 +580,7 @@ export class Network {
       return;
     }
 
-    const results = await this.queryPollResolvers(false, resolversToCall);
+    const results = await this.queryPollResolvers(false, resolversToCall, this.agents[0].getWorkerSignerAddress());
     let jobsToExecute = 0;
 
     for (let i = 0; i < results.length; i++) {
@@ -674,8 +674,8 @@ export class Network {
     return (await this.provider.getNetwork()).chainId;
   }
 
-  public async queryPollResolvers(bl: boolean, resolversToCall: any[]): Promise<any> {
-    return this.multicall.ethCallStatic('tryAggregate', [false, resolversToCall]);
+  public async queryPollResolvers(bl: boolean, resolversToCall: any[], from: string): Promise<any> {
+    return this.multicall.ethCallStatic('tryAggregate', [false, resolversToCall], { from });
   }
 
   public async queryLensJobsRawBytes32(agent: string, jobKey: string): Promise<string> {
