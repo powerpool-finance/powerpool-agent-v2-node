@@ -29,7 +29,7 @@ import logger from '../services/Logger.js';
 
 // const FLAG_ACCEPT_MAX_BASE_FEE_LIMIT = 1;
 const FLAG_ACCRUE_REWARD = 2;
-const BIG_NUMBER_1E18 = BigNumber.from(10).pow(18);
+// const BIG_NUMBER_1E18 = BigNumber.from(10).pow(18);
 
 export abstract class AbstractAgent implements IAgent {
   public readonly executorType: ExecutorType;
@@ -232,13 +232,6 @@ export abstract class AbstractAgent implements IAgent {
     // Task #1
     const agentConfig = await this.queryAgentConfig();
     this.minKeeperCvp = agentConfig.minKeeperCvp_;
-    if (keeperConfig.currentStake.lt(agentConfig.minKeeperCvp_)) {
-      throw this.err(
-        `The keeper's stake for agent '${this.address}' is insufficient: ${keeperConfig.currentStake.div(
-          BIG_NUMBER_1E18,
-        )} CVP (actual) < ${this.minKeeperCvp.div(BIG_NUMBER_1E18)} CVP (required).`,
-      );
-    }
     this.clog('info', `Keeper stake: (current=${keeperConfig.currentStake},min=${this.minKeeperCvp})`);
     // TODO: track agent SetAgentParams
     // TODO: assert the keeper has enough CVP for a job
