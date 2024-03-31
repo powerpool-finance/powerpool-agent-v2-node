@@ -68,9 +68,10 @@ export function jsonStringify(obj: any): string {
   );
 }
 
-export function prepareTx(tx: UnsignedTransaction, isEstimate = false) {
+export function prepareTx(tx: UnsignedTransaction, from = undefined, isEstimate = false) {
   const resTx = {
     ...tx,
+    from,
     value: bigintToHex(tx.value),
     gasLimit: bigintToHex(isEstimate ? tx.gasLimit : 5_000_000n),
     gasPrice: bigintToHex(tx.gasPrice),
