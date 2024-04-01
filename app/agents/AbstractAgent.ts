@@ -18,7 +18,13 @@ import {
 import { BigNumber, ethers, Wallet } from 'ethers';
 import { getEncryptedJson } from '../services/KeyService.js';
 import { BN_ZERO, DEFAULT_SYNC_FROM_CHAINS } from '../Constants.js';
-import { filterFunctionResultObject, numberToBigInt, toChecksummedAddress, weiValueToEth } from '../Utils.js';
+import {
+  filterFunctionResultObject,
+  numberToBigInt,
+  toChecksummedAddress,
+  weiValueToEth,
+  jsonStringify,
+} from '../Utils.js';
 import { FlashbotsExecutor } from '../executors/FlashbotsExecutor.js';
 import { PGAExecutor } from '../executors/PGAExecutor.js';
 import { getAgentDefaultSyncFromSafe, getDefaultExecutorConfig, setConfigDefaultValues } from '../ConfigGetters.js';
@@ -653,7 +659,7 @@ export abstract class AbstractAgent implements IAgent {
         const filteredArgs = filterFunctionResultObject(decodedError.args, true);
         err.message =
           `Error: VM Exception while processing transaction: reverted with ${decodedError.name} ` +
-          `decoded error and ${JSON.stringify(filteredArgs)} args`;
+          `decoded error and ${jsonStringify(filteredArgs)} args`;
       }
     } catch (e) {
       console.error('decode error', e);
