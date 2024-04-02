@@ -18,7 +18,13 @@ import {
 import { BigNumber, ethers, Wallet } from 'ethers';
 import { getEncryptedJson } from '../services/KeyService.js';
 import { BN_ZERO, DEFAULT_SYNC_FROM_CHAINS } from '../Constants.js';
-import { filterFunctionResultObject, numberToBigInt, toChecksummedAddress, weiValueToEth } from '../Utils.js';
+import {
+  filterFunctionResultObject,
+  numberToBigInt,
+  toChecksummedAddress,
+  weiValueToEth,
+  jsonStringify,
+} from '../Utils.js';
 import { FlashbotsExecutor } from '../executors/FlashbotsExecutor.js';
 import { PGAExecutor } from '../executors/PGAExecutor.js';
 import { getAgentDefaultSyncFromSafe, getDefaultExecutorConfig, setConfigDefaultValues } from '../ConfigGetters.js';
@@ -608,55 +614,86 @@ export abstract class AbstractAgent implements IAgent {
   }
 
   public parseAndSetUnrecognizedErrorMessage(err) {
+    const iface = this.contract;
+    const parseError = iface.decodeError.bind(iface);
+    let errMessage, decodedError, errorCase, errorObj;
     try {
-      let decodedError;
-      let reason;
       if (err.reason && err.reason !== 'execution reverted' && !err.reason.includes('without a reason string')) {
-        reason = err.reason;
+        errMessage = err.reason;
       } else {
-        reason = err.message && err.message.toString();
+        errMessage = err.message && err.message.toString();
       }
 
-      if (reason && reason.includes('error={"code":3')) {
+      if (errMessage && errMessage.includes('Too many requests')) {
+        errMessage = 'Too many requests';
+      } else if (errMessage && errMessage.includes('error={"code":3')) {
+        errorCase = 1;
         // 'cannot estimate gas; transaction may fail or may require manual gas limit [ See: https://links.ethers.org/v5-errors-UNPREDICTABLE_GAS_LIMIT ] (reason="execution reverted", method="estimateGas", transaction={"from":"0x779bEfe2b4C43cD1F87924defd13c8b9d3B1E1d8","maxPriorityFeePerGas":{"type":"BigNumber","hex":"0x05196259dd"},"maxFeePerGas":{"type":"BigNumber","hex":"0x05196259ed"},"to":"0x071412e301C2087A4DAA055CF4aFa2683cE1e499","data":"0x00000000ef0b5a45ff9b79d4b9162130bf0cd44dcf68b90d0000010200003066f23ebc0000000000000000000000000000000000000000000000000000000000000000","type":2,"accessList":null}, error={"code":3,"response":"{\"jsonrpc\":\"2.0\",\"id\":20442,\"error\":{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0xbe32c0ad\"}}\n"}, code=UNPREDICTABLE_GAS_LIMIT, version=providers/5.7.2)'
         // ->
         // '{"code":3,"response":{"jsonrpc":"2.0","id":20442,"error":{"code":3,"message":"execution reverted","data":"0xbe32c0ad"}}}'
-        const responseJson = reason
+        const responseJson = errMessage
           .split('error=')[1]
           .split(', code=UNPREDICTABLE_GAS_LIMIT')[0]
-          .replace('\n', '')
+          .replace(/\\n/g, '')
+          .replace(/\\"/g, '"')
+          .replace(/\n/g, '')
+          .replace('}"', '}')
           .replace('}"', '}')
           .replace('"{', '{');
-        decodedError = this.contract.decodeError(JSON.parse(responseJson).response.error.data);
-      } else if (reason && reason.includes('error={"code":-32015')) {
+        errorObj = JSON.parse(responseJson).response.error;
+      } else if (
+        errMessage &&
+        (errMessage.includes('error={"code":-320') || errMessage.includes('error={"code":-320'))
+      ) {
+        errorCase = 2;
         // Error: PGAExecutorError(network: gnosis, signer: 0x840ccC99c425eDCAfebb0e7ccAC022CD15Fd49Ca): gasLimitEstimation failed with error: missing revert data in call exception; Transaction reverted without a reason string [ See: https://links.ethers.org/v5-errors-CALL_EXCEPTION ] (data="0x", transaction={"from":"0x840ccC99c425eDCAfebb0e7ccAC022CD15Fd49Ca","gasLimit":{"type":"BigNumber","hex":"0x4c4b40"},"maxPriorityFeePerGas":{"type":"BigNumber","hex":"0xd09dc300"},"maxFeePerGas":{"type":"BigNumber","hex":"0xd0a004f5"},"to":"0x071412e301C2087A4DAA055CF4aFa2683cE1e499","data":"0x52ee5b350000000000000000000000000b98057ea310f4d31f2a452b414647007d1645d900000000000000000000000000000000000000000000000000000000000000070000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000024a3066aab0000000000000000000000007ca19667f10d8642cd9c9834fae340db58ac925f00000000000000000000000000000000000000000000000000000000","type":2,"accessList":null}, error={"code":-32015,"response":"{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32015,\"message\":\"VM execution error.\",\"data\":\"Reverted 0xaf6058030000000000000000000000000000000000000000000000000000000000000051\"},\"id\":1270}"}, code=CALL_EXCEPTION, version=providers/5.7.2)
         // ->
         // '{"code":-32015,"response":{"jsonrpc":"2.0","error":{"code":-32015,"message":"VM execution error.","data":"Reverted 0xaf6058030000000000000000000000000000000000000000000000000000000000000051"},"id":1270}}'
-        const responseJson = reason
+
+        // insufficient funds for intrinsic transaction cost [ See: https://links.ethers.org/v5-errors-INSUFFICIENT_FUNDS ] (error={"code":-32010,"response":"{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32010,\"message\":\"InsufficientFunds, Balance is 13756802920248756 less than sending value + gas 20996696515000000\"},\"id\":90}"}, method="sendTransaction", transaction="0x02f8af645b84fa4b6ea384fa4cd527834c4b4094071412e301c2087a4daa055cf4afa2683ce1e49980b8430000000053bcf6ec8189a58876d13f85afd7e3cec660bc7a000001020000b066f23ebc000000000000000000000000fffffffffffffffffffffffffffffffffffffffec080a050f1602b83a96afcb27b4943f09f87cb96f52a179fb59ff3af453f76f9817878a00f896993b1f153d098037404c5137b790d41aed88eff6e6d57a6eeeca97570cc", code=INSUFFICIENT_FUNDS, version=providers/5.7.2
+        // ->
+        // '{"code":-32015,"response":"{\"id\":3622,\"jsonrpc\":\"2.0\",\"error\":{\"message\":\"Reverted 0x74ab6781\",\"code\":-32015}}"}'
+        const responseJson = errMessage
           .split('error=')[1]
           .split(', code=CALL_EXCEPTION')[0]
-          .replace('\n', '')
+          .split(', method')[0]
+          .replace(/\\n/g, '')
+          .replace(/\\"/g, '"')
+          .replace(/\n/g, '')
           .replace('}"', '}')
           .replace('"{', '{');
-        decodedError = this.contract.decodeError(
-          JSON.parse(responseJson.replace(/\\"/g, '"')).response.error.data.replace('Reverted ', ''),
-        );
-      } else if (reason && reason.includes('response":"')) {
-        decodedError = this.contract.decodeError(
-          JSON.parse(JSON.parse(`"${reason.split('response":"')[1].split('"},')[0]}"`)).error.data,
-        );
-      } else if (reason && reason.includes('unrecognized custom error')) {
-        decodedError = this.contract.decodeError(reason.split('data: ')[1].slice(0, -1));
+        errorObj = JSON.parse(responseJson).response.error;
+        if (!errorObj.data && errorObj.message.includes('Reverted ')) {
+          errorObj.data = errorObj.message;
+        }
+        if (errorObj.data) {
+          errorObj.data = errorObj.data.replace('Reverted ', '');
+        }
+      } else if (errMessage && errMessage.includes('response":"')) {
+        errorCase = 3;
+        errorObj = JSON.parse(JSON.parse(`"${errMessage.split('response":"')[1].split('"},')[0]}"`)).error;
+      } else if (errMessage && errMessage.includes('unrecognized custom error')) {
+        errorCase = 4;
+        decodedError = parseError(errMessage.split('data: ')[1].slice(0, -1));
+      }
+
+      if (errorObj && !decodedError) {
+        if (errorObj.data && !errorObj.data.includes(' ')) {
+          decodedError = parseError(errorObj.data);
+        } else if (errorObj.message) {
+          errMessage = errorObj.message;
+        }
       }
 
       if (decodedError) {
         const filteredArgs = filterFunctionResultObject(decodedError.args, true);
-        err.message =
+        errMessage =
           `Error: VM Exception while processing transaction: reverted with ${decodedError.name} ` +
-          `decoded error and ${JSON.stringify(filteredArgs)} args`;
+          `decoded error and ${jsonStringify(filteredArgs)} args`;
       }
+      err.message = errMessage;
     } catch (e) {
-      console.error('decode error', e);
+      console.error('decode error', e, 'errorCase', errorCase, 'errMessage', errMessage);
     }
   }
 
