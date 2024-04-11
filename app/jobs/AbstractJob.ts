@@ -313,6 +313,7 @@ export abstract class AbstractJob {
         e.message.includes('Too many requests') ||
         e.message.includes('InsufficientFunds') ||
         e.message.toLowerCase().includes('insufficient funds') ||
+        e.message.includes('could not replace existing tx') ||
         e.message.includes('replacement transaction underpriced') ||
         e.message.includes('0xaf605803') || // OnlyCurrentSlasher
         e.message.includes('0xe096085e')) // IntervalNotReached
