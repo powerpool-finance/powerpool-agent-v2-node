@@ -124,7 +124,12 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       );
     } catch (e) {
       envelope.executorCallbacks.txExecutionFailed(e, tx.data as string);
-      if (e.message && (e.message.includes('could not replace existing tx') || e.message.includes('underpriced'))) {
+      if (
+        e.message &&
+        (e.message.includes('could not replace existing tx') ||
+          e.message.includes('underpriced') ||
+          e.message.includes('replacement fee too low'))
+      ) {
         immediateResend = true;
       } else {
         res = e;
@@ -145,6 +150,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
           return callback();
         }
         const { action, newMax, newPriority } = await envelope.executorCallbacks.txNotMinedInBlock(tx, txHash);
+        this.clog(`waitForResendTransaction() action: ${action}, newMax: ${newMax}, newPriority: ${newPriority}`);
         if (action === 'ignore') {
           // envelope.executorCallbacks.txExecutionFailed(this.err('Tx not mined, ignore: ' + txHash), tx.data as string);
           return callback();
