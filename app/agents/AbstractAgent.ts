@@ -688,8 +688,8 @@ export abstract class AbstractAgent implements IAgent {
       if (decodedError) {
         const filteredArgs = filterFunctionResultObject(decodedError.args, true);
         errMessage =
-          `Error: VM Exception while processing transaction: reverted with ${decodedError.name} ` +
-          `decoded error and ${jsonStringify(filteredArgs)} args`;
+          `Error: VM Exception while processing transaction: reverted with ${decodedError.name}` +
+          `(${decodedError.signature}) decoded error and ${jsonStringify(filteredArgs)} args`;
       }
       err.message = errMessage;
     } catch (e) {
