@@ -17,6 +17,7 @@ export enum CALLDATA_SOURCE {
   SELECTOR,
   PRE_DEFINED_CALLDATA,
   RESOLVER,
+  OFFCHAIN,
 }
 
 export interface ExecutorConfig {
@@ -288,6 +289,7 @@ export type WrapperListener = (event: EventWrapper) => void;
 export enum JobType {
   Interval,
   Resolver,
+  Offchain,
 }
 
 export interface ParsedJobConfig {

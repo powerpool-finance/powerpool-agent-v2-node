@@ -366,7 +366,7 @@ export class RandaoJob extends AbstractJob {
   private async executeResolverJob(invokeCalldata) {
     this.clog('info', 'executeResolverJob()');
     this.agent.unregisterResolver(this.key);
-    return this.executeTx(this.key, await this.agent.buildTx(this.buildResolverCalldata(invokeCalldata)));
+    return this.executeTx(this.key, await this.agent.buildTx(await this.buildResolverCalldata(invokeCalldata)));
   }
 
   protected async resolverSuccessCallback(triggeredByBlockNumber, invokeCalldata) {
