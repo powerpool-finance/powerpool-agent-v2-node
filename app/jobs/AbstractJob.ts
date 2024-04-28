@@ -309,6 +309,8 @@ export abstract class AbstractJob {
         .post(`${offchainServiceEndpoint}/offchain-resolve/${this.resolver.resolverAddress}`, {
           resolverCalldata: jobCalldata,
           rpcUrl: this.network.getRpc(),
+          network: this.networkName,
+          agent: this.agentAddress,
           chainId: this.network.getChainId(),
           from: this.agent.getWorkerSignerAddress(),
         })
