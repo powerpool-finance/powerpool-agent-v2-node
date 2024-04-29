@@ -307,6 +307,8 @@ export abstract class AbstractJob {
       const offchainServiceEndpoint = process.env.OFFCHAIN_SERVICE_ENDPOINT || 'http://offchain-service/';
       jobCalldata = await axios
         .post(`${offchainServiceEndpoint}/offchain-resolve/${this.resolver.resolverAddress}`, {
+          jobAddress: this.address,
+          jobId: this.id,
           resolverCalldata: jobCalldata,
           rpcUrl: this.network.getRpc(),
           network: this.networkName,
