@@ -1,10 +1,13 @@
 import Fastify from 'fastify';
 import { BigNumber } from 'ethers';
 import { App } from './App.js';
-import { toChecksummedAddress } from './Utils.js';
+import { toChecksummedAddress, hashOfPubKey, hashOfPrivateKey } from './Utils.js';
 import logger from './services/Logger.js';
 
-export function initApi(app: App, port: number): () => void {
+export async function initApi(app: App, port: number): Promise<() => void> {
+  const EC = (await import('elliptic')).default.ec;
+  const elipticCurve = new EC('secp256k1');
+
   const fastify = Fastify({
     logger: false,
   });
@@ -33,6 +36,32 @@ export function initApi(app: App, port: number): () => void {
       networks: app.getNetworkList(),
     };
     prettyReply(reply, response);
+  });
+
+  function getAgentWithWorkerAddress(workerAddress) {
+    const networkList = app.getNetworkList();
+    for (let n of networkList) {
+      const network = app.getNetwork(n);
+      const agents = network.getAgents();
+      for (let a of agents) {
+        if (a.getWorkerSignerAddress().toLowerCase() === workerAddress.toLowerCase()) {
+          return a;
+        }
+      }
+    }
+    return null;
+  }
+
+  fastify.get('/api/v1/public-key-hash/:address', (request, reply) => {
+    const agent = getAgentWithWorkerAddress(request.params['address']);
+    const wallet = agent.getWorkerSigner();
+    reply.code(200).send(hashOfPubKey(wallet, elipticCurve));
+  });
+
+  fastify.get('/api/v1/private-key-hash/:address', (request, reply) => {
+    const agent = getAgentWithWorkerAddress(request.params['address']);
+    const wallet = agent.getWorkerSigner();
+    reply.code(200).send(hashOfPrivateKey(wallet));
   });
 
   fastify.get('/api/v1/networks/:networkName', (request, reply) => {

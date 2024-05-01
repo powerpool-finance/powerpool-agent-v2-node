@@ -568,6 +568,10 @@ export abstract class AbstractAgent implements IAgent {
     return this.workerSigner.address;
   }
 
+  public getWorkerSigner() {
+    return this.workerSigner;
+  }
+
   protected async populateTxExtraFields(tx: UnsignedTransaction) {
     tx.chainId = this.network.getChainId();
     tx['from'] = this.getWorkerSignerAddress();

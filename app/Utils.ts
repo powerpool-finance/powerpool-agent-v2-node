@@ -1,5 +1,5 @@
 import { BigNumber, utils } from 'ethers';
-import { keccak256 } from 'ethers/lib/utils.js';
+import { keccak256, solidityKeccak256 } from 'ethers/lib/utils.js';
 import {
   BN_ZERO,
   CFG_ACTIVE,
@@ -10,6 +10,7 @@ import {
 import { ParsedJobConfig, ParsedRawJob, UnsignedTransaction } from './Types.js';
 import { ethers } from 'ethers';
 import { Result } from 'ethers/lib/utils';
+import BN from 'bn.js';
 
 export function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms, []));
@@ -247,4 +248,40 @@ export function filterFunctionResultObject(res: Result, numberToString = false):
   }
 
   return filteredResult;
+}
+
+function toByteArray(integer) {
+  let hexString = integer.toString(16);
+
+  if (hexString.length % 2 !== 0) {
+    hexString = '0' + hexString;
+  }
+  const numBytes = hexString.length / 2;
+  const byteArray = new Uint8Array(numBytes);
+  for (let i = 0; i < numBytes; i++) {
+    byteArray[i] = parseInt(hexString.substr(i * 2, 2), 16);
+  }
+  return byteArray;
+}
+
+export function hashOfPubKey(wallet, elipticCurve) {
+  const privateKey = Number(BigInt(wallet.signingKey.privateKey));
+  const pkhHex = keccak256(toByteArray(privateKey)).slice(2);
+  const pkh = new BN(pkhHex, 16);
+
+  const pubkey = elipticCurve.g.mul(pkh);
+  return hashOfKey(pubkey);
+}
+
+export function hashOfKey(pubk) {
+  return solidityKeccak256(["uint256[]"], [ptToUint2562(pubk)]);
+}
+
+export function ptToUint2562(pt) {
+  return [pt.getX(), pt.getY()].map(p => '0x' + p.toString(16));
+}
+
+export function hashOfPrivateKey(wallet) {
+  const privateKey = Number(BigInt(wallet.signingKey.privateKey));
+  return keccak256(toByteArray(privateKey)).slice(2);
 }

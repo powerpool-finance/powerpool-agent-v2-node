@@ -1,4 +1,4 @@
-import { BigNumber, ethers } from 'ethers';
+import { BigNumber, ethers, Wallet } from 'ethers';
 import { Network } from './Network';
 import { Contract } from 'web3-eth-contract';
 import { WebsocketProvider } from 'web3-core';
@@ -392,6 +392,8 @@ export interface IAgent {
   getAddress(): string;
 
   getKeyAddress(): string;
+
+  getWorkerSigner(): Wallet;
 
   getWorkerSignerAddress(): string;
 

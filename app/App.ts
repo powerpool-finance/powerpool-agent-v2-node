@@ -6,6 +6,7 @@ import logger from './services/Logger.js';
 export class App {
   private networks: { [key: string]: Network };
   private readonly config: Config;
+  private apiPort;
   private stopApi: () => void;
   private version;
 
@@ -20,7 +21,7 @@ export class App {
       if (typeof config.api === 'number') {
         port = config.api;
       }
-      this.stopApi = initApi(this, port);
+      this.apiPort = port;
     }
 
     // Override all
@@ -103,6 +104,10 @@ export class App {
       process.exit(1);
     }
     logger.info('App: Networks initialization done!');
+
+    if (this.apiPort) {
+      this.stopApi = await initApi(this, this.apiPort);
+    }
   }
 
   public async stop() {
