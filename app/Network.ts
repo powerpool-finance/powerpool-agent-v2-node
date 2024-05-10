@@ -29,7 +29,8 @@ import { BlockchainSource } from './dataSources/BlockchainSource.js';
 import { SubquerySource } from './dataSources/SubquerySource.js';
 import { AgentRandao_2_3_0 } from './agents/Agent.2.3.0.randao.js';
 import { AgentLight_2_2_0 } from './agents/Agent.2.2.0.light.js';
-import axios from "axios";
+import axios from 'axios';
+import { AbstractJob } from './jobs/AbstractJob';
 
 interface ResolverJobWithCallback {
   lastSuccessBlock?: bigint;
@@ -595,22 +596,12 @@ export class Network {
         job.successCounter = decoded[0] ? job.successCounter + 1 : 0;
       }
       if (decoded[0] && job.successCounter >= this.networkConfig.resolve_min_success_count) {
+        const agent = this.getAgent(jobKey.split('/')[0]);
+        const job = await agent.getJob(jobKey.split('/')[1]);
         if (job.isOffchainJob()) {
-          let jobCalldata;
           try {
-            const offchainServiceEndpoint = process.env.OFFCHAIN_SERVICE_ENDPOINT || 'http://offchain-service/';
-            jobCalldata = await axios
-              .post(`${offchainServiceEndpoint}/offchain-resolve/${this.resolver.resolverAddress}`, {
-                jobAddress: this.address,
-                jobId: this.id,
-                resolverCalldata: decoded[1],
-                rpcUrl: this.network.getRpc(),
-                network: this.networkName,
-                agent: this.agentAddress,
-                chainId: this.network.getChainId(),
-                from: this.agent.getWorkerSignerAddress(),
-              })
-              .then(r => r.data.resultCalldata)
+            callbacks[i](blockNumber, await this.getOffchainResolveCalldata(job, decoded[1]));
+            jobsToExecute += 1;
           } catch (e) {
             this.clog('error', e.message);
           }
@@ -625,6 +616,17 @@ export class Network {
       'debug',
       `Block ${blockNumber} resolver estimation results: (resolversToCall=${resolversToCall.length},jobsToExecute=${jobsToExecute})`,
     );
+  }
+
+  private async getOffchainResolveCalldata(job: AbstractJob, resolverCalldata) {
+    const offchainServiceEndpoint = process.env.OFFCHAIN_SERVICE_ENDPOINT || 'http://offchain-service/';
+    const params = job.getOffchainResolveParams();
+    return axios
+      .post(`${offchainServiceEndpoint}/offchain-resolve/${params['resolverAddress']}`, {
+        resolverCalldata,
+        ...params,
+      })
+      .then(r => r.data.resultCalldata);
   }
 
   private _validateKeyLength(key: string, type: string): void {

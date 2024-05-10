@@ -403,6 +403,8 @@ export interface IAgent {
 
   isJobBlacklisted(jobKey: string): boolean;
 
+  getJob(jobKey: string): Promise<RandaoJob | LightJob | null>;
+
   getStatusObjectForApi(): object;
 
   getJobsCount(): { total: number; interval: number; resolver: number };

@@ -14,7 +14,6 @@ import { BigNumber, Event } from 'ethers';
 import { encodeExecute, parseConfig, parseRawJob, toNumber, weiValueToEth, weiValueToGwei } from '../Utils.js';
 import { Network } from '../Network.js';
 import { BN_ZERO } from '../Constants.js';
-import axios from 'axios';
 
 export abstract class AbstractJob {
   protected address: string;
@@ -303,9 +302,6 @@ export abstract class AbstractJob {
   }
 
   protected async buildResolverCalldata(jobCalldata): Promise<string> {
-    if (this.isOffchainJob()) {
-
-    }
     return encodeExecute(this.address, this.id, this.agent.getCfg(), this.agent.getKeeperId(), jobCalldata);
   }
 
@@ -430,6 +426,19 @@ export abstract class AbstractJob {
 
   public creditsSourceIsJobOwner(): boolean {
     return !!this.config.useJobOwnerCredits;
+  }
+
+  public getOffchainResolveParams(): object {
+    return {
+      resolverAddress: this.resolver.resolverAddress,
+      jobAddress: this.address,
+      jobId: this.id,
+      rpcUrl: this.network.getRpc(),
+      network: this.networkName,
+      agent: this.agentAddress,
+      chainId: this.network.getChainId(),
+      from: this.agent.getWorkerSignerAddress(),
+    };
   }
 
   public getStatusObjectForApi(): object {

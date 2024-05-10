@@ -40,10 +40,10 @@ export async function initApi(app: App, port: number): Promise<() => void> {
 
   function getAgentWithWorkerAddress(workerAddress) {
     const networkList = app.getNetworkList();
-    for (let n of networkList) {
+    for (const n of networkList) {
       const network = app.getNetwork(n);
       const agents = network.getAgents();
-      for (let a of agents) {
+      for (const a of agents) {
         if (a.getWorkerSignerAddress().toLowerCase() === workerAddress.toLowerCase()) {
           return a;
         }

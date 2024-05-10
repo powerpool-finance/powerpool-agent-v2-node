@@ -274,7 +274,7 @@ export function hashOfPubKey(wallet, elipticCurve) {
 }
 
 export function hashOfKey(pubk) {
-  return solidityKeccak256(["uint256[]"], [ptToUint2562(pubk)]);
+  return solidityKeccak256(['uint256[]'], [ptToUint2562(pubk)]);
 }
 
 export function ptToUint2562(pt) {
