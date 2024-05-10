@@ -29,6 +29,7 @@ import { BlockchainSource } from './dataSources/BlockchainSource.js';
 import { SubquerySource } from './dataSources/SubquerySource.js';
 import { AgentRandao_2_3_0 } from './agents/Agent.2.3.0.randao.js';
 import { AgentLight_2_2_0 } from './agents/Agent.2.2.0.light.js';
+import axios from "axios";
 
 interface ResolverJobWithCallback {
   lastSuccessBlock?: bigint;
@@ -594,8 +595,29 @@ export class Network {
         job.successCounter = decoded[0] ? job.successCounter + 1 : 0;
       }
       if (decoded[0] && job.successCounter >= this.networkConfig.resolve_min_success_count) {
-        callbacks[i](blockNumber, decoded[1]);
-        jobsToExecute += 1;
+        if (job.isOffchainJob()) {
+          let jobCalldata;
+          try {
+            const offchainServiceEndpoint = process.env.OFFCHAIN_SERVICE_ENDPOINT || 'http://offchain-service/';
+            jobCalldata = await axios
+              .post(`${offchainServiceEndpoint}/offchain-resolve/${this.resolver.resolverAddress}`, {
+                jobAddress: this.address,
+                jobId: this.id,
+                resolverCalldata: decoded[1],
+                rpcUrl: this.network.getRpc(),
+                network: this.networkName,
+                agent: this.agentAddress,
+                chainId: this.network.getChainId(),
+                from: this.agent.getWorkerSignerAddress(),
+              })
+              .then(r => r.data.resultCalldata)
+          } catch (e) {
+            this.clog('error', e.message);
+          }
+        } else {
+          callbacks[i](blockNumber, decoded[1]);
+          jobsToExecute += 1;
+        }
       }
     }
 

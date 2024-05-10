@@ -304,19 +304,7 @@ export abstract class AbstractJob {
 
   protected async buildResolverCalldata(jobCalldata): Promise<string> {
     if (this.isOffchainJob()) {
-      const offchainServiceEndpoint = process.env.OFFCHAIN_SERVICE_ENDPOINT || 'http://offchain-service/';
-      jobCalldata = await axios
-        .post(`${offchainServiceEndpoint}/offchain-resolve/${this.resolver.resolverAddress}`, {
-          jobAddress: this.address,
-          jobId: this.id,
-          resolverCalldata: jobCalldata,
-          rpcUrl: this.network.getRpc(),
-          network: this.networkName,
-          agent: this.agentAddress,
-          chainId: this.network.getChainId(),
-          from: this.agent.getWorkerSignerAddress(),
-        })
-        .then(r => r.data.resultCalldata);
+
     }
     return encodeExecute(this.address, this.id, this.agent.getCfg(), this.agent.getKeeperId(), jobCalldata);
   }
