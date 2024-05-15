@@ -55,13 +55,13 @@ export async function initApi(app: App, port: number): Promise<() => void> {
   fastify.get('/api/v1/public-key-hash/:address', (request, reply) => {
     const agent = getAgentWithWorkerAddress(request.params['address']);
     const wallet = agent.getWorkerSigner();
-    reply.code(200).send(hashOfPubKey(wallet, elipticCurve));
+    reply.code(200).send({hash: hashOfPubKey(wallet, elipticCurve)});
   });
 
   fastify.get('/api/v1/private-key-hash/:address', (request, reply) => {
     const agent = getAgentWithWorkerAddress(request.params['address']);
     const wallet = agent.getWorkerSigner();
-    reply.code(200).send(hashOfPrivateKey(wallet));
+    reply.code(200).send({hash: hashOfPrivateKey(wallet)});
   });
 
   fastify.get('/api/v1/networks/:networkName', (request, reply) => {

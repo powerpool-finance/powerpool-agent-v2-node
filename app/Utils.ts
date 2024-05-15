@@ -265,7 +265,7 @@ function toByteArray(integer) {
 }
 
 export function hashOfPubKey(wallet, elipticCurve) {
-  const privateKey = Number(BigInt(wallet.signingKey.privateKey));
+  const privateKey = Number(BigInt(wallet._signingKey().privateKey));
   const pkhHex = keccak256(toByteArray(privateKey)).slice(2);
   const pkh = new BN(pkhHex, 16);
 
@@ -282,6 +282,6 @@ export function ptToUint2562(pt) {
 }
 
 export function hashOfPrivateKey(wallet) {
-  const privateKey = Number(BigInt(wallet.signingKey.privateKey));
+  const privateKey = Number(BigInt(wallet._signingKey().privateKey));
   return keccak256(toByteArray(privateKey)).slice(2);
 }
