@@ -1,8 +1,7 @@
 import { ethers } from 'ethers';
-import {Config, EnvValueType} from './Types.js';
-import {AGENT_HARDCODED_CONFIGS, ENV_CONFIG_MAP} from './Constants.js';
-import { addSentryToLogger, updateSentryScope } from './services/Logger.js';
-
+import { Config, EnvValueType } from './Types.js';
+import { AGENT_HARDCODED_CONFIGS, ENV_CONFIG_MAP } from './Constants.js';
+import { addSentryToLogger } from './services/Logger.js';
 
 export function overrideConfigWithEnvVariables(config: Config, version: string): void {
   let networkName = getCurrentValueFromConfig('networks.enabled[0]', config);
@@ -16,7 +15,7 @@ export function overrideConfigWithEnvVariables(config: Config, version: string):
   if (newNetworkName && newNetworkName !== networkName) {
     config.networks.enabled[0] = newNetworkName;
     if (config.networks.details[networkName]) {
-      config.networks.details[newNetworkName] = {...config.networks.details[networkName]};
+      config.networks.details[newNetworkName] = { ...config.networks.details[networkName] };
       delete config.networks.details[networkName];
     }
     networkName = newNetworkName;
@@ -33,15 +32,16 @@ export function overrideConfigWithEnvVariables(config: Config, version: string):
 
   if (newAgentAddress && newAgentAddress !== agentAddress) {
     if (agentAddress && config.networks.details[networkName].agents[agentAddress]) {
-      config.networks.details[networkName].agents[newAgentAddress] =
-        {...config.networks.details[networkName].agents[agentAddress]};
+      config.networks.details[networkName].agents[newAgentAddress] = {
+        ...config.networks.details[networkName].agents[agentAddress],
+      };
       delete config.networks.details[networkName].agents[agentAddress];
       agentAddress = newAgentAddress;
     }
   }
 
-  let sentryDsn = getCurrentValueFromConfig('sentry', config);
-  let newSentryDsn = process.env.SENTRY_DSN;
+  const sentryDsn = getCurrentValueFromConfig('sentry', config);
+  const newSentryDsn = process.env.SENTRY_DSN;
 
   if (newSentryDsn) {
     addSentryToLogger(newSentryDsn, version, 'env_vars');
@@ -58,7 +58,7 @@ export function overrideConfigWithEnvVariables(config: Config, version: string):
     if (envValue !== undefined) {
       try {
         const { path, type, validValues } = ENV_CONFIG_MAP[envKey];
-        let pathTemplate = path.replace('${NETWORK_NAME}', networkName).replace('${AGENT_ADDRESS}', agentAddress);
+        const pathTemplate = path.replace('${NETWORK_NAME}', networkName).replace('${AGENT_ADDRESS}', agentAddress);
         const expandedPath = expandPathTemplate(pathTemplate, config);
         setConfigValue(config, expandedPath, envValue, type, validValues);
       } catch (error) {
@@ -67,12 +67,13 @@ export function overrideConfigWithEnvVariables(config: Config, version: string):
       }
     }
   });
-
-
 }
 
 function getCurrentValueFromConfig(keyPath: string, config: Config): any {
-  const keys = keyPath.replace(/\[|\]\.?/g, '.').split('.').filter(key => key !== '');
+  const keys = keyPath
+    .replace(/\[|\]\.?/g, '.')
+    .split('.')
+    .filter(key => key !== '');
   let currentConfigPart = config;
 
   for (const key of keys) {
@@ -85,18 +86,28 @@ function getCurrentValueFromConfig(keyPath: string, config: Config): any {
   return currentConfigPart;
 }
 
-
 function expandPathTemplate(template: string, config: Config): string {
   const expandedTemplate = template.replace(/\$\{([^}]+)\}/g, (_, key) => {
-    return process.env[key] !== undefined ? process.env[key]! : getCurrentValueFromConfig(key, config) || `$\{${key}\}`;
+    return (process.env[key] ? process.env[key] : getCurrentValueFromConfig(key, config)) || `$\{${key}\}`;
   });
   return expandedTemplate;
 }
 
-function setConfigValue(config: Config, path: string, value: string, type: EnvValueType, validValues: string[] = []): void {
+function setConfigValue(
+  config: Config,
+  path: string,
+  value: string,
+  type: EnvValueType,
+  validValues: string[] = [],
+): void {
   const keys = path.split('.').reduce((acc, key) => {
     if (key.includes('[')) {
-      acc.push(...key.replace(/\[|\]/g, '.').split('.').filter(k => k));
+      acc.push(
+        ...key
+          .replace(/\[|\]/g, '.')
+          .split('.')
+          .filter(k => k),
+      );
     } else {
       acc.push(key);
     }
@@ -123,9 +134,7 @@ function setConfigValue(config: Config, path: string, value: string, type: EnvVa
   }
 }
 
-
 function parseValue(value: string, expectedType: EnvValueType, validValues: string[] = []): string | number | boolean {
-
   if (validValues.length > 0 && !validValues.includes(value)) {
     throw new Error(`Invalid value: ${value}. Expected one of: ${validValues.join(', ')}`);
   }
@@ -160,4 +169,3 @@ function parseValue(value: string, expectedType: EnvValueType, validValues: stri
 function isEthereumAddress(address: string): boolean {
   return ethers.utils.isAddress(address);
 }
-

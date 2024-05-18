@@ -188,7 +188,7 @@ export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {
   polygon: 2,
 };
 
-export const ENV_CONFIG_MAP: { [key: string]: EnvConfigMapType }  = {
+export const ENV_CONFIG_MAP: { [key: string]: EnvConfigMapType } = {
   SENTRY_DSN: { path: 'sentry', type: 'string' },
   NETWORK_NAME: { path: 'networks.enabled[0]', type: 'string' },
   NETWORK_RPC: { path: 'networks.details.${NETWORK_NAME}.rpc', type: 'string' },
@@ -197,16 +197,38 @@ export const ENV_CONFIG_MAP: { [key: string]: EnvConfigMapType }  = {
   NETWORK_MIN_SUCCESS_RESOLVE: { path: 'networks.details.${NETWORK_NAME}.resolve_min_success_count', type: 'number' },
   NETWORK_BLOCK_LOGS_MODE: { path: 'networks.details.${NETWORK_NAME}.block_logs_mode', type: 'boolean' },
   AGENT_ADDRESS: { path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}', type: 'address' },
-  DATA_SOURCE: { path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.data_source', type: 'string', validValues: ['blockchain', 'subgraph'] },
+  DATA_SOURCE: {
+    path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.data_source',
+    type: 'string',
+    validValues: ['blockchain', 'subgraph', 'subquery'],
+  },
   SUBGRAPH_URL: { path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.subgraph_url', type: 'string' },
-  KEEPER_WORKER_ADDRESS: { path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.keeper_worker_address', type: 'address' },
+  KEEPER_WORKER_ADDRESS: {
+    path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.keeper_worker_address',
+    type: 'address',
+  },
   KEYPASSWORD: { path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.key_pass', type: 'string' },
-  ACCEPT_MAX_BASE_FEE_LIMIT: { path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.accept_max_base_fee_limit', type: 'boolean' },
+  ACCEPT_MAX_BASE_FEE_LIMIT: {
+    path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.accept_max_base_fee_limit',
+    type: 'boolean',
+  },
   ACCRUE_REWARD: { path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.accrue_reward', type: 'boolean' },
-  TX_RESEND_OR_DROP_AFTER_BLOCKS: { path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.executor_config.tx_resend_or_drop_after_blocks', type: 'number' },
-  TX_RESEND_MAX_GAS_PRICE: { path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.executor_config.tx_resend_max_gas_price_gwei', type: 'number' },
-  TX_RESEND_MAX_ATTEMPTS: { path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.executor_config.tx_resend_max_attempts', type: 'number' },
-  GAS_PRICE_ADD_GWEI: { path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.executor_config.gas_price_priority_add_gwei', type: 'number' },
+  TX_RESEND_OR_DROP_AFTER_BLOCKS: {
+    path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.executor_config.tx_resend_or_drop_after_blocks',
+    type: 'number',
+  },
+  TX_RESEND_MAX_GAS_PRICE: {
+    path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.executor_config.tx_resend_max_gas_price_gwei',
+    type: 'number',
+  },
+  TX_RESEND_MAX_ATTEMPTS: {
+    path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.executor_config.tx_resend_max_attempts',
+    type: 'number',
+  },
+  GAS_PRICE_ADD_GWEI: {
+    path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.executor_config.gas_price_priority_add_gwei',
+    type: 'number',
+  },
 };
 
 // export const FLAG_ACCEPT_MAX_BASE_FEE_LIMIT = 0x01;
