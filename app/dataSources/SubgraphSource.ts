@@ -10,9 +10,7 @@ import { toChecksummedAddress } from '../Utils.js';
 import logger from '../services/Logger.js';
 import { getMaxBlocksSubgraphDelay } from '../ConfigGetters.js';
 
-export const QUERY_ALL_JOBS = `{
-  jobs(first: 1000) {
-    id
+const JOBS_FIELDS = `id
     active
     jobAddress
     jobId
@@ -38,6 +36,10 @@ export const QUERY_ALL_JOBS = `{
     jobNextKeeperId
     jobReservedSlasherId
     jobSlashingPossibleAfter
+`;
+export const QUERY_ALL_JOBS = `{
+  jobs(first: 1000) {
+    ${JOBS_FIELDS}
   }
 }`;
 
@@ -50,7 +52,7 @@ export const QUERY_META = `{
 }`;
 
 export const QUERY_JOB_OWNERS = `{
-  jobOwners {
+  jobOwners(first: 1000) {
     id
     credits
   }
@@ -60,18 +62,18 @@ export const QUERY_JOB_OWNERS = `{
  * This class used for fetching data from subgraph
  */
 export class SubgraphSource extends AbstractSource {
-  private blockchainSource: BlockchainSource;
-  private readonly subgraphUrl: string;
+  protected blockchainSource: BlockchainSource;
+  protected readonly subgraphUrl: string;
 
-  private toString(): string {
+  protected toString(): string {
     return `(url: ${this.subgraphUrl})`;
   }
 
-  private clog(level: string, ...args: unknown[]) {
+  protected clog(level: string, ...args: unknown[]) {
     logger.log(level, `SubgraphDataSource${this.toString()}: ${args.join(' ')}`);
   }
 
-  private err(...args: unknown[]): Error {
+  protected err(...args: unknown[]): Error {
     return new Error(`SubgraphDataSourceError${this.toString()}: ${args.join(' ')}`);
   }
 
@@ -130,6 +132,43 @@ export class SubgraphSource extends AbstractSource {
     };
   }
 
+  async queryJobs() {
+    return this.query(this.subgraphUrl, QUERY_ALL_JOBS).then(res => res.jobs);
+  }
+
+  async queryJob(jobKey) {
+    return this.query(
+      this.subgraphUrl,
+      `{
+        jobs(where: { id: "${jobKey}" }) {
+            ${JOBS_FIELDS}
+          }
+        }`,
+    ).then(res => res.jobs[0]);
+  }
+
+  async getJob(context, jobKey): Promise<RandaoJob | LightJob> {
+    return this.queryJob(jobKey).then(job => this.buildJob(context, job));
+  }
+
+  buildJob(context, job) {
+    const newJob = context._buildNewJob({
+      name: 'RegisterJob',
+      args: {
+        jobAddress: job.jobAddress,
+        jobId: BigNumber.from(job.jobId),
+        jobKey: job.id,
+      },
+    });
+    const lensJob = this.addLensFieldsToJobs(job);
+    newJob.applyJob({
+      ...lensJob,
+      owner: lensJob.owner,
+      config: lensJob.config,
+    });
+    return newJob;
+  }
+
   /**
    * Getting a list of jobs from subgraph and initialise job.
    * Returns Map structure which key is jobKey and value is instance of RandaoJob or LightJob. Await is required.
@@ -147,24 +186,9 @@ export class SubgraphSource extends AbstractSource {
       return { data: newJobs, meta: graphStatus };
     }
     try {
-      const res = await this.query(this.subgraphUrl, QUERY_ALL_JOBS);
-      const { jobs } = res;
+      const jobs = await this.queryJobs();
       jobs.forEach(job => {
-        const newJob = context._buildNewJob({
-          name: 'RegisterJob',
-          args: {
-            jobAddress: job.jobAddress,
-            jobId: BigNumber.from(job.jobId),
-            jobKey: job.id,
-          },
-        });
-        const lensJob = this.addLensFieldsToJobs(job);
-        newJob.applyJob({
-          ...lensJob,
-          owner: lensJob.owner,
-          config: lensJob.config,
-        });
-        newJobs.set(job.id, newJob);
+        newJobs.set(job.id, this.buildJob(context, job));
       });
     } catch (e) {
       throw this.err(e);
@@ -177,7 +201,7 @@ export class SubgraphSource extends AbstractSource {
    * But we already hale all the data
    * @param graphData
    */
-  private addLensFieldsToJobs(graphData) {
+  protected addLensFieldsToJobs(graphData) {
     const lensFields: any = {};
     // setting an owner
     lensFields.owner = utils.getAddress(this._checkNullAddress(graphData.owner, true, 'id'));
@@ -225,6 +249,10 @@ export class SubgraphSource extends AbstractSource {
     return this.blockchainSource.addLensFieldsToOneJob(newJob);
   }
 
+  async queryJobOwners() {
+    return this.query(this.subgraphUrl, QUERY_JOB_OWNERS).then(res => res.jobOwners);
+  }
+
   /**
    * Gets job owner's balances from subgraph
    * @param context - agent context
@@ -244,7 +272,7 @@ export class SubgraphSource extends AbstractSource {
         return { data: result, meta: graphStatus };
       }
 
-      const { jobOwners } = await this.query(this.subgraphUrl, QUERY_JOB_OWNERS);
+      const jobOwners = await this.queryJobOwners();
       jobOwners.forEach(JobOwner => {
         result.set(toChecksummedAddress(JobOwner.id), BigNumber.from(JobOwner.credits));
       });

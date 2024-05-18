@@ -7,7 +7,6 @@ import axios from 'axios';
 export abstract class AbstractExecutor {
   protected network: Network;
   protected agentContract: ContractWrapper;
-  protected genericProvider: ethers.providers.BaseProvider;
   protected workerSigner: ethers.Wallet;
 
   protected executorConfig: ExecutorConfig;
@@ -34,6 +33,10 @@ export abstract class AbstractExecutor {
   protected abstract clog(level: string, ...args: any[]);
   protected abstract err(...args: any[]);
   protected abstract process(tx: TxEnvelope);
+
+  public getProvider() {
+    return this.network.getProvider();
+  }
 
   public getStatusObjectForApi(): any {
     return {
@@ -78,8 +81,8 @@ export abstract class AbstractExecutor {
 
   // NOTICE: Use this function as a sync one unless you really want to wait for the tx be mined.
   public async push(key: string, envelope: TxEnvelope) {
-    if (!this.genericProvider) {
-      throw this.err('Generic Provider misconfigured');
+    if (!this.getProvider()) {
+      throw this.err('Provider misconfigured');
     }
     if (!this.workerSigner) {
       throw this.err('Worker signer misconfigured');
@@ -154,6 +157,7 @@ export abstract class AbstractExecutor {
       Mail: [{ name: 'metadataJson', type: 'string' }],
     };
     const networkStatusObj = this.network.getStatusObjectForApi();
+    this.clog('debug', `⚠️ Log block ${blockNumber} delay: ${delay}, isNotEmitted: ${isNotEmitted}`);
     const blockData = {
       metadataJson: jsonStringify({
         delay,
@@ -173,15 +177,11 @@ export abstract class AbstractExecutor {
     return axios.post(`${txLogEndpoint}/log-block-delay`, { blockData, signature, signatureVersion: 1 });
   }
 
-  async sendAddBlacklistedJob(agent: IAgent, jobKey, errorMessage) {
-    const types = {
-      Mail: [{ name: 'metadataHash', type: 'string' }],
-    };
+  async getJobData(agent, jobKey, metaData = {}) {
     const networkStatusObj = this.network.getStatusObjectForApi();
-    const blockData = {
+    return {
       metadataJson: jsonStringify({
         jobKey,
-        errorMessage,
         keeperId: agent.keeperId,
         rpc: networkStatusObj['rpc'],
         rpcClient: await this.network.getClientVersion(),
@@ -190,12 +190,32 @@ export abstract class AbstractExecutor {
         chainId: networkStatusObj['chainId'],
         appVersion: this.network.getAppVersion(),
         appEnv: process.env.APP_ENV,
+        ...metaData,
       }),
     };
+  }
+
+  async sendAddBlacklistedJob(agent: IAgent, jobKey, errorMessage) {
+    const types = {
+      Mail: [{ name: 'metadataHash', type: 'string' }],
+    };
+    const jobData = await this.getJobData(agent, jobKey, { action: 'add', errorMessage });
     const signature = await this.workerSigner._signTypedData({}, types, {
-      metadataHash: hashString(blockData.metadataJson),
+      metadataHash: hashString(jobData.metadataJson),
     });
     const txLogEndpoint = process.env.TX_LOG_ENDPOINT || 'https://tx-log.powerpool.finance';
-    return axios.post(`${txLogEndpoint}/log-blacklist-job`, { blockData, signature, signatureVersion: 2 });
+    return axios.post(`${txLogEndpoint}/log-blacklist-job`, { jobData, signature, signatureVersion: 2 });
+  }
+
+  async sendRemoveBlacklistedJob(agent: IAgent, jobKey, reason) {
+    const types = {
+      Mail: [{ name: 'metadataHash', type: 'string' }],
+    };
+    const jobData = await this.getJobData(agent, jobKey, { action: 'remove', reason });
+    const signature = await this.workerSigner._signTypedData({}, types, {
+      metadataHash: hashString(jobData.metadataJson),
+    });
+    const txLogEndpoint = process.env.TX_LOG_ENDPOINT || 'https://tx-log.powerpool.finance';
+    return axios.post(`${txLogEndpoint}/log-blacklist-job`, { jobData, signature, signatureVersion: 2 });
   }
 }

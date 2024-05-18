@@ -34,6 +34,12 @@ export function toNumber(value: number | BigNumber): number {
 }
 
 export function numberToBigInt(n) {
+  if (!n) {
+    return n;
+  }
+  if (n.toBigInt) {
+    return n.toBigInt();
+  }
   return BigInt(n.toString());
 }
 
@@ -62,8 +68,9 @@ export function jsonStringify(obj: any): string {
   );
 }
 
-export function prepareTx(tx: UnsignedTransaction, isEstimate = false) {
+export function prepareTx(tx: UnsignedTransaction, from = undefined, isEstimate = false) {
   const resTx = {
+    from,
     ...tx,
     value: bigintToHex(tx.value),
     gasLimit: bigintToHex(isEstimate ? tx.gasLimit : 5_000_000n),

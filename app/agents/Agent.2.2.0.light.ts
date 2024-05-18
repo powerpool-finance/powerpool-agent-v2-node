@@ -2,6 +2,16 @@ import { AbstractAgent } from './AbstractAgent.js';
 import { getPPAgentV2_3_0_RandaoAbi } from '../services/AbiService.js';
 import { LightJob } from '../jobs/LightJob.js';
 
+// TODO: use acceptMaxBaseFeeLimit logic in constructor
+// if ('accept_max_base_fee_limit' in agentConfig) {
+//   this.acceptMaxBaseFeeLimit = !!agentConfig.accept_max_base_fee_limit;
+//   if (this.acceptMaxBaseFeeLimit) {
+//     this.keeperConfig = this.keeperConfig | FLAG_ACCEPT_MAX_BASE_FEE_LIMIT;
+//   }
+// } else {
+//   this.acceptMaxBaseFeeLimit = false;
+// }
+
 export class AgentLight_2_2_0 extends AbstractAgent {
   // jobKey => keeper
   private assignedKeepers: Map<string, number>;

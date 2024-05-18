@@ -1,9 +1,11 @@
 import winston from 'winston';
+import DailyRotateFile from 'winston-daily-rotate-file';
 import Transport, { TransportStreamOptions } from 'winston-transport';
 import * as Sentry from '@sentry/node';
 import { Event as SentryEvent } from '@sentry/node';
 import { fileURLToPath } from 'url';
 import path, { dirname } from 'path';
+import TransportStream from 'winston-transport';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -80,29 +82,47 @@ const consoleFormat = winston.format.combine(
     return `${timestamp} [${level}] ${message}`;
   }),
 );
+
+const allTransport: DailyRotateFile = new DailyRotateFile({
+  filename: 'debug-%DATE%.log',
+  dirname: `${projectRoot}/logs/`,
+  datePattern: 'YYYY-MM-DD',
+  zippedArchive: true,
+  maxSize: '30m',
+  maxFiles: '30d',
+  level: 'debug',
+});
+
+const errorTransport: TransportStream = new DailyRotateFile({
+  filename: 'error-%DATE%.log',
+  dirname: `${projectRoot}/logs/`,
+  datePattern: 'YYYY-MM-DD',
+  zippedArchive: true,
+  maxSize: '30m',
+  maxFiles: '30d',
+  level: 'error',
+});
+
 let logger;
 
 if (isDev) {
   logger = winston.createLogger({
     level: process.env.LOG_LEVEL || 'debug',
     format: consoleFormat,
-    transports: [new winston.transports.Console({ format: consoleFormat })],
+    transports: [new winston.transports.Console({ format: consoleFormat }), allTransport, errorTransport],
   });
 } else if (isTest) {
   logger = winston.createLogger({
     level: process.env.LOG_LEVEL || 'error',
     format: consoleFormat,
-    transports: [new winston.transports.Console({ format: consoleFormat })],
+    transports: [new winston.transports.Console({ format: consoleFormat }), allTransport, errorTransport],
   });
 } else {
   // isProd
   logger = winston.createLogger({
     level: process.env.LOG_LEVEL || 'info',
     format: winston.format.simple(),
-    transports: [
-      new winston.transports.Console({ format: consoleFormat }),
-      new winston.transports.File({ filename: 'error.log', level: 'error' }),
-    ],
+    transports: [new winston.transports.Console({ format: consoleFormat }), errorTransport],
   });
 }
 

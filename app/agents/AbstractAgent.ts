@@ -18,7 +18,13 @@ import {
 import { BigNumber, ethers, Wallet } from 'ethers';
 import { getEncryptedJson } from '../services/KeyService.js';
 import { BN_ZERO, DEFAULT_SYNC_FROM_CHAINS } from '../Constants.js';
-import { filterFunctionResultObject, numberToBigInt, toChecksummedAddress, weiValueToEth } from '../Utils.js';
+import {
+  filterFunctionResultObject,
+  numberToBigInt,
+  toChecksummedAddress,
+  weiValueToEth,
+  jsonStringify,
+} from '../Utils.js';
 import { FlashbotsExecutor } from '../executors/FlashbotsExecutor.js';
 import { PGAExecutor } from '../executors/PGAExecutor.js';
 import { getAgentDefaultSyncFromSafe, getDefaultExecutorConfig, setConfigDefaultValues } from '../ConfigGetters.js';
@@ -29,7 +35,7 @@ import logger from '../services/Logger.js';
 
 // const FLAG_ACCEPT_MAX_BASE_FEE_LIMIT = 1;
 const FLAG_ACCRUE_REWARD = 2;
-const BIG_NUMBER_1E18 = BigNumber.from(10).pow(18);
+// const BIG_NUMBER_1E18 = BigNumber.from(10).pow(18);
 
 export abstract class AbstractAgent implements IAgent {
   public readonly executorType: ExecutorType;
@@ -105,24 +111,17 @@ export abstract class AbstractAgent implements IAgent {
     setConfigDefaultValues(this.executorConfig, getDefaultExecutorConfig());
 
     // Check if all data for subgraph is provided
-    if (agentConfig.data_source) {
-      if (agentConfig.data_source === 'subgraph') {
-        if (!agentConfig.subgraph_url) {
-          throw new Error(
-            "Please set 'subgraph_url' if you want to proceed with {'data_source': 'subgraph'}. Notice that 'graph_url' is deprecated so please change it to 'subgraph_url'.",
-          );
-        }
-        this.dataSourceType = 'subgraph';
-        this.subgraphUrl = agentConfig.subgraph_url;
-      } else if (agentConfig.data_source === 'blockchain') {
-        this.dataSourceType = 'blockchain';
-      } else {
-        throw this.err(
-          `Invalid agent data_source: ${agentConfig.data_source}. Can be either 'blockchain' or 'subgraph'.`,
-        );
+    this.dataSourceType = (agentConfig.data_source || 'blockchain') as DataSourceType;
+    this.subgraphUrl = agentConfig.subgraph_url;
+
+    if (this.dataSourceType === 'subgraph' || this.dataSourceType === 'subquery') {
+      if (!this.subgraphUrl) {
+        throw new Error(`Please set 'subgraph_url' if you want to use {'data_source': '${this.dataSourceType}'}.`);
       }
-    } else {
-      this.dataSourceType = 'blockchain';
+    } else if (this.dataSourceType !== 'blockchain') {
+      throw this.err(
+        `Invalid data_source: ${agentConfig.data_source}. Can be either 'blockchain', 'subgraph' or 'subquery'.`,
+      );
     }
 
     if (
@@ -143,16 +142,6 @@ export abstract class AbstractAgent implements IAgent {
 
     this.keyAddress = ethers.utils.getAddress(agentConfig.keeper_worker_address);
     this.keyPass = agentConfig.key_pass;
-
-    // TODO: move acceptMaxBaseFeeLimit logic to Light agent only
-    // if ('accept_max_base_fee_limit' in agentConfig) {
-    //   this.acceptMaxBaseFeeLimit = !!agentConfig.accept_max_base_fee_limit;
-    //   if (this.acceptMaxBaseFeeLimit) {
-    //     this.keeperConfig = this.keeperConfig | FLAG_ACCEPT_MAX_BASE_FEE_LIMIT;
-    //   }
-    // } else {
-    //   this.acceptMaxBaseFeeLimit = false;
-    // }
 
     // accrueReward
     this.accrueReward = !!agentConfig.accrue_reward;
@@ -249,13 +238,6 @@ export abstract class AbstractAgent implements IAgent {
     // Task #1
     const agentConfig = await this.queryAgentConfig();
     this.minKeeperCvp = agentConfig.minKeeperCvp_;
-    if (keeperConfig.currentStake.lt(agentConfig.minKeeperCvp_)) {
-      throw this.err(
-        `The keeper's stake for agent '${this.address}' is insufficient: ${keeperConfig.currentStake.div(
-          BIG_NUMBER_1E18,
-        )} CVP (actual) < ${this.minKeeperCvp.div(BIG_NUMBER_1E18)} CVP (required).`,
-      );
-    }
     this.clog('info', `Keeper stake: (current=${keeperConfig.currentStake},min=${this.minKeeperCvp})`);
     // TODO: track agent SetAgentParams
     // TODO: assert the keeper has enough CVP for a job
@@ -264,11 +246,7 @@ export abstract class AbstractAgent implements IAgent {
     // this.workerNonce = await this.network.getProvider().getTransactionCount(this.workerSigner.address);
     await this.executor.init();
 
-    await this._beforeResyncAllJobs();
-
-    // Task #2
-    this.isAgentUp = this.myKeeperIsActive && this.myStakeIsSufficient();
-    const upTo = await this.resyncAllJobs();
+    const upTo = await this.checkStatusAndResyncAllJobs();
     this.initializeListeners(upTo);
     // setTimeout(this.verifyLastExecutionAtLoop.bind(this), 3 * 60 * 1000);
 
@@ -314,6 +292,15 @@ export abstract class AbstractAgent implements IAgent {
     this.clog('info', `addJobToBlacklist: ${jobKey}, errMessage ${errMessage}`);
     this.blacklistedJobs.add(jobKey);
     this.executor.sendAddBlacklistedJob(this, jobKey, errMessage);
+  }
+
+  public removeJobFromBlacklist(jobKey, reason) {
+    if (!this.isJobBlacklisted(jobKey)) {
+      return;
+    }
+    this.clog('info', `removeJobFromBlacklist: ${jobKey}, reason ${reason}`);
+    this.blacklistedJobs.delete(jobKey);
+    this.executor.sendRemoveBlacklistedJob(this, jobKey, reason);
   }
 
   public getJobOwnerBalance(address: string): BigNumber {
@@ -367,8 +354,13 @@ export abstract class AbstractAgent implements IAgent {
     return this.blacklistedJobs.has(jobKey);
   }
 
-  public getJob(jobKey: string): RandaoJob | LightJob | null {
-    return this.jobs.get(jobKey);
+  public async getJob(jobKey: string): Promise<RandaoJob | LightJob | null> {
+    let job = this.jobs.get(jobKey);
+    if (!job) {
+      job = await this.dataSource.getJob(this, jobKey);
+      await this.addJob(job);
+    }
+    return job;
   }
   public getJobsCount(): { total: number; interval: number; resolver: number } {
     const counters = {
@@ -420,6 +412,14 @@ export abstract class AbstractAgent implements IAgent {
     };
   }
 
+  public async checkStatusAndResyncAllJobs(): Promise<number> {
+    await this._beforeResyncAllJobs();
+
+    // Task #2
+    this.isAgentUp = this.myKeeperIsActive && this.myStakeIsSufficient();
+    return this.resyncAllJobs();
+  }
+
   /**
    * Job Update Pipeline:
    * 1. Handle RegisterJob events
@@ -430,6 +430,9 @@ export abstract class AbstractAgent implements IAgent {
    */
   private async resyncAllJobs(): Promise<number> {
     this.clog('info', 'resyncAllJobs start');
+
+    this.stopAllJobs();
+
     let latestBock = this.network.getLatestBlockNumber();
     // 1. init jobs
     let newJobs = new Map<string, RandaoJob | LightJob>(),
@@ -468,24 +471,24 @@ export abstract class AbstractAgent implements IAgent {
   }
   abstract _buildNewJob(event): LightJob | RandaoJob;
 
-  private async addJob(creationEvent: EventWrapper) {
-    const jobKey = creationEvent.args.jobKey;
-    const owner = creationEvent.args.owner;
+  private async addJobByRegisterEvent(creationEvent: EventWrapper) {
+    return this.addJob(this._buildNewJob(creationEvent));
+  }
 
-    const job = this._buildNewJob(creationEvent);
-    this.jobs.set(jobKey, job);
+  private async addJob(job: LightJob | RandaoJob) {
+    this.jobs.set(job.getKey(), job);
 
     await this.dataSource.addLensFieldsToOneJob(job);
     job.clearJobCredits();
 
-    if (!this.ownerJobs.has(owner)) {
-      this.ownerJobs.set(owner, new Set());
+    if (!this.ownerJobs.has(job.getOwner())) {
+      this.ownerJobs.set(job.getOwner(), new Set());
     }
-    const set = this.ownerJobs.get(owner);
-    set.add(jobKey);
+    const set = this.ownerJobs.get(job.getOwner());
+    set.add(job.getKey());
 
-    if (!this.ownerBalances.has(owner)) {
-      this.ownerBalances.set(owner, BN_ZERO);
+    if (!this.ownerBalances.has(job.getOwner())) {
+      this.ownerBalances.set(job.getOwner(), BN_ZERO);
     }
   }
 
@@ -521,6 +524,17 @@ export abstract class AbstractAgent implements IAgent {
     this.network.unregisterResolver(`${this.address}/${jobKey}`);
   }
 
+  public async buildTx(calldata: string): Promise<UnsignedTransaction> {
+    return {
+      to: this.getAddress(),
+      data: calldata,
+      // Typed-Transaction features
+      type: 2,
+      // EIP-1559; Type 2
+      // maxFeePerGas: this.getBaseFeePerGas(),
+    };
+  }
+
   public async sendTxEnvelope(envelope: TxEnvelope) {
     await this.trySendExecuteEnvelope(envelope);
   }
@@ -529,30 +543,39 @@ export abstract class AbstractAgent implements IAgent {
     return BigInt(this.network.getBaseFee() * multiplier);
   }
 
-  protected async populateTxExtraFields(tx: UnsignedTransaction) {
-    tx.chainId = this.network.getChainId();
-    tx['from'] = this.workerSigner.address;
-    const baseFeePerGas = this.getBaseFeePerGas();
-    const priorityFeeAddGwei = BigInt(this.executorConfig.gas_price_priority_add_gwei);
-    const maxPriorityFeePerGas = await this.network
-      .getMaxPriorityFeePerGas()
-      .catch(() => priorityFeeAddGwei * 1000000000n);
-    tx.maxPriorityFeePerGas = BigInt(maxPriorityFeePerGas) + priorityFeeAddGwei * 1000000000n;
-    tx.maxFeePerGas = baseFeePerGas + tx.maxPriorityFeePerGas;
+  protected async getTxFeeData() {
+    let baseFeePerGas, maxPriority;
+    try {
+      const fee = await this.network.getFeeData();
+      maxPriority = numberToBigInt(fee.maxPriorityFeePerGas);
+      baseFeePerGas = numberToBigInt(fee.lastBaseFeePerGas);
+    } catch (e) {
+      this.clog(
+        'warn',
+        `Failed to fetch getFeeData(), error message: ${e.message}. Fetching getMaxPriorityFeePerGas...`,
+      );
+      const priorityFeeAddGwei = BigInt(this.executorConfig.gas_price_priority_add_gwei);
+      const maxPriorityFeePerGas = await this.network
+        .getMaxPriorityFeePerGas()
+        .catch(() => priorityFeeAddGwei * 1000000000n);
+      maxPriority = BigInt(maxPriorityFeePerGas);
+      baseFeePerGas = this.getBaseFeePerGas();
+    }
+    return { baseFeePerGas, maxPriority };
   }
 
-  public async buildTx(calldata: string): Promise<UnsignedTransaction> {
-    return {
-      to: this.getAddress(),
+  public getWorkerSignerAddress() {
+    return this.workerSigner.address;
+  }
 
-      data: calldata,
+  protected async populateTxExtraFields(tx: UnsignedTransaction) {
+    tx.chainId = this.network.getChainId();
+    tx['from'] = this.getWorkerSignerAddress();
 
-      // Typed-Transaction features
-      type: 2,
-
-      // EIP-1559; Type 2
-      // maxFeePerGas: this.getBaseFeePerGas(),
-    };
+    const priorityFeeAddGwei = BigInt(this.executorConfig.gas_price_priority_add_gwei);
+    const { baseFeePerGas, maxPriority } = await this.getTxFeeData();
+    tx.maxPriorityFeePerGas = maxPriority + priorityFeeAddGwei * 1000000000n;
+    tx.maxFeePerGas = baseFeePerGas + tx.maxPriorityFeePerGas;
   }
 
   async txNotMinedInBlock(tx: UnsignedTransaction, txHash: string): Promise<TxGasUpdate> {
@@ -563,18 +586,11 @@ export abstract class AbstractAgent implements IAgent {
     const { maxPriorityFeePerGas } = tx;
     await this.populateTxExtraFields(tx);
     const priorityIncrease = (tx.maxPriorityFeePerGas * 100n) / maxPriorityFeePerGas;
-    // console.log(
-    //   'tx.maxPriorityFeePerGas',
-    //   tx.maxPriorityFeePerGas,
-    //   'maxPriorityFeePerGas',
-    //   maxPriorityFeePerGas,
-    //   'priorityIncrease',
-    //   priorityIncrease,
-    // );
     if (priorityIncrease < 110n) {
       tx.maxPriorityFeePerGas = (maxPriorityFeePerGas * 111n) / 100n;
     }
-    const newMax = this.getBaseFeePerGas() + tx.maxPriorityFeePerGas;
+    const { baseFeePerGas } = await this.getTxFeeData();
+    const newMax = baseFeePerGas + tx.maxPriorityFeePerGas;
     //TODO: check nonce
     //TODO: check resends count and max feePerGas
 
@@ -597,37 +613,87 @@ export abstract class AbstractAgent implements IAgent {
     this.clog('error', `txEstimationFailed: ${err.message}, txData: ${txData}`);
   }
 
-  private parseAndSetUnrecognizedErrorMessage(err) {
+  public parseAndSetUnrecognizedErrorMessage(err) {
+    const iface = this.contract;
+    const parseError = iface.decodeError.bind(iface);
+    let errMessage, decodedError, errorCase, errorObj;
     try {
-      let decodedError;
-      const reason =
-        err.reason && err.reason !== 'execution reverted' ? err.reason : err.message && err.message.toString();
-      if (reason && reason.includes('response":"')) {
-        decodedError = this.contract.decodeError(
-          JSON.parse(JSON.parse(`"${reason.split('response":"')[1].split('"},')[0]}"`)).error.data,
-        );
-      } else if (reason && reason.includes('unrecognized custom error')) {
-        decodedError = this.contract.decodeError(reason.split('data: ')[1].slice(0, -1));
-      } else if (reason && reason.includes('error={"code":3')) {
+      if (err.reason && err.reason !== 'execution reverted' && !err.reason.includes('without a reason string')) {
+        errMessage = err.reason;
+      } else {
+        errMessage = err.message && err.message.toString();
+      }
+
+      if (errMessage && errMessage.includes('Too many requests')) {
+        errMessage = 'Too many requests';
+      } else if (errMessage && errMessage.includes('error={"code":3')) {
+        errorCase = 1;
         // 'cannot estimate gas; transaction may fail or may require manual gas limit [ See: https://links.ethers.org/v5-errors-UNPREDICTABLE_GAS_LIMIT ] (reason="execution reverted", method="estimateGas", transaction={"from":"0x779bEfe2b4C43cD1F87924defd13c8b9d3B1E1d8","maxPriorityFeePerGas":{"type":"BigNumber","hex":"0x05196259dd"},"maxFeePerGas":{"type":"BigNumber","hex":"0x05196259ed"},"to":"0x071412e301C2087A4DAA055CF4aFa2683cE1e499","data":"0x00000000ef0b5a45ff9b79d4b9162130bf0cd44dcf68b90d0000010200003066f23ebc0000000000000000000000000000000000000000000000000000000000000000","type":2,"accessList":null}, error={"code":3,"response":"{\"jsonrpc\":\"2.0\",\"id\":20442,\"error\":{\"code\":3,\"message\":\"execution reverted\",\"data\":\"0xbe32c0ad\"}}\n"}, code=UNPREDICTABLE_GAS_LIMIT, version=providers/5.7.2)'
         // ->
         // '{"code":3,"response":{"jsonrpc":"2.0","id":20442,"error":{"code":3,"message":"execution reverted","data":"0xbe32c0ad"}}}'
-        const responseJson = reason
+        const responseJson = errMessage
           .split('error=')[1]
           .split(', code=UNPREDICTABLE_GAS_LIMIT')[0]
-          .replace('\n', '')
+          .replace(/\\n/g, '')
+          .replace(/\\"/g, '"')
+          .replace(/\n/g, '')
+          .replace('}"', '}')
           .replace('}"', '}')
           .replace('"{', '{');
-        decodedError = this.contract.decodeError(JSON.parse(responseJson).response.error.data);
+        errorObj = JSON.parse(responseJson).response.error;
+      } else if (
+        errMessage &&
+        (errMessage.includes('error={"code":-320') || errMessage.includes('error={"code":-320'))
+      ) {
+        errorCase = 2;
+        // Error: PGAExecutorError(network: gnosis, signer: 0x840ccC99c425eDCAfebb0e7ccAC022CD15Fd49Ca): gasLimitEstimation failed with error: missing revert data in call exception; Transaction reverted without a reason string [ See: https://links.ethers.org/v5-errors-CALL_EXCEPTION ] (data="0x", transaction={"from":"0x840ccC99c425eDCAfebb0e7ccAC022CD15Fd49Ca","gasLimit":{"type":"BigNumber","hex":"0x4c4b40"},"maxPriorityFeePerGas":{"type":"BigNumber","hex":"0xd09dc300"},"maxFeePerGas":{"type":"BigNumber","hex":"0xd0a004f5"},"to":"0x071412e301C2087A4DAA055CF4aFa2683cE1e499","data":"0x52ee5b350000000000000000000000000b98057ea310f4d31f2a452b414647007d1645d900000000000000000000000000000000000000000000000000000000000000070000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000024a3066aab0000000000000000000000007ca19667f10d8642cd9c9834fae340db58ac925f00000000000000000000000000000000000000000000000000000000","type":2,"accessList":null}, error={"code":-32015,"response":"{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32015,\"message\":\"VM execution error.\",\"data\":\"Reverted 0xaf6058030000000000000000000000000000000000000000000000000000000000000051\"},\"id\":1270}"}, code=CALL_EXCEPTION, version=providers/5.7.2)
+        // ->
+        // '{"code":-32015,"response":{"jsonrpc":"2.0","error":{"code":-32015,"message":"VM execution error.","data":"Reverted 0xaf6058030000000000000000000000000000000000000000000000000000000000000051"},"id":1270}}'
+
+        // insufficient funds for intrinsic transaction cost [ See: https://links.ethers.org/v5-errors-INSUFFICIENT_FUNDS ] (error={"code":-32010,"response":"{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32010,\"message\":\"InsufficientFunds, Balance is 13756802920248756 less than sending value + gas 20996696515000000\"},\"id\":90}"}, method="sendTransaction", transaction="0x02f8af645b84fa4b6ea384fa4cd527834c4b4094071412e301c2087a4daa055cf4afa2683ce1e49980b8430000000053bcf6ec8189a58876d13f85afd7e3cec660bc7a000001020000b066f23ebc000000000000000000000000fffffffffffffffffffffffffffffffffffffffec080a050f1602b83a96afcb27b4943f09f87cb96f52a179fb59ff3af453f76f9817878a00f896993b1f153d098037404c5137b790d41aed88eff6e6d57a6eeeca97570cc", code=INSUFFICIENT_FUNDS, version=providers/5.7.2
+        // ->
+        // '{"code":-32015,"response":"{\"id\":3622,\"jsonrpc\":\"2.0\",\"error\":{\"message\":\"Reverted 0x74ab6781\",\"code\":-32015}}"}'
+        const responseJson = errMessage
+          .split('error=')[1]
+          .split(', code=CALL_EXCEPTION')[0]
+          .split(', method')[0]
+          .replace(/\\n/g, '')
+          .replace(/\\"/g, '"')
+          .replace(/\n/g, '')
+          .replace('}"', '}')
+          .replace('"{', '{');
+        errorObj = JSON.parse(responseJson).response.error;
+        if (!errorObj.data && errorObj.message.includes('Reverted ')) {
+          errorObj.data = errorObj.message;
+        }
+        if (errorObj.data) {
+          errorObj.data = errorObj.data.replace('Reverted ', '');
+        }
+      } else if (errMessage && errMessage.includes('response":"')) {
+        errorCase = 3;
+        errorObj = JSON.parse(JSON.parse(`"${errMessage.split('response":"')[1].split('"},')[0]}"`)).error;
+      } else if (errMessage && errMessage.includes('unrecognized custom error')) {
+        errorCase = 4;
+        decodedError = parseError(errMessage.split('data: ')[1].slice(0, -1));
       }
+
+      if (errorObj && !decodedError) {
+        if (errorObj.data && !errorObj.data.includes(' ')) {
+          decodedError = parseError(errorObj.data);
+        } else if (errorObj.message) {
+          errMessage = errorObj.message;
+        }
+      }
+
       if (decodedError) {
         const filteredArgs = filterFunctionResultObject(decodedError.args, true);
-        err.message =
-          `Error: VM Exception while processing transaction: reverted with ${decodedError.name} ` +
-          `decoded error and ${JSON.stringify(filteredArgs)} args`;
+        errMessage =
+          `Error: VM Exception while processing transaction: reverted with ${decodedError.name}` +
+          `(${decodedError.signature}) decoded error and ${jsonStringify(filteredArgs)} args`;
       }
-    } catch (_) {
-      console.error('decode error', _);
+      err.message = errMessage;
+    } catch (e) {
+      console.error('decode error', e, 'errorCase', errorCase, 'errMessage', errMessage);
     }
   }
 
@@ -715,7 +781,10 @@ export abstract class AbstractAgent implements IAgent {
     return await this.contract.ethCall('getKeeper', [keeperId]);
   }
 
-  public async queryPastEvents(eventName: string, from: number, to: number): Promise<any> {
+  public async queryPastEvents(eventName: string, from: number, to: number, filters = []): Promise<any> {
+    if (filters.length) {
+      eventName = this.contract[eventName](filters);
+    }
     return this.contract.getPastEvents(eventName, from, to);
   }
 
@@ -725,7 +794,7 @@ export abstract class AbstractAgent implements IAgent {
 
   protected initializeListeners(blockNumber: number) {
     // Job events
-    this.on('DepositJobCredits', event => {
+    this.on('DepositJobCredits', async event => {
       const { jobKey, amount, fee } = event.args;
 
       this.clog(
@@ -737,17 +806,17 @@ export abstract class AbstractAgent implements IAgent {
         this.clog('error', `Ignoring DepositJobCredits event due the job missing: (jobKey=${jobKey})`);
       }
 
-      const job = this.jobs.get(jobKey);
+      const job = await this.getJob(jobKey);
       job.applyJobCreditsDeposit(BigNumber.from(amount));
       job.watch();
     });
 
-    this.on('WithdrawJobCredits', event => {
+    this.on('WithdrawJobCredits', async event => {
       const { jobKey, amount } = event.args;
 
       this.clog('debug', `'WithdrawJobCredits' event: (block=${event.blockNumber},jobKey=${jobKey},amount=${amount})`);
 
-      const job = this.jobs.get(jobKey);
+      const job = await this.getJob(jobKey);
       job.applyJobCreditWithdrawal(BigNumber.from(amount));
       job.watch();
     });
@@ -796,7 +865,7 @@ export abstract class AbstractAgent implements IAgent {
       }
     });
 
-    this.on('AcceptJobTransfer', event => {
+    this.on('AcceptJobTransfer', async event => {
       const { jobKey_, to_: ownerAfter } = event.args;
 
       this.clog(
@@ -804,7 +873,7 @@ export abstract class AbstractAgent implements IAgent {
         `'AcceptJobTransfer' event: (block=${event.blockNumber},jobKey_=${jobKey_},to_=${ownerAfter})`,
       );
 
-      const job = this.jobs.get(jobKey_);
+      const job = await this.getJob(jobKey_);
       const ownerBefore = job.getOwner();
       this.ownerJobs.get(ownerBefore).delete(jobKey_);
 
@@ -817,7 +886,7 @@ export abstract class AbstractAgent implements IAgent {
       job.watch();
     });
 
-    this.on('JobUpdate', event => {
+    this.on('JobUpdate', async event => {
       const { jobKey, maxBaseFeeGwei, rewardPct, fixedReward, jobMinCvp, intervalSeconds } = event.args;
 
       this.clog(
@@ -825,12 +894,12 @@ export abstract class AbstractAgent implements IAgent {
         `'JobUpdate' event: (block=${event.blockNumber},jobKey=${jobKey},maxBaseFeeGwei=${maxBaseFeeGwei},reardPct=${rewardPct},fixedReward=${fixedReward},jobMinCvp=${jobMinCvp},intervalSeconds=${intervalSeconds})`,
       );
 
-      const job = this.jobs.get(jobKey);
+      const job = await this.getJob(jobKey);
       job.applyUpdate(maxBaseFeeGwei, rewardPct, fixedReward, jobMinCvp, intervalSeconds);
       job.watch();
     });
 
-    this.on('SetJobPreDefinedCalldata', event => {
+    this.on('SetJobPreDefinedCalldata', async event => {
       const { jobKey, preDefinedCalldata } = event.args;
 
       this.clog(
@@ -838,12 +907,12 @@ export abstract class AbstractAgent implements IAgent {
         `'SetJobPreDefinedCalldata' event: (block=${event.blockNumber},jobKey=${jobKey},preDefinedCalldata=${preDefinedCalldata})`,
       );
 
-      const job = this.jobs.get(jobKey);
+      const job = await this.getJob(jobKey);
       job.applyPreDefinedCalldata(preDefinedCalldata);
       job.watch();
     });
 
-    this.on('SetJobResolver', event => {
+    this.on('SetJobResolver', async event => {
       const { jobKey, resolverAddress, resolverCalldata } = event.args;
 
       this.clog(
@@ -851,7 +920,7 @@ export abstract class AbstractAgent implements IAgent {
         `'SetJobResolver' event: (block=${event.blockNumber},jobKey=${jobKey},resolverAddress=${resolverAddress},useJobOwnerCredits_=${resolverCalldata})`,
       );
 
-      const job = this.jobs.get(jobKey);
+      const job = await this.getJob(jobKey);
       job.applyResolver(resolverAddress, resolverCalldata);
       job.watch();
     });
@@ -864,7 +933,7 @@ export abstract class AbstractAgent implements IAgent {
         `'SetJobConfig' event: (block=${event.blockNumber},jobKey=${jobKey},isActive=${isActive_},useJobOwnerCredits_=${useJobOwnerCredits_},assertResolverSelector_=${assertResolverSelector_})`,
       );
 
-      const job = this.jobs.get(jobKey);
+      const job = await this.getJob(jobKey);
       const binJob = await this.network.queryLensJobsRawBytes32(this.address, jobKey);
       job.applyBinJobData(binJob);
       job.watch();
@@ -880,10 +949,10 @@ export abstract class AbstractAgent implements IAgent {
         },jobKey=${jobKey},jobAddress=${jobAddress},jobId=${jobId},owner=${owner},params=${JSON.stringify(params)})`,
       );
 
-      await this.addJob(event);
+      await this.addJobByRegisterEvent(event);
     });
 
-    this.on('Execute', event => {
+    this.on('Execute', async event => {
       const { jobKey, job: jobAddress, keeperId, gasUsed, baseFee, gasPrice, compensation, binJobAfter } = event.args;
 
       this.clog(
@@ -897,7 +966,7 @@ export abstract class AbstractAgent implements IAgent {
         )}eth/${numberToBigInt(compensation)}wei,binJobAfter=${binJobAfter})`,
       );
 
-      const job = this.jobs.get(jobKey);
+      const job = await this.getJob(jobKey);
       job.applyBinJobData(binJobAfter);
       job.applyWasExecuted();
 

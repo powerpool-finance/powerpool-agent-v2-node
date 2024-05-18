@@ -11,7 +11,7 @@ import { AbstractJob } from './jobs/AbstractJob';
 export type AvailableNetworkNames = 'mainnet' | 'bsc' | 'polygon' | 'goerli';
 export type ExecutorType = 'flashbots' | 'pga';
 export type Strategy = 'randao' | 'light';
-export type DataSourceType = 'blockchain' | 'subgraph';
+export type DataSourceType = 'blockchain' | 'subgraph' | 'subquery';
 export type EnvValueType = 'string' | 'number' | 'boolean' | 'address';
 
 export enum CALLDATA_SOURCE {
@@ -239,6 +239,7 @@ export interface Executor {
   sendBlockDelayLog(agent: IAgent, delay, blockNumber);
   sendNewBlockDelayLog(agent: IAgent, delay, blockNumber);
   sendAddBlacklistedJob(agent: IAgent, jobKey, errMessage);
+  sendRemoveBlacklistedJob(agent: IAgent, jobKey, reason);
 }
 
 export interface ClientWrapper {
@@ -367,6 +368,7 @@ export interface IRandaoAgent extends IAgent {
 export interface IDataSource {
   getType(): string;
   getBlocksDelay(): Promise<{ diff: bigint; nodeBlockNumber: bigint; sourceBlockNumber: bigint }>;
+  getJob(_context, jobKey): Promise<RandaoJob | LightJob>;
   getRegisteredJobs(_context): Promise<{ data: Map<string, RandaoJob | LightJob>; meta: SourceMetadata }>;
   getOwnersBalances(
     context,
@@ -395,6 +397,8 @@ export interface IAgent {
 
   getKeyAddress(): string;
 
+  getWorkerSignerAddress(): string;
+
   getKeeperId(): number;
 
   getCfg(): number;
@@ -407,6 +411,8 @@ export interface IAgent {
 
   // METHODS
   init(network: Network, dataSource: IDataSource): void;
+
+  checkStatusAndResyncAllJobs(): Promise<number>;
 
   registerIntervalJobExecution(jobKey: string, timestamp: number, callback: (calldata) => void);
 
@@ -424,11 +430,13 @@ export interface IAgent {
 
   addJobToBlacklist(jobKey, errMessage);
 
+  removeJobFromBlacklist(jobKey, reason);
+
   getIsAgentUp(): boolean;
 
   getBaseFeePerGas(): bigint;
 
-  queryPastEvents(eventName: string, from: number, to: number): Promise<any>;
+  queryPastEvents(eventName: string, from: number, to: number, filters?: [any]): Promise<any>;
 
   buildTx(calldata: string): Promise<UnsignedTransaction>;
 
@@ -439,6 +447,8 @@ export interface IAgent {
   txEstimationFailed(err, txData): any;
 
   updateJob(jobObj: AbstractJob): Promise<any>;
+
+  parseAndSetUnrecognizedErrorMessage(err);
 
   nowS(): number;
 

@@ -4,6 +4,7 @@ import logger from '../services/Logger.js';
 
 export class RandaoJob extends AbstractJob {
   private BLACKLIST_ESTIMATIONS_LIMIT = 5;
+  private RESOLVER_ESTIMATIONS_LIMIT = 5;
 
   public assignedKeeperId: number;
   protected createdAt: number;
@@ -66,6 +67,7 @@ export class RandaoJob extends AbstractJob {
         slashingPossibleAfter: this.slashingPossibleAfter,
         failedEstimationsInARow: this.failedExecuteEstimationsInARow,
         failedInitiateSlashingEstimationsInARow: this.failedInitiateSlashingEstimationsInARow,
+        failedResolverInARow: this.failedResolverEstimationsInARow,
         selfUnassignPending: !!this._selfUnassignPending,
         initiateSlashingPending: !!this._initiateSlashingPending,
         canInitiateSlashingIn,
@@ -177,7 +179,16 @@ export class RandaoJob extends AbstractJob {
 
   private async _initiateSlashingIncrementFailedCounter(err) {
     // TODO: implement interval job counter
-    if (this.isResolverJob() && !this.isNotSuitableForBlacklistError(err)) {
+    if (this.isResolverJob() && this.isResolverError(err)) {
+      this.failedResolverEstimationsInARow += 1;
+      if (this.failedResolverEstimationsInARow > this.RESOLVER_ESTIMATIONS_LIMIT) {
+        this.applyClearResolverTimeouts();
+        this.agent.addJobToBlacklist(this.key, err.message);
+        this.failedResolverEstimationsInARow = 0;
+      } else {
+        this._unlockInitiateSlashing();
+      }
+    } else if (this.isResolverJob() && !this.isNotSuitableForBlacklistError(err)) {
       this.failedInitiateSlashingEstimationsInARow += 1;
 
       if (this.failedInitiateSlashingEstimationsInARow > this.BLACKLIST_ESTIMATIONS_LIMIT) {
@@ -194,11 +205,13 @@ export class RandaoJob extends AbstractJob {
 
   private async initiateSlashing(resolverCalldata) {
     const txEstimationFailed = error => {
+      this.agent.parseAndSetUnrecognizedErrorMessage(error);
       this.clog('error', 'Error: InitiateSlashing() execution failed', error);
       this.exitIfStrictTopic('estimations');
       this._initiateSlashingIncrementFailedCounter(error);
     };
     const txExecutionFailed = error => {
+      this.agent.parseAndSetUnrecognizedErrorMessage(error);
       this.clog('error', 'Error: InitiateSlashing() execution failed', error);
       this.exitIfStrictTopic('executions');
       this._initiateSlashingIncrementFailedCounter(error);
@@ -318,7 +331,13 @@ export class RandaoJob extends AbstractJob {
   }
 
   protected incrementFailedExecutesInARow(err) {
-    if (!this.isNotSuitableForBlacklistError(err)) {
+    if (this.isResolverError(err)) {
+      this.failedResolverEstimationsInARow += 1;
+      if (this.failedResolverEstimationsInARow > this.RESOLVER_ESTIMATIONS_LIMIT) {
+        this.agent.addJobToBlacklist(this.key, err.message);
+        this.failedResolverEstimationsInARow = 0;
+      }
+    } else if (!this.isNotSuitableForBlacklistError(err)) {
       // Assume that a failed execution behaviour is equal to a failed estimation
       this.failedExecuteEstimationsInARow += 1;
       if (this.failedExecuteEstimationsInARow > this.BLACKLIST_ESTIMATIONS_LIMIT) {
