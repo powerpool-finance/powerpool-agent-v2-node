@@ -301,7 +301,7 @@ export abstract class AbstractJob {
     return encodeExecute(this.address, this.id, this.agent.getCfg(), this.agent.getKeeperId());
   }
 
-  protected buildResolverCalldata(jobCalldata): string {
+  protected async buildResolverCalldata(jobCalldata): Promise<string> {
     return encodeExecute(this.address, this.id, this.agent.getCfg(), this.agent.getKeeperId(), jobCalldata);
   }
 
@@ -363,13 +363,18 @@ export abstract class AbstractJob {
         return 'Pre-Defined Calldata';
       case CALLDATA_SOURCE.RESOLVER:
         return 'Resolver';
+      case CALLDATA_SOURCE.OFFCHAIN:
+        return 'Offchain';
       default:
         throw this.err(`Invalid job calldata source: ${this.details.calldataSource}`);
     }
   }
 
   public getJobType(): JobType {
-    if (this.details.calldataSource === CALLDATA_SOURCE.RESOLVER) {
+    if (
+      this.details.calldataSource === CALLDATA_SOURCE.RESOLVER ||
+      this.details.calldataSource === CALLDATA_SOURCE.OFFCHAIN
+    ) {
       return JobType.Resolver;
     } else if (
       this.details.calldataSource === CALLDATA_SOURCE.PRE_DEFINED_CALLDATA ||
@@ -409,11 +414,31 @@ export abstract class AbstractJob {
   }
 
   public isResolverJob(): boolean {
-    return this.details.calldataSource === CALLDATA_SOURCE.RESOLVER;
+    return (
+      this.details.calldataSource === CALLDATA_SOURCE.RESOLVER ||
+      this.details.calldataSource === CALLDATA_SOURCE.OFFCHAIN
+    );
+  }
+
+  public isOffchainJob(): boolean {
+    return this.details.calldataSource === CALLDATA_SOURCE.OFFCHAIN;
   }
 
   public creditsSourceIsJobOwner(): boolean {
     return !!this.config.useJobOwnerCredits;
+  }
+
+  public getOffchainResolveParams(): object {
+    return {
+      resolverAddress: this.resolver.resolverAddress,
+      jobAddress: this.address,
+      jobId: this.id,
+      rpcUrl: this.network.getRpc(),
+      network: this.networkName,
+      agent: this.agentAddress,
+      chainId: this.network.getChainId(),
+      from: this.agent.getWorkerSignerAddress(),
+    };
   }
 
   public getStatusObjectForApi(): object {

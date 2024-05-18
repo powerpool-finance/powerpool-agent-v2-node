@@ -1,4 +1,4 @@
-import { BigNumber, ethers } from 'ethers';
+import { BigNumber, ethers, Wallet } from 'ethers';
 import { Network } from './Network';
 import { Contract } from 'web3-eth-contract';
 import { WebsocketProvider } from 'web3-core';
@@ -17,6 +17,7 @@ export enum CALLDATA_SOURCE {
   SELECTOR,
   PRE_DEFINED_CALLDATA,
   RESOLVER,
+  OFFCHAIN,
 }
 
 export interface ExecutorConfig {
@@ -288,6 +289,7 @@ export type WrapperListener = (event: EventWrapper) => void;
 export enum JobType {
   Interval,
   Resolver,
+  Offchain,
 }
 
 export interface ParsedJobConfig {
@@ -391,6 +393,8 @@ export interface IAgent {
 
   getKeyAddress(): string;
 
+  getWorkerSigner(): Wallet;
+
   getWorkerSignerAddress(): string;
 
   getKeeperId(): number;
@@ -398,6 +402,8 @@ export interface IAgent {
   getCfg(): number;
 
   isJobBlacklisted(jobKey: string): boolean;
+
+  getJob(jobKey: string): Promise<RandaoJob | LightJob | null>;
 
   getStatusObjectForApi(): object;
 
