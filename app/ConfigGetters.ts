@@ -3,6 +3,7 @@ import {
   AVERAGE_BLOCK_TIME_SECONDS,
   EXTERNAL_LENS_CONTRACTS_2_3_0,
   MULTICALL_CONTRACTS,
+  RESOLVER_CALL_EACH_BLOCKS,
 } from './Constants.js';
 import { AgentHardcodedConfig, Strategy } from './Types';
 
@@ -54,6 +55,14 @@ export function getAgentConfig(agentAddress: string, networkName: string): Agent
     }
   } else {
     throw new Error(`ConfigGetters.getAgentConfig(): Network ${networkName} not configured.`);
+  }
+}
+
+export function getResolverCallSkipBlocksNumber(networkName: string): number | null {
+  if (networkName in RESOLVER_CALL_EACH_BLOCKS) {
+    return RESOLVER_CALL_EACH_BLOCKS[networkName];
+  } else {
+    return null;
   }
 }
 

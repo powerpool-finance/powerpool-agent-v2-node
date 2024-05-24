@@ -29,11 +29,21 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
       version: '2.3.0',
       strategy: 'randao',
     },
+    '0x77E54beB5b23512F8dcBf617a7615A5614Ea9194': {
+      deployedAt: 34054595,
+      version: '2.5.0',
+      strategy: 'randao',
+    },
   },
   arbitrumOne: {
     '0xad1e507f8A0cB1B91421F3bb86BBE29f001CbcC6': {
       deployedAt: 157531675,
       version: '2.3.0',
+      strategy: 'randao',
+    },
+    '0x366354b65fbC1599bC67577E49556A1395791D06': {
+      deployedAt: 213530652,
+      version: '2.5.0',
       strategy: 'randao',
     },
   },
@@ -186,6 +196,12 @@ export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {
   testnet: 5,
   arbitrumOne: 0.25,
   polygon: 2,
+};
+
+// If specified, resolver should be called each X blocks, otherwise it will be
+// called each new block
+export const RESOLVER_CALL_EACH_BLOCKS: { [network: string]: number } = {
+  arbitrumOne: 10,
 };
 
 export const ENV_CONFIG_MAP: { [key: string]: EnvConfigMapType } = {
