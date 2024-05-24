@@ -8,6 +8,7 @@ export const DEFAULT_SYNC_FROM_CHAINS: { [network: string]: number } = {
   goerli: 10064335,
   rinkeby: 11096966,
   arbitrumOne: 157531675,
+  base: 14835289,
 };
 
 export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: AgentHardcodedConfig } } = {
@@ -40,6 +41,13 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
   polygon: {
     '0x20D4029c783D5c9f47569940c656Af4189e53799': {
       deployedAt: 52818115,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
+  },
+  base: {
+    '0x12e49CeDc34C4F455e0dfff7ec38cC535Cbd07C2': {
+      deployedAt: 14835289,
       version: '2.3.0',
       strategy: 'randao',
     },
@@ -176,6 +184,7 @@ export const EXTERNAL_LENS_CONTRACTS_2_3_0: { [network: string]: string } = {
   sepolia: '0x42a2D286Bac644CfdB4030d96b4f7b2ad9dFA998', // v2
   arbitrumOne: '0xa1be5a9d961aae6c6895e1579ce470e708e7cedb', // v2
   polygon: '0xB712Ab1263fd2D992E39Df1CF3F81EA9BB83e548',
+  base: '0xa217F01E0b0E93508E131a44C4dBfc1db22ADBD5',
 };
 
 export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {
@@ -186,6 +195,7 @@ export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {
   testnet: 5,
   arbitrumOne: 0.25,
   polygon: 2,
+  base: 2,
 };
 
 export const ENV_CONFIG_MAP: { [key: string]: EnvConfigMapType } = {
