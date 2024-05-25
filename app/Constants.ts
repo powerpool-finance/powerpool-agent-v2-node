@@ -175,6 +175,7 @@ export const MULTICALL_CONTRACTS: { [network: string]: string } = {
   sepolia: '0x3BEDdA2f411409448e0033024d68f1cDb0EEDd7B',
   arbitrumOne: '0x842ec2c7d803033edf55e478f461fc547bc54eb2',
   polygon: '0xed386fe855c1eff2f843b910923dd8846e45c5a4',
+  base: '0xedf6d2a16e8081f777eb623eeb4411466556af3d',
 };
 
 export const EXTERNAL_LENS_CONTRACTS_2_3_0: { [network: string]: string } = {
