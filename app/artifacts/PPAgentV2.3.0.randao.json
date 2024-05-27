@@ -1445,25 +1445,6 @@
   },
   {
     "type": "function",
-    "name": "shouldAssignKeeper",
-    "inputs": [
-      {
-        "name": "jobKey_",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "stake",
     "inputs": [
       {
@@ -2863,6 +2844,11 @@
   },
   {
     "type": "error",
+    "name": "JobDoesNotSupposedToHaveInterval",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "JobHasKeeperAssigned",
     "inputs": [
       {
@@ -3060,11 +3046,6 @@
         "internalType": "uint256"
       }
     ]
-  },
-  {
-    "type": "error",
-    "name": "ResolverJobCantHaveInterval",
-    "inputs": []
   },
   {
     "type": "error",
