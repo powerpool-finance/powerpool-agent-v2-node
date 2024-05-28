@@ -177,15 +177,11 @@ export class Network {
   }
 
   // TODO: throttle node requests
-  public async getMaxPriorityFeePerGas(): Promise<number> {
+  public async queryMaxPriorityFeePerGas(): Promise<number> {
     return this.provider.send('eth_maxPriorityFeePerGas', []);
   }
 
-  public async getFeeData() {
-    return this.provider.getFeeData();
-  }
-
-  public async getClientVersion(): Promise<string> {
+  public async queryClientVersion(): Promise<string> {
     return this.provider.send('web3_clientVersion', []).catch(() => 'unknown');
   }
 
@@ -682,6 +678,7 @@ export class Network {
   }
 
   public registerResolver(key: string, resolver: Resolver, callback: (calldata: string) => void) {
+    this.clog('debug', 'SET Resolver', key);
     this._validateKeyLength(key, 'resolver');
     this._validateKeyNotInMap(key, this.resolverJobData, 'resolver');
     this.resolverJobData[key] = {
@@ -693,13 +690,14 @@ export class Network {
   }
 
   public unregisterResolver(key: string) {
+    this.clog('debug', 'UNSET Resolver', key);
     this._validateKeyLength(key, 'resolver');
     delete this.resolverJobData[key];
   }
 
-  // public async queryGasPrice(): Promise<number> {
-  //   return (await this.provider.getGasPrice()).toNumber();
-  // }
+  public async queryGasPrice(): Promise<bigint> {
+    return BigInt((await this.provider.getGasPrice()).toString());
+  }
 
   public async queryBlock(number): Promise<ethers.providers.Block> {
     return this.provider.getBlock(parseInt(number.toString())).catch(e => {

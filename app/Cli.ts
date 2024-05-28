@@ -38,7 +38,7 @@ let app: App;
 })().catch(error => {
   logger.error(error.stack);
   setTimeout(() => {
-    logger.info('CLI: Unexpected error. Stopping the app with a code (1).');
+    logger.warn('CLI: Unexpected error. Stopping the app with a code (1).');
     process.exit(1);
   }, 2000);
 });
@@ -46,7 +46,7 @@ let app: App;
 process.on('unhandledRejection', function (e: Error, _promise) {
   if (app && app.unhandledExceptionsStrictMode) {
     setTimeout(() => {
-      logger.info('CLI: Stopping the app with a code (1) since the "unhandledExceptionsStrictMode" is ON. Error: ', e);
+      logger.warn('CLI: Stopping the app with a code (1) since the "unhandledExceptionsStrictMode" is ON. Error: ', e);
       process.exit(1);
     }, 2000);
   }

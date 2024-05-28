@@ -146,12 +146,14 @@ export class RandaoJob extends AbstractJob {
       return false;
     }
     if (this.getCreditsAvailable() < (this.agent as IRandaoAgent).getJobMinCredits()) {
-      this.clog(
-        'warn',
-        `_beforeJobWatch(): Scheduling self-unassign due insufficient credits (required=${(
-          this.agent as IRandaoAgent
-        ).getJobMinCredits()},available=${this.getCreditsAvailable()}`,
-      );
+      if (this.assignedKeeperId === this.agent.getKeeperId()) {
+        this.clog(
+          'warn',
+          `_beforeJobWatch(): Scheduling self-unassign due insufficient credits (required=${(
+            this.agent as IRandaoAgent
+          ).getJobMinCredits()},available=${this.getCreditsAvailable()}`,
+        );
+      }
       this._selfUnassign();
       return false;
     }

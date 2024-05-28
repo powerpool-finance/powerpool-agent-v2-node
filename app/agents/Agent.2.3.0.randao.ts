@@ -1,5 +1,5 @@
 import { AbstractAgent } from './AbstractAgent.js';
-import { getPPAgentV2_3_0_RandaoAbi } from '../services/AbiService.js';
+import { getPPAgentV2_3_0_RandaoAbi, getPPAgentV2_5_0_RandaoAbi } from '../services/AbiService.js';
 import { ExecutorCallbacks, IRandaoAgent, LensGetJobBytes32AndNextBlockSlasherIdResponse } from '../Types.js';
 import { RandaoJob } from '../jobs/RandaoJob.js';
 import { BI_10E15 } from '../Constants.js';
@@ -14,12 +14,18 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
 
   private jobMinCreditsFinney: bigint;
 
-  _isVersionSupported(version): boolean {
-    return version.startsWith('2.');
+  _isVersionSupported(version: string): boolean {
+    return version.startsWith('2.3.') || version.startsWith('2.4.') || version.startsWith('2.5.');
   }
 
-  async _beforeInit() {
-    const ppAgentV2Abi = getPPAgentV2_3_0_RandaoAbi();
+  async _beforeInit(version: string) {
+    let ppAgentV2Abi;
+
+    if (version.startsWith('2.3.') || version.startsWith('2.4.')) {
+      ppAgentV2Abi = getPPAgentV2_3_0_RandaoAbi();
+    } else if (version.startsWith('2.5.')) {
+      ppAgentV2Abi = getPPAgentV2_5_0_RandaoAbi();
+    }
     this.contract = this.network.getContractWrapperFactory().build(this.address, ppAgentV2Abi);
   }
 

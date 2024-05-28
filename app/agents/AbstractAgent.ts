@@ -28,6 +28,7 @@ import {
 import { FlashbotsExecutor } from '../executors/FlashbotsExecutor.js';
 import { PGAExecutor } from '../executors/PGAExecutor.js';
 import { getAgentDefaultSyncFromSafe, getDefaultExecutorConfig, setConfigDefaultValues } from '../ConfigGetters.js';
+import { getPPAgentVersionInterface } from '../services/AbiService.js';
 import { LightJob } from '../jobs/LightJob.js';
 import { RandaoJob } from '../jobs/RandaoJob.js';
 import { AbstractJob } from '../jobs/AbstractJob';
@@ -50,6 +51,9 @@ export abstract class AbstractAgent implements IAgent {
   private workerSigner: ethers.Wallet;
   private executorConfig: ExecutorConfig;
   private executor: Executor;
+  // currently ignored, will need this for legacy tx support
+  // type2 is eip1559
+  private useType2TxFeeData: boolean;
 
   // Agent Config
   private isAgentUp: boolean;
@@ -90,7 +94,7 @@ export abstract class AbstractAgent implements IAgent {
     return new Error(`AgentError${this.toString()}: ${args.join(' ')}`);
   }
 
-  protected _beforeInit(): void {}
+  protected _beforeInit(_version: string): void {}
   protected _afterInit(): void {}
   protected async _beforeResyncAllJobs() {}
 
@@ -161,7 +165,16 @@ export abstract class AbstractAgent implements IAgent {
     this.network = network;
     this.dataSource = dataSource;
 
-    await this._beforeInit();
+    const ppAgentVersionInterface = getPPAgentVersionInterface();
+    const checkVersion = this.network.getContractWrapperFactory().build(this.address, ppAgentVersionInterface);
+    const version = await checkVersion.ethCall('VERSION');
+    this.clog('info', `Contract version: ${version}`);
+
+    if (!this._isVersionSupported(version)) {
+      throw this.err(`Version not supported: ${version}`);
+    }
+
+    await this._beforeInit(version);
 
     if (!this.contract) {
       throw this.err('Constructor not initialized');
@@ -170,13 +183,6 @@ export abstract class AbstractAgent implements IAgent {
     this.network.getNewBlockEventEmitter().on('newBlock', this.newBlockEventHandler.bind(this));
 
     this.network.getNewBlockEventEmitter().on('newBlockDelay', this.newBlockDelayEventHandler.bind(this));
-
-    // Ensure version matches
-    // TODO: extract check
-    const version = await this.queryContractVersion();
-    if (!this._isVersionSupported(version)) {
-      throw this.err(`Invalid version: ${version}`);
-    }
 
     this.keeperId = await this.queryKeeperId(this.keyAddress);
     if (this.keeperId < 1) {
@@ -528,40 +534,43 @@ export abstract class AbstractAgent implements IAgent {
     return {
       to: this.getAddress(),
       data: calldata,
-      // Typed-Transaction features
-      type: 2,
-      // EIP-1559; Type 2
-      // maxFeePerGas: this.getBaseFeePerGas(),
+      type: /*this.useType2TxFeeData*/ true ? 2 : 0,
     };
   }
 
   public async sendTxEnvelope(envelope: TxEnvelope) {
-    await this.trySendExecuteEnvelope(envelope);
+    try {
+      await this.trySendExecuteEnvelope(envelope);
+    } catch (e) {
+      try {
+        this.clog('error', `Error sending tx envelope: ${e}. Tx: ${JSON.stringify(envelope.tx)}. ${e?.stack}`);
+      } catch (ee) {
+        this.clog('error', `Error sending tx envelope: ${e?.stack}`);
+      }
+    }
   }
 
   getBaseFeePerGas(multiplier = 2n) {
     return BigInt(this.network.getBaseFee() * multiplier);
   }
 
-  protected async getTxFeeData() {
-    let baseFeePerGas, maxPriority;
+  // get tx type 0 fees
+  protected async getLegacyTxFeeData(): Promise<bigint> {
+    return this.network.queryGasPrice();
+  }
+
+  // get tx type 2 fees
+  protected async getEip1559TxFeeData(): Promise<{ baseFeePerGas: bigint; maxPriority: bigint }> {
+    const baseFeePerGas = this.network.getBaseFee();
+
     try {
-      const fee = await this.network.getFeeData();
-      maxPriority = numberToBigInt(fee.maxPriorityFeePerGas);
-      baseFeePerGas = numberToBigInt(fee.lastBaseFeePerGas);
+      // Attempt to build EIP1559 gas fee values
+      const maxPriority = BigInt(await this.network.queryMaxPriorityFeePerGas());
+      return { baseFeePerGas, maxPriority };
     } catch (e) {
-      this.clog(
-        'warn',
-        `Failed to fetch getFeeData(), error message: ${e.message}. Fetching getMaxPriorityFeePerGas...`,
-      );
-      const priorityFeeAddGwei = BigInt(this.executorConfig.gas_price_priority_add_gwei);
-      const maxPriorityFeePerGas = await this.network
-        .getMaxPriorityFeePerGas()
-        .catch(() => priorityFeeAddGwei * 1000000000n);
-      maxPriority = BigInt(maxPriorityFeePerGas);
-      baseFeePerGas = this.getBaseFeePerGas();
+      // NOTICE: For BSC it's better to implement pre-eip1559 txs.
+      throw new Error('Pre-EIP1559 txs are not supported');
     }
-    return { baseFeePerGas, maxPriority };
   }
 
   public getWorkerSignerAddress() {
@@ -576,12 +585,27 @@ export abstract class AbstractAgent implements IAgent {
     tx.chainId = this.network.getChainId();
     tx['from'] = this.getWorkerSignerAddress();
 
-    const priorityFeeAddGwei = BigInt(this.executorConfig.gas_price_priority_add_gwei);
-    const { baseFeePerGas, maxPriority } = await this.getTxFeeData();
-    tx.maxPriorityFeePerGas = maxPriority + priorityFeeAddGwei * 1000000000n;
-    tx.maxFeePerGas = baseFeePerGas + tx.maxPriorityFeePerGas;
+    if (true /* this.useType2TxFeeData */) {
+      tx.type = 2;
+
+      let priorityFeeExtraFromConfig = 0n;
+      if (this.executorConfig.gas_price_priority_add_gwei) {
+        priorityFeeExtraFromConfig = BigInt(this.executorConfig.gas_price_priority_add_gwei);
+      }
+      const { baseFeePerGas, maxPriority } = await this.getEip1559TxFeeData();
+      if (priorityFeeExtraFromConfig > 0n) {
+        tx.maxPriorityFeePerGas = maxPriority + priorityFeeExtraFromConfig * 1000000000n;
+      } else {
+        tx.maxPriorityFeePerGas = (maxPriority * 15n) / 10n;
+      }
+      tx.maxFeePerGas = baseFeePerGas + tx.maxPriorityFeePerGas;
+    } else {
+      tx.type = 0;
+      tx.gasPrice = await this.network.queryGasPrice();
+    }
   }
 
+  // WARNING: Missing support for Legacy tx replacement
   async txNotMinedInBlock(tx: UnsignedTransaction, txHash: string): Promise<TxGasUpdate> {
     const receipt = await this.network.getProvider().getTransactionReceipt(txHash);
     if (receipt) {
@@ -593,7 +617,7 @@ export abstract class AbstractAgent implements IAgent {
     if (priorityIncrease < 110n) {
       tx.maxPriorityFeePerGas = (maxPriorityFeePerGas * 111n) / 100n;
     }
-    const { baseFeePerGas } = await this.getTxFeeData();
+    const baseFeePerGas = this.network.getBaseFee();
     const newMax = baseFeePerGas + tx.maxPriorityFeePerGas;
     //TODO: check nonce
     //TODO: check resends count and max feePerGas
