@@ -79,7 +79,7 @@ export function getDefaultExecutorConfig() {
     tx_resend_or_drop_after_blocks: 5,
     tx_resend_max_gas_price_gwei: 1000,
     tx_resend_max_attempts: 5,
-    gas_price_priority_add_gwei: 2,
+    // gas_price_priority_add_gwei: 0,
   };
 }
 

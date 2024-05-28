@@ -80,6 +80,14 @@ export class App {
   public buildNetworks(allNetworkConfigs: AllNetworksConfig): { [netName: string]: Network } {
     const networks: { [netName: string]: Network } = {};
 
+    if (allNetworkConfigs.enabled.length === 0) {
+      throw new Error('App: You should enable one of the network by adding it to "networks.enabled".');
+    }
+
+    if (allNetworkConfigs.enabled.length > 1) {
+      throw new Error('App: Multiple networks not supported.');
+    }
+
     for (const [netName, netConfig] of Object.entries(allNetworkConfigs.details)) {
       if (allNetworkConfigs.enabled.includes(netName)) {
         networks[netName] = new Network(netName, netConfig, this);
@@ -100,7 +108,9 @@ export class App {
       });
     }
     if (!Object.values(this.networks).some(n => !!n.getChainId())) {
-      logger.error('App: Networks initialization failed');
+      logger.error(
+        `App: Networks initialization failed. Missing config for the "${this.config.networks.enabled[0]}" network.`,
+      );
       process.exit(1);
     }
     logger.info('App: Networks initialization done!');
