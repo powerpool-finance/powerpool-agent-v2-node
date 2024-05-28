@@ -23,6 +23,9 @@ export function stubNetwork(network: Network) {
   sinon.stub(network, 'queryNetworkId').callsFake(async function () {
     return 42;
   });
+  sinon.stub(network, 'queryMaxPriorityFeePerGas').callsFake(async function () {
+    return 2;
+  });
   sinon.stub(network, 'queryLensJobs').callsFake(async function () {
     return [];
   });
@@ -43,6 +46,10 @@ export function stubAgent(agent: IAgent) {
   // @ts-ignore
   sinon.stub(agent, '_beforeInit').callsFake(function () {
     this.contract = 'contractStub';
+  });
+  // @ts-ignore
+  sinon.stub(agent, 'queryAgentVersion').callsFake(async function () {
+    return '2.5.0';
   });
   // @ts-ignore
   sinon.stub(agent, 'initKeeperWorkerKey').callsFake(function () {

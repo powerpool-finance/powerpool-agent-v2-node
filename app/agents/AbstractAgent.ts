@@ -165,9 +165,7 @@ export abstract class AbstractAgent implements IAgent {
     this.network = network;
     this.dataSource = dataSource;
 
-    const ppAgentVersionInterface = getPPAgentVersionInterface();
-    const checkVersion = this.network.getContractWrapperFactory().build(this.address, ppAgentVersionInterface);
-    const version = await checkVersion.ethCall('VERSION');
+    const version = await this.queryAgentVersion();
     this.clog('info', `Contract version: ${version}`);
 
     if (!this._isVersionSupported(version)) {
@@ -800,8 +798,10 @@ export abstract class AbstractAgent implements IAgent {
     return this.contract.ethCall('getConfig');
   }
 
-  private async queryContractVersion(): Promise<string> {
-    return this.contract.ethCall('VERSION');
+  private async queryAgentVersion(): Promise<string> {
+    const ppAgentVersionInterface = getPPAgentVersionInterface();
+    const checkVersionContract = this.network.getContractWrapperFactory().build(this.address, ppAgentVersionInterface);
+    return await checkVersionContract.ethCall('VERSION');
   }
 
   private async queryKeeperId(workerAddress: string): Promise<number> {
