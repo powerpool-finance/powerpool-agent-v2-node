@@ -435,9 +435,11 @@ export abstract class AbstractAgent implements IAgent {
    * @private
    */
   private async resyncAllJobs(): Promise<number> {
-    this.clog('info', 'resyncAllJobs start');
+    this.clog('info', 'resyncAllJobs: Start');
 
     this.stopAllJobs();
+
+    this.clog('info', 'resyncAllJobs: All jobs stopped');
 
     let latestBock = this.network.getLatestBlockNumber();
     // 1. init jobs
@@ -471,7 +473,7 @@ export abstract class AbstractAgent implements IAgent {
       latestBock = sourceMeta.sourceBlockNumber;
     }
 
-    this.clog('info', `resyncAllJobs end (${Array.from(this.jobs.keys()).length} synced)`);
+    this.clog('info', `resyncAllJobs: End (${Array.from(this.jobs.keys()).length} synced)`);
 
     return Number(latestBock);
   }
@@ -509,6 +511,7 @@ export abstract class AbstractAgent implements IAgent {
   }
 
   protected stopAllJobs() {
+    this.clog('debug', 'stopAllJobs');
     for (const [, job] of this.jobs) {
       job.unwatch();
     }

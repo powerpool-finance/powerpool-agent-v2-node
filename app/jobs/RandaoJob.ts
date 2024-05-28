@@ -470,6 +470,7 @@ export class RandaoJob extends AbstractJob {
     if (this.agent.getKeeperId() === this.assignedKeeperId) {
       this.clog('debug', 'Wont slash mine job', JSON.stringify({ nextBlockSlasherId, me: this.agent.getKeeperId() }));
     } else if (this.agent.getKeeperId() === nextBlockSlasherId) {
+      this.clog('debug', 'Unwatch and execute slashing', nextBlockSlasherId);
       this.unwatch();
       return this.executeTx(this.key, await this.agent.buildTx(this.buildIntervalCalldata()));
     } else {

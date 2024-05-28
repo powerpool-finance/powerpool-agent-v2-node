@@ -216,6 +216,9 @@ export class AgentRandao_2_3_0 extends AbstractAgent implements IRandaoAgent {
         `'JobKeeperChanged' event 🔈: (block=${event.blockNumber},jobKey=${jobKey},keeperFrom=${keeperFrom},keeperTo=${keeperTo})`,
       );
 
+      if (!this.jobs.has(jobKey)) {
+        throw new Error(`JobKeeperChanged handler: Missing job ${jobKey} to apply event to.`);
+      }
       const job = this.jobs.get(jobKey) as RandaoJob;
       const shouldUpdateBinJob = job.applyKeeperAssigned(parseInt(keeperTo));
       if (shouldUpdateBinJob) {
