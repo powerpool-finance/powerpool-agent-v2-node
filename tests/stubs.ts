@@ -62,10 +62,6 @@ export function stubAgent(agent: IAgent) {
     return 'Stub:encodedABI';
   });
   // @ts-ignore
-  sinon.stub(agent, 'queryContractVersion').callsFake(async function () {
-    return '2.3.0';
-  });
-  // @ts-ignore
   sinon.stub(agent, 'queryKeeperId').callsFake(async function () {
     return '3';
   });
