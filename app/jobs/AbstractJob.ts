@@ -273,7 +273,7 @@ export abstract class AbstractJob {
       return;
     }
     if (!this.config.isActive) {
-      this.clog('debug', 'Ignoring a disabled job');
+      this.clog('debug', 'Ignoring a disabled (!isActive) job');
       return;
     }
 

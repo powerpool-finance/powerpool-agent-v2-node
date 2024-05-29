@@ -16,6 +16,7 @@ import {
   getDefaultNetworkConfig,
   getExternalLensAddress,
   getMulticall2Address,
+  getResolverCallSkipBlocksNumber,
   setConfigDefaultValues,
 } from './ConfigGetters.js';
 import { getExternalLensAbi, getMulticall2Abi } from './services/AbiService.js';
@@ -69,6 +70,7 @@ export class Network {
   private newBlockEventEmitter: EventEmitter;
   private contractEventsEmitter: ContractEventsEmitter;
 
+  private skipBlocksDivisor: number | null;
   private currentBlockDelay: number;
   private latestBaseFee: bigint;
   private agentsStartBlockNumber: bigint;
@@ -107,6 +109,13 @@ export class Network {
     this.multicall2Address = networkConfig.multicall2 || getMulticall2Address(name);
     this.newBlockEventEmitter = new EventEmitter();
     this.contractEventsEmitter = new ContractEventsEmitter(networkConfig.block_logs_mode);
+    this.skipBlocksDivisor = getResolverCallSkipBlocksNumber(name);
+    if (this.skipBlocksDivisor) {
+      this.clog(
+        'info',
+        `Resolver skip block activated. Jobs resolvers will be executed each ${this.skipBlocksDivisor} blocks.`,
+      );
+    }
 
     if (!this.rpc && !this.rpc.startsWith('ws')) {
       throw this.err(
@@ -168,15 +177,11 @@ export class Network {
   }
 
   // TODO: throttle node requests
-  public async getMaxPriorityFeePerGas(): Promise<number> {
+  public async queryMaxPriorityFeePerGas(): Promise<number> {
     return this.provider.send('eth_maxPriorityFeePerGas', []);
   }
 
-  public async getFeeData() {
-    return this.provider.getFeeData();
-  }
-
-  public async getClientVersion(): Promise<string> {
+  public async queryClientVersion(): Promise<string> {
     return this.provider.send('web3_clientVersion', []).catch(() => 'unknown');
   }
 
@@ -285,7 +290,7 @@ export class Network {
     this.multicall = this.contractWrapperFactory.build(this.multicall2Address, getMulticall2Abi());
     // TODO: initialize this after we know agent version and strategy
     this.externalLens = this.contractWrapperFactory.build(this.externalLensAddress, getExternalLensAbi());
-    this.provider.on('block', this._onNewBlockCallback.bind(this));
+    this.provider.on('block', this._onNewBlockCallbackSkipWrapper.bind(this));
     this.provider.on('reconnect', this._resyncAgents.bind(this));
   }
 
@@ -461,6 +466,13 @@ export class Network {
     // this.agents = null;
   }
 
+  private async _onNewBlockCallbackSkipWrapper(blockNumber) {
+    if (this.skipBlocksDivisor !== null && Number(blockNumber) % this.skipBlocksDivisor !== 0) {
+      return;
+    }
+    await this._onNewBlockCallback(blockNumber);
+  }
+
   private async _onNewBlockCallback(blockNumber) {
     blockNumber = BigInt(blockNumber.toString());
     const before = this.nowMs();
@@ -579,9 +591,11 @@ export class Network {
       // TODO: let this.provider to be executed when making chunk requests;
     }
     if (callbacks.length === 0) {
+      this.clog('debug', 'CallResolvers: no resolvers to call');
       return;
     }
 
+    this.clog('debug', `CallResolvers: Polling ${resolversToCall.length} resolvers...`);
     const results = await this.queryPollResolvers(false, resolversToCall, this.agents[0].getWorkerSignerAddress());
     let jobsToExecute = 0;
 
@@ -664,6 +678,7 @@ export class Network {
   }
 
   public registerResolver(key: string, resolver: Resolver, callback: (calldata: string) => void) {
+    this.clog('debug', 'SET Resolver', key);
     this._validateKeyLength(key, 'resolver');
     this._validateKeyNotInMap(key, this.resolverJobData, 'resolver');
     this.resolverJobData[key] = {
@@ -675,13 +690,14 @@ export class Network {
   }
 
   public unregisterResolver(key: string) {
+    this.clog('debug', 'UNSET Resolver', key);
     this._validateKeyLength(key, 'resolver');
     delete this.resolverJobData[key];
   }
 
-  // public async queryGasPrice(): Promise<number> {
-  //   return (await this.provider.getGasPrice()).toNumber();
-  // }
+  public async queryGasPrice(): Promise<bigint> {
+    return BigInt((await this.provider.getGasPrice()).toString());
+  }
 
   public async queryBlock(number): Promise<ethers.providers.Block> {
     return this.provider.getBlock(parseInt(number.toString())).catch(e => {

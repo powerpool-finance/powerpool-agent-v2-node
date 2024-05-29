@@ -3,6 +3,7 @@ import {
   AVERAGE_BLOCK_TIME_SECONDS,
   EXTERNAL_LENS_CONTRACTS_2_3_0,
   MULTICALL_CONTRACTS,
+  RESOLVER_CALL_EACH_BLOCKS,
 } from './Constants.js';
 import { AgentHardcodedConfig, Strategy } from './Types';
 
@@ -57,6 +58,14 @@ export function getAgentConfig(agentAddress: string, networkName: string): Agent
   }
 }
 
+export function getResolverCallSkipBlocksNumber(networkName: string): number | null {
+  if (networkName in RESOLVER_CALL_EACH_BLOCKS) {
+    return RESOLVER_CALL_EACH_BLOCKS[networkName];
+  } else {
+    return null;
+  }
+}
+
 export function getAverageBlockTime(networkName: string) {
   if (networkName in AVERAGE_BLOCK_TIME_SECONDS) {
     return AVERAGE_BLOCK_TIME_SECONDS[networkName];
@@ -70,7 +79,7 @@ export function getDefaultExecutorConfig() {
     tx_resend_or_drop_after_blocks: 5,
     tx_resend_max_gas_price_gwei: 1000,
     tx_resend_max_attempts: 5,
-    gas_price_priority_add_gwei: 2,
+    // gas_price_priority_add_gwei: 0,
   };
 }
 

@@ -146,12 +146,14 @@ export class RandaoJob extends AbstractJob {
       return false;
     }
     if (this.getCreditsAvailable() < (this.agent as IRandaoAgent).getJobMinCredits()) {
-      this.clog(
-        'warn',
-        `_beforeJobWatch(): Scheduling self-unassign due insufficient credits (required=${(
-          this.agent as IRandaoAgent
-        ).getJobMinCredits()},available=${this.getCreditsAvailable()}`,
-      );
+      if (this.assignedKeeperId === this.agent.getKeeperId()) {
+        this.clog(
+          'warn',
+          `_beforeJobWatch(): Scheduling self-unassign due insufficient credits (required=${(
+            this.agent as IRandaoAgent
+          ).getJobMinCredits()},available=${this.getCreditsAvailable()}`,
+        );
+      }
       this._selfUnassign();
       return false;
     }
@@ -468,6 +470,7 @@ export class RandaoJob extends AbstractJob {
     if (this.agent.getKeeperId() === this.assignedKeeperId) {
       this.clog('debug', 'Wont slash mine job', JSON.stringify({ nextBlockSlasherId, me: this.agent.getKeeperId() }));
     } else if (this.agent.getKeeperId() === nextBlockSlasherId) {
+      this.clog('debug', 'Unwatch and execute slashing', nextBlockSlasherId);
       this.unwatch();
       return this.executeTx(this.key, await this.agent.buildTx(this.buildIntervalCalldata()));
     } else {
