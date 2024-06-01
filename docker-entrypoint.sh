@@ -1,7 +1,7 @@
 #!/bin/sh
 
 while true; do
-    node /usr/app/dist/Cli.js "$@"
+    npm start "$@"
     EXIT_CODE=$?
 
     if [ $EXIT_CODE -eq 2 ] || [ $EXIT_CODE -eq 0 ]; then

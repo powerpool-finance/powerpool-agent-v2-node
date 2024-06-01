@@ -501,6 +501,7 @@ export class Network {
       this.contractEventsEmitter.emitByBlockLogs(await this.provider.getLogs({ fromBlock, toBlock: fromBlock }));
     }
 
+    //TODO: add debounce
     setTimeout(async () => {
       if (this.latestBlockNumber > blockNumber) {
         return;
@@ -633,7 +634,7 @@ export class Network {
   }
 
   private async getOffchainResolveCalldata(job: AbstractJob, resolverCalldata) {
-    const offchainServiceEndpoint = process.env.OFFCHAIN_SERVICE_ENDPOINT || 'http://offchain-service/';
+    const offchainServiceEndpoint = process.env.OFFCHAIN_SERVICE_ENDPOINT || 'http://offchain-service:3423';
     const params = job.getOffchainResolveParams();
     return axios
       .post(`${offchainServiceEndpoint}/offchain-resolve/${params['resolverAddress']}`, {

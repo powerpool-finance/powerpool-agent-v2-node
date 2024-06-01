@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc && yarn write-version-data",
     "build:release": "yarn clean && yarn run build",
-    "start": "ts-node app/Cli.ts",
+    "start": "ls && tsx app/Cli.ts",
     "dev": "NODE_ENV=dev ts-node app/Cli.ts",
     "lint": "eslint --ext .ts app/ tests/",
     "lint:fix": "eslint --fix --ext .ts app/ tests/",
@@ -26,11 +26,11 @@
     "ethers": "5.7.2",
     "fastify": "^4.19.2",
     "p-iteration": "^1.1.8",
-    "web3": "^1.9.0",
     "winston": "^3.10.0",
     "winston-daily-rotate-file": "4.5.0",
     "winston-transport": "^4.5.0",
-    "yamljs": "^0.3.0"
+    "yamljs": "^0.3.0",
+    "tsx": "^4.11.0"
   },
   "type": "module",
   "devDependencies": {
@@ -48,8 +48,6 @@
     "ethereumjs-wallet": "^1.0.2",
     "mocha": "^10.0.0",
     "prettier": "^2.8.8",
-    "sinon": "^15.2.0",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.0.4"
+    "sinon": "^15.2.0"
   }
 }

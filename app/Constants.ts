@@ -37,8 +37,8 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
     },
   },
   arbitrumOne: {
-    '0x824DD112a90f9C9960DF963bE30D0cc0FF9298E3': {
-      deployedAt: 215535186,
+    '0x29d7D44420ca2BFCaE2cB0c59ddc1227DCBEadEb': {
+      deployedAt: 216885699,
       version: '2.3.0',
       strategy: 'randao',
     },

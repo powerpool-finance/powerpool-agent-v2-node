@@ -5,11 +5,12 @@ import { toChecksummedAddress, hashOfPubKey, hashOfPrivateKey } from './Utils.js
 import logger from './services/Logger.js';
 
 export async function initApi(app: App, port: number): Promise<() => void> {
+  console.log('initApi');
   const EC = (await import('elliptic')).default.ec;
   const elipticCurve = new EC('secp256k1');
 
   const fastify = Fastify({
-    logger: false,
+    logger: true,
   });
 
   function prettyReply(reply, response) {
@@ -31,6 +32,7 @@ export async function initApi(app: App, port: number): Promise<() => void> {
   }
 
   fastify.get('/api/v1', (request, reply) => {
+    console.log('fastify get /api/v1');
     const response = {
       config: app.getConfig(),
       networks: app.getNetworkList(),
@@ -96,7 +98,7 @@ export async function initApi(app: App, port: number): Promise<() => void> {
   fastify.listen(
     {
       host: process.env.API_HOST || '127.0.0.1',
-      port: parseInt(process.env.API_PORT) || port,
+      port: parseInt(process.env.API_PORT) || port || 8099,
     },
     (err, address) => {
       logger.info(`API Server: Listening on ${address}`);
