@@ -26,11 +26,11 @@
     "ethers": "5.7.2",
     "fastify": "^4.19.2",
     "p-iteration": "^1.1.8",
+    "tsx": "^4.11.0",
     "winston": "^3.10.0",
     "winston-daily-rotate-file": "4.5.0",
     "winston-transport": "^4.5.0",
-    "yamljs": "^0.3.0",
-    "tsx": "^4.11.0"
+    "yamljs": "^0.3.0"
   },
   "type": "module",
   "devDependencies": {
@@ -48,6 +48,7 @@
     "ethereumjs-wallet": "^1.0.2",
     "mocha": "^10.0.0",
     "prettier": "^2.8.8",
-    "sinon": "^15.2.0"
+    "sinon": "^15.2.0",
+    "typescript": "^5.4.5"
   }
 }
