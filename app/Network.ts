@@ -76,6 +76,7 @@ export class Network {
   private agentsStartBlockNumber: bigint;
   private latestBlockNumber: bigint;
   private latestBlockTimestamp: bigint;
+  private onNewBlockTimeout: any;
 
   private toString(): string {
     return `(name: ${this.name}, rpc: ${this.rpc})`;
@@ -501,7 +502,9 @@ export class Network {
       this.contractEventsEmitter.emitByBlockLogs(await this.provider.getLogs({ fromBlock, toBlock: fromBlock }));
     }
 
-    debounce(async () => {
+    this.onNewBlockTimeout && clearTimeout(this.onNewBlockTimeout);
+
+    this.onNewBlockTimeout = setTimeout(async () => {
       if (this.latestBlockNumber > blockNumber) {
         return;
       }
