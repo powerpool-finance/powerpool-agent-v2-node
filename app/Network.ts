@@ -502,7 +502,9 @@ export class Network {
       this.contractEventsEmitter.emitByBlockLogs(await this.provider.getLogs({ fromBlock, toBlock: fromBlock }));
     }
 
-    this.onNewBlockTimeout && clearTimeout(this.onNewBlockTimeout);
+    if (this.latestBlockNumber < blockNumber) {
+      this.onNewBlockTimeout && clearTimeout(this.onNewBlockTimeout);
+    }
 
     this.onNewBlockTimeout = setTimeout(async () => {
       if (this.latestBlockNumber > blockNumber) {
