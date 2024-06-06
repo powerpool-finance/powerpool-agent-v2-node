@@ -7,7 +7,7 @@ const WEBSOCKET_RECONNECT_DELAY = 100;
 const WebSocketProviderClass = (): new () => ethers.providers.WebSocketProvider => class {} as never;
 
 export default class WebSocketProvider extends WebSocketProviderClass() {
-  private provider?: ethers.providers.WebSocketProvider;
+  public provider?: ethers.providers.WebSocketProvider;
   private events: ethers.providers.WebSocketProvider['_events'] = [];
   private requests: ethers.providers.WebSocketProvider['_requests'] = {};
 
