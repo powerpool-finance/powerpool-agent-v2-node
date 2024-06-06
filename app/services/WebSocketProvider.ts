@@ -15,6 +15,9 @@ export default class WebSocketProvider extends WebSocketProviderClass() {
 
   private handler = {
     get(target: WebSocketProvider, prop: string, receiver: unknown) {
+      if (prop === 'provider') {
+        return target.provider;
+      }
       const value = target.provider && Reflect.get(target.provider, prop, receiver);
 
       return value instanceof Function ? value.bind(target.provider) : value;
