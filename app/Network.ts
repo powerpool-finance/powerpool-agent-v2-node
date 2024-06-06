@@ -6,7 +6,7 @@ import {
   NetworkConfig,
   Resolver,
 } from './Types.js';
-import { bigintToHex, toChecksummedAddress } from './Utils.js';
+import { bigintToHex, toChecksummedAddress, debounce } from './Utils.js';
 import pIteration from 'p-iteration';
 import { ethers } from 'ethers';
 import EventEmitter from 'events';
@@ -501,8 +501,7 @@ export class Network {
       this.contractEventsEmitter.emitByBlockLogs(await this.provider.getLogs({ fromBlock, toBlock: fromBlock }));
     }
 
-    //TODO: add debounce
-    setTimeout(async () => {
+    debounce(async () => {
       if (this.latestBlockNumber > blockNumber) {
         return;
       }

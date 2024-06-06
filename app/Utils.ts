@@ -285,3 +285,13 @@ export function hashOfPrivateKey(wallet) {
   const privateKey = Number(BigInt(wallet._signingKey().privateKey));
   return keccak256(toByteArray(privateKey)).slice(2);
 }
+
+export function debounce(callback, wait) {
+  let timeoutId = null;
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      callback(...args);
+    }, wait);
+  };
+}
