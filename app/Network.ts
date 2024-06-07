@@ -58,6 +58,7 @@ export class Network {
   private agents: IAgent[];
   private resolverJobData: { [key: string]: ResolverJobWithCallback };
   private timeoutData: { [key: string]: TimeoutWithCallback };
+  private offchainResolverPending: { [key: string]: boolean };
   private multicall: ContractWrapper | undefined;
   private externalLens: ContractWrapper | undefined;
   private averageBlockTimeSeconds: number;
@@ -126,6 +127,7 @@ export class Network {
 
     this.resolverJobData = {};
     this.timeoutData = {};
+    this.offchainResolverPending = {};
   }
 
   public nowS(): number {
@@ -618,12 +620,18 @@ export class Network {
         const agent = this.getAgent(jobKey.split('/')[0]);
         const job = await agent.getJob(jobKey.split('/')[1]);
         if (job.isOffchainJob()) {
+          if (this.offchainResolverPending[jobKey]) {
+            this.clog('debug', `CallResolvers: Waiting ${jobKey} to finish...`);
+            continue;
+          }
           try {
+            this.offchainResolverPending[jobKey] = true;
             callbacks[i](blockNumber, await this.getOffchainResolveCalldata(job, decoded[1]));
             jobsToExecute += 1;
           } catch (e) {
-            this.clog('error', e.message);
+            this.clog('error', `method: getOffchainResolveCalldata, jobKey: ${jobKey}, error message: ${e.message}`);
           }
+          this.offchainResolverPending[jobKey] = false;
         } else {
           callbacks[i](blockNumber, decoded[1]);
           jobsToExecute += 1;
