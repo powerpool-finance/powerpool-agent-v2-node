@@ -6,13 +6,13 @@
   "scripts": {
     "build": "tsc && yarn write-version-data",
     "build:release": "yarn clean && yarn run build",
-    "start": "ls && tsx app/Cli.ts",
+    "start": "tsx app/Cli.ts",
     "dev": "NODE_ENV=dev ts-node app/Cli.ts",
     "lint": "eslint --ext .ts app/ tests/",
     "lint:fix": "eslint --fix --ext .ts app/ tests/",
     "test": "NODE_ENV=test LOG_LEVEL=error mocha tests/**/*.test.ts",
     "test:debug": "NODE_ENV=test LOG_LEVEL=debug mocha tests/**/*.test.ts",
-    "write-version-data": "DIR=dist ts-node ./writeVersionData.ts"
+    "write-version-data": "DIR=. tsx ./writeVersionData.ts"
   },
   "author": "PowerPool",
   "license": "ISC",

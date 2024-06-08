@@ -1,8 +1,8 @@
-import {getVersionAndGitData, versionDataFileName} from './app/services/GitCommit.js';
+import { getVersionAndGitData, versionDataFileName } from './app/services/GitCommit.js';
 
-import {fileURLToPath} from "url";
-import {dirname} from "path";
-import {writeFileSync} from "fs";
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { writeFileSync } from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
