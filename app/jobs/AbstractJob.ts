@@ -173,6 +173,8 @@ export abstract class AbstractJob {
     this.details.selector = parsedJobData.selector;
     this.config = parseConfig(BigNumber.from(rawJob));
 
+    this.agent.removeJobFromBlacklist(this.key, 'applyBinJobData');
+
     return requiresRestart;
   }
 
@@ -188,6 +190,7 @@ export abstract class AbstractJob {
 
   public applyJobCreditsDeposit(credits: BigNumber) {
     this.details.credits = this.details.credits.add(credits);
+    this.agent.removeJobFromBlacklist(this.key, 'applyJobCreditsDeposit');
   }
 
   public applyJobCreditWithdrawal(credits: BigNumber) {
@@ -200,16 +203,19 @@ export abstract class AbstractJob {
 
   public applyResolver(resolverAddress: string, resolverCalldata: string) {
     this.resolver = { resolverAddress, resolverCalldata };
+    this.agent.removeJobFromBlacklist(this.key, 'applyResolver');
   }
 
   public applyPreDefinedCalldata(preDefinedCalldata: string) {
     this.preDefinedCalldata = preDefinedCalldata;
+    this.agent.removeJobFromBlacklist(this.key, 'applyPreDefinedCalldata');
   }
 
   public applyConfig(isActive: boolean, useJobOwnerCredits: boolean, assertResolverSelector: boolean) {
     this.config.isActive = isActive;
     this.config.useJobOwnerCredits = useJobOwnerCredits;
     this.config.assertResolverSelector = assertResolverSelector;
+    this.agent.removeJobFromBlacklist(this.key, 'applyConfig');
   }
 
   public applyOwner(owner: string) {
@@ -235,6 +241,7 @@ export abstract class AbstractJob {
     this.details.intervalSeconds = toNumber(intervalSeconds);
 
     this.jobLevelMinKeeperCvp = jobMinCvp;
+    this.agent.removeJobFromBlacklist(this.key, 'applyUpdate');
   }
 
   public unwatch() {

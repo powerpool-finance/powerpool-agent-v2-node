@@ -301,6 +301,7 @@ export interface ParsedJobConfig {
   useJobOwnerCredits: boolean;
   assertResolverSelector: boolean;
   checkKeeperMinCvpDeposit: boolean;
+  callResolverBeforeExecute: boolean;
 }
 
 // Only values that could be changed during

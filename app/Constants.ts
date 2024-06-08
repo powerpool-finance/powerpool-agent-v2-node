@@ -276,3 +276,4 @@ export const CFG_ACTIVE = BigNumber.from(0x01);
 export const CFG_USE_JOB_OWNER_CREDITS = BigNumber.from(0x02);
 export const CFG_ASSERT_RESOLVER_SELECTOR = BigNumber.from(0x04);
 export const CFG_CHECK_KEEPER_MIN_CVP_DEPOSIT = BigNumber.from(0x08);
+export const CFG_CALL_RESOLVER_BEFORE_EXECUTE = BigNumber.from(0x10);
