@@ -6,7 +6,7 @@ import {
   NetworkConfig,
   Resolver,
 } from './Types.js';
-import { bigintToHex, toChecksummedAddress, debounce } from './Utils.js';
+import { bigintToHex, toChecksummedAddress } from './Utils.js';
 import pIteration from 'p-iteration';
 import { ethers } from 'ethers';
 import EventEmitter from 'events';
@@ -631,7 +631,7 @@ export class Network {
           } catch (e) {
             this.clog('error', `method: getOffchainResolveCalldata, jobKey: ${jobKey}, error message: ${e.message}`);
           }
-          this.offchainResolverPending[jobKey] = false;
+          delete this.offchainResolverPending[jobKey];
         } else {
           callbacks[i](blockNumber, decoded[1]);
           jobsToExecute += 1;
