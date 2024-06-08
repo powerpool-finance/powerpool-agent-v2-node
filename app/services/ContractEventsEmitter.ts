@@ -1,8 +1,10 @@
 import QueueEmitter from './QueueEmitter.js';
 import EventEmitter from 'events';
 import { ContractWrapper } from '../Types.js';
+import { ethers } from 'ethers';
 
 export default class ContractEventsEmitter {
+  provider: ethers.providers.WebSocketProvider | undefined;
   blockLogsMode = false;
   contractEmitterByAddress = {};
   contractEventsByAddress = {};
@@ -18,6 +20,11 @@ export default class ContractEventsEmitter {
     this.setBlockLogsMode(_blockLogsMode);
   }
 
+  setProvider(_provider) {
+    this.provider = _provider;
+    console.log('[ContractEventsEmitter] setProvider');
+  }
+
   setBlockLogsMode(_blockLogsMode) {
     this.blockLogsMode = _blockLogsMode;
     console.log('[ContractEventsEmitter] setBlockLogsMode', _blockLogsMode);
@@ -28,6 +35,14 @@ export default class ContractEventsEmitter {
       this.contractEmitterByAddress[address].emit(eventName, value);
       this.lastBlockNumber = value.blockNumber;
     }
+  }
+
+  async emitByBlockQuery(queryObj) {
+    const logs = await this.provider.getLogs(queryObj).catch(e => {
+      console.warn('⚠️  [ContractEventsEmitter] provider.getLogs error, return empty array:', e.message);
+      return [];
+    });
+    return this.emitByBlockLogs(logs);
   }
 
   emitByBlockLogs(logs, forceEmit = false) {

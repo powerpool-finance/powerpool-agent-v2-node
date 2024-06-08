@@ -150,7 +150,10 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
           return callback();
         }
         const { action, newMax, newPriority } = await envelope.executorCallbacks.txNotMinedInBlock(tx, txHash);
-        this.clog(`waitForResendTransaction() action: ${action}, newMax: ${newMax}, newPriority: ${newPriority}`);
+        this.clog(
+          'debug',
+          `waitForResendTransaction() action: ${action}, newMax: ${newMax}, newPriority: ${newPriority}`,
+        );
         if (action === 'ignore') {
           // envelope.executorCallbacks.txExecutionFailed(this.err('Tx not mined, ignore: ' + txHash), tx.data as string);
           return callback();

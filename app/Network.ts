@@ -295,6 +295,8 @@ export class Network {
     this.externalLens = this.contractWrapperFactory.build(this.externalLensAddress, getExternalLensAbi());
     this.provider.on('block', this._onNewBlockCallbackSkipWrapper.bind(this));
     this.provider.on('reconnect', this._resyncAgents.bind(this));
+
+    this.contractEventsEmitter.setProvider(this.provider);
   }
 
   private fixProvider(provider) {
@@ -399,12 +401,10 @@ export class Network {
         blocks.forEach(block => this._handleNewBlock(block, before));
 
         if (this.contractEventsEmitter.blockLogsMode) {
-          this.contractEventsEmitter.emitByBlockLogs(
-            await this.provider.getLogs({
-              fromBlock: Number(this.agentsStartBlockNumber) + 1,
-              toBlock: Number(this.agentsStartBlockNumber) + count,
-            }),
-          );
+          this.contractEventsEmitter.emitByBlockQuery({
+            fromBlock: Number(this.agentsStartBlockNumber) + 1,
+            toBlock: Number(this.agentsStartBlockNumber) + count,
+          });
         }
 
         startBlockNumber += count;
@@ -501,7 +501,7 @@ export class Network {
 
     if (this.contractEventsEmitter.blockLogsMode) {
       const fromBlock = bigintToHex(blockNumber);
-      this.contractEventsEmitter.emitByBlockLogs(await this.provider.getLogs({ fromBlock, toBlock: fromBlock }));
+      this.contractEventsEmitter.emitByBlockQuery({ fromBlock, toBlock: fromBlock });
     }
 
     if (this.latestBlockNumber < blockNumber) {
