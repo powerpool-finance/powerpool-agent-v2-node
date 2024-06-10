@@ -96,7 +96,7 @@ export async function initApi(app: App, port: number): Promise<() => void> {
   fastify.listen(
     {
       host: process.env.API_HOST || '127.0.0.1',
-      port: parseInt(process.env.API_PORT) || port,
+      port: parseInt(process.env.API_PORT) || port || 8099,
     },
     (err, address) => {
       logger.info(`API Server: Listening on ${address}`);

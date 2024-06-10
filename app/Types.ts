@@ -1,7 +1,5 @@
 import { BigNumber, ethers, Wallet } from 'ethers';
 import { Network } from './Network';
-import { Contract } from 'web3-eth-contract';
-import { WebsocketProvider } from 'web3-core';
 import { RandaoJob } from './jobs/RandaoJob';
 import { LightJob } from './jobs/LightJob';
 import { BytesLike } from '@ethersproject/bytes';
@@ -269,8 +267,8 @@ export interface ContractWrapper {
   readonly address: string;
   decodeError(response: string): ErrorWrapper;
   decodeTxData(data: string): TxDataWrapper;
-  getNativeContract(): ethers.Contract | Contract;
-  getDefaultProvider(): ethers.providers.BaseProvider | WebsocketProvider;
+  getNativeContract(): ethers.Contract;
+  getDefaultProvider(): ethers.providers.BaseProvider;
   ethCall(method: string, args?: any[], overrides?: object, callStatic?: boolean): Promise<any>;
   ethCallStatic(method: string, args?: any[], overrides?: object): Promise<any>;
   getPastEvents(eventName: string, from: number, to: number): Promise<any[]>;
@@ -303,6 +301,7 @@ export interface ParsedJobConfig {
   useJobOwnerCredits: boolean;
   assertResolverSelector: boolean;
   checkKeeperMinCvpDeposit: boolean;
+  callResolverBeforeExecute: boolean;
 }
 
 // Only values that could be changed during

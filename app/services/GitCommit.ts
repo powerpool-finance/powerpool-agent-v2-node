@@ -1,6 +1,6 @@
 import { execSync } from 'child_process';
 import path from 'path';
-import fs from 'fs';
+import * as fs from 'fs';
 
 const versionDataFileName = '.version-data.json';
 

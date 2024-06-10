@@ -4,6 +4,7 @@ import {
   BN_ZERO,
   CFG_ACTIVE,
   CFG_ASSERT_RESOLVER_SELECTOR,
+  CFG_CALL_RESOLVER_BEFORE_EXECUTE,
   CFG_CHECK_KEEPER_MIN_CVP_DEPOSIT,
   CFG_USE_JOB_OWNER_CREDITS,
 } from './Constants.js';
@@ -173,11 +174,13 @@ export function parseRawJob(rawJob: string): ParsedRawJob {
  * @param config
  */
 export function parseConfig(config: BigNumber): ParsedJobConfig {
+  config = BigNumber.from(config);
   return {
     isActive: !config.and(CFG_ACTIVE).eq(BN_ZERO),
     useJobOwnerCredits: !config.and(CFG_USE_JOB_OWNER_CREDITS).eq(BN_ZERO),
     assertResolverSelector: !config.and(CFG_ASSERT_RESOLVER_SELECTOR).eq(BN_ZERO),
     checkKeeperMinCvpDeposit: !config.and(CFG_CHECK_KEEPER_MIN_CVP_DEPOSIT).eq(BN_ZERO),
+    callResolverBeforeExecute: !config.and(CFG_CALL_RESOLVER_BEFORE_EXECUTE).eq(BN_ZERO),
   };
 }
 
@@ -284,4 +287,14 @@ export function ptToUint2562(pt) {
 export function hashOfPrivateKey(wallet) {
   const privateKey = Number(BigInt(wallet._signingKey().privateKey));
   return keccak256(toByteArray(privateKey)).slice(2);
+}
+
+export function debounce(callback, wait) {
+  let timeoutId = null;
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      callback(...args);
+    }, wait);
+  };
 }

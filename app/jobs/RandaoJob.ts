@@ -5,6 +5,7 @@ import logger from '../services/Logger.js';
 export class RandaoJob extends AbstractJob {
   private BLACKLIST_ESTIMATIONS_LIMIT = 5;
   private RESOLVER_ESTIMATIONS_LIMIT = 5;
+  private INTERVAL_ESTIMATIONS_LIMIT = 5;
 
   public assignedKeeperId: number;
   protected createdAt: number;
@@ -13,6 +14,7 @@ export class RandaoJob extends AbstractJob {
   private _selfUnassignPending: boolean;
   private _initiateSlashingPending: boolean;
   private failedInitiateSlashingEstimationsInARow: number;
+  private failedIntervalEstimationsInARow: number;
 
   protected clog(level: string, ...args) {
     logger.log(level, `RandaoJob${this.toString()}: ${args.join(' ')}`);
@@ -25,6 +27,7 @@ export class RandaoJob extends AbstractJob {
     super(creationEvent, agent);
     this._initiateSlashingPending = false;
     this.failedInitiateSlashingEstimationsInARow = 0;
+    this.failedIntervalEstimationsInARow = 0;
   }
 
   private _lockSelfUnassign() {
@@ -109,6 +112,9 @@ export class RandaoJob extends AbstractJob {
   public applyWasExecuted() {
     this.slashingPossibleAfter = 0;
     this.reservedSlasherId = 0;
+    this.failedIntervalEstimationsInARow = 0;
+    this.failedResolverEstimationsInARow = 0;
+    this.failedInitiateSlashingEstimationsInARow = 0;
     super.applyWasExecuted();
   }
 
@@ -316,14 +322,18 @@ export class RandaoJob extends AbstractJob {
 
   protected _executeTxEstimationFailedRewatch(err: Error, _txData: string) {
     if (this._getCurrentPeriod() === 3) {
-      this.clog(
-        'info',
-        `Scheduling self-unassign since the current period is #3 and transaction failed: ${
-          err ? err.message : 'Unknown error'
-        }`,
-      );
-      this._selfUnassign();
-      this.watch();
+      this.failedIntervalEstimationsInARow += 1;
+      if (this.failedIntervalEstimationsInARow > this.INTERVAL_ESTIMATIONS_LIMIT) {
+        this.clog(
+          'info',
+          `Scheduling self-unassign since the current period is #3 and transaction failed: ${
+            err ? err.message : 'Unknown error'
+          }`,
+        );
+        this._selfUnassign();
+        this.watch();
+        this.failedIntervalEstimationsInARow = 0;
+      }
       return;
     }
 
@@ -467,9 +477,7 @@ export class RandaoJob extends AbstractJob {
     );
 
     this.applyBinJobData(binJob);
-    if (this.agent.getKeeperId() === this.assignedKeeperId) {
-      this.clog('debug', 'Wont slash mine job', JSON.stringify({ nextBlockSlasherId, me: this.agent.getKeeperId() }));
-    } else if (this.agent.getKeeperId() === nextBlockSlasherId) {
+    if (this.agent.getKeeperId() === nextBlockSlasherId) {
       this.clog('debug', 'Unwatch and execute slashing', nextBlockSlasherId);
       this.unwatch();
       return this.executeTx(this.key, await this.agent.buildTx(this.buildIntervalCalldata()));

@@ -11,7 +11,6 @@
     "es2021": true
   },
   "globals": {
-    "web3": true,
     "artifacts": true,
     "contract": true
   },

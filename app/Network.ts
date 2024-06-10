@@ -58,6 +58,7 @@ export class Network {
   private agents: IAgent[];
   private resolverJobData: { [key: string]: ResolverJobWithCallback };
   private timeoutData: { [key: string]: TimeoutWithCallback };
+  private offchainResolverPending: { [key: string]: boolean };
   private multicall: ContractWrapper | undefined;
   private externalLens: ContractWrapper | undefined;
   private averageBlockTimeSeconds: number;
@@ -76,6 +77,7 @@ export class Network {
   private agentsStartBlockNumber: bigint;
   private latestBlockNumber: bigint;
   private latestBlockTimestamp: bigint;
+  private onNewBlockTimeout: any;
 
   private toString(): string {
     return `(name: ${this.name}, rpc: ${this.rpc})`;
@@ -125,6 +127,7 @@ export class Network {
 
     this.resolverJobData = {};
     this.timeoutData = {};
+    this.offchainResolverPending = {};
   }
 
   public nowS(): number {
@@ -292,6 +295,8 @@ export class Network {
     this.externalLens = this.contractWrapperFactory.build(this.externalLensAddress, getExternalLensAbi());
     this.provider.on('block', this._onNewBlockCallbackSkipWrapper.bind(this));
     this.provider.on('reconnect', this._resyncAgents.bind(this));
+
+    this.contractEventsEmitter.setProvider(this.provider);
   }
 
   private fixProvider(provider) {
@@ -396,12 +401,10 @@ export class Network {
         blocks.forEach(block => this._handleNewBlock(block, before));
 
         if (this.contractEventsEmitter.blockLogsMode) {
-          this.contractEventsEmitter.emitByBlockLogs(
-            await this.provider.getLogs({
-              fromBlock: Number(this.agentsStartBlockNumber) + 1,
-              toBlock: Number(this.agentsStartBlockNumber) + count,
-            }),
-          );
+          this.contractEventsEmitter.emitByBlockQuery({
+            fromBlock: Number(this.agentsStartBlockNumber) + 1,
+            toBlock: Number(this.agentsStartBlockNumber) + count,
+          });
         }
 
         startBlockNumber += count;
@@ -498,10 +501,14 @@ export class Network {
 
     if (this.contractEventsEmitter.blockLogsMode) {
       const fromBlock = bigintToHex(blockNumber);
-      this.contractEventsEmitter.emitByBlockLogs(await this.provider.getLogs({ fromBlock, toBlock: fromBlock }));
+      this.contractEventsEmitter.emitByBlockQuery({ fromBlock, toBlock: fromBlock });
     }
 
-    setTimeout(async () => {
+    if (this.latestBlockNumber < blockNumber) {
+      this.onNewBlockTimeout && clearTimeout(this.onNewBlockTimeout);
+    }
+
+    this.onNewBlockTimeout = setTimeout(async () => {
       if (this.latestBlockNumber > blockNumber) {
         return;
       }
@@ -613,12 +620,18 @@ export class Network {
         const agent = this.getAgent(jobKey.split('/')[0]);
         const job = await agent.getJob(jobKey.split('/')[1]);
         if (job.isOffchainJob()) {
+          if (this.offchainResolverPending[jobKey]) {
+            this.clog('debug', `CallResolvers: Waiting ${jobKey} to finish...`);
+            continue;
+          }
           try {
+            this.offchainResolverPending[jobKey] = true;
             callbacks[i](blockNumber, await this.getOffchainResolveCalldata(job, decoded[1]));
             jobsToExecute += 1;
           } catch (e) {
-            this.clog('error', e.message);
+            this.clog('error', `method: getOffchainResolveCalldata, jobKey: ${jobKey}, error message: ${e.message}`);
           }
+          delete this.offchainResolverPending[jobKey];
         } else {
           callbacks[i](blockNumber, decoded[1]);
           jobsToExecute += 1;
@@ -633,7 +646,7 @@ export class Network {
   }
 
   private async getOffchainResolveCalldata(job: AbstractJob, resolverCalldata) {
-    const offchainServiceEndpoint = process.env.OFFCHAIN_SERVICE_ENDPOINT || 'http://offchain-service/';
+    const offchainServiceEndpoint = process.env.OFFCHAIN_SERVICE_ENDPOINT || 'http://offchain-service:3423';
     const params = job.getOffchainResolveParams();
     return axios
       .post(`${offchainServiceEndpoint}/offchain-resolve/${params['resolverAddress']}`, {

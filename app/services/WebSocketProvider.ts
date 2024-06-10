@@ -7,7 +7,7 @@ const WEBSOCKET_RECONNECT_DELAY = 100;
 const WebSocketProviderClass = (): new () => ethers.providers.WebSocketProvider => class {} as never;
 
 export default class WebSocketProvider extends WebSocketProviderClass() {
-  private provider?: ethers.providers.WebSocketProvider;
+  public provider?: ethers.providers.WebSocketProvider;
   private events: ethers.providers.WebSocketProvider['_events'] = [];
   private requests: ethers.providers.WebSocketProvider['_requests'] = {};
 
@@ -15,6 +15,9 @@ export default class WebSocketProvider extends WebSocketProviderClass() {
 
   private handler = {
     get(target: WebSocketProvider, prop: string, receiver: unknown) {
+      if (prop === 'provider') {
+        return target.provider;
+      }
       const value = target.provider && Reflect.get(target.provider, prop, receiver);
 
       return value instanceof Function ? value.bind(target.provider) : value;

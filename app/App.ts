@@ -115,9 +115,7 @@ export class App {
     }
     logger.info('App: Networks initialization done!');
 
-    if (this.apiPort) {
-      this.stopApi = await initApi(this, this.apiPort);
-    }
+    this.stopApi = await initApi(this, this.apiPort);
   }
 
   public async stop() {
