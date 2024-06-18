@@ -256,24 +256,17 @@ export class RandaoJob extends AbstractJob {
 
   private _getCurrentPeriodIntervalJob(): number {
     const now = this.agent.nowS();
+    const nextExecutionOn = this.details.lastExecutionAt + this.details.intervalSeconds;
+    const period1 = (this.agent as IRandaoAgent).getPeriod1Duration();
+    const period2 = (this.agent as IRandaoAgent).getPeriod2Duration();
 
-    if (now < this.details.lastExecutionAt + this.details.intervalSeconds) {
+    if (now < nextExecutionOn) {
       return 0;
-    } else if (
-      now <
-      this.details.lastExecutionAt + this.details.intervalSeconds + (this.agent as IRandaoAgent).getPeriod1Duration()
-    ) {
+    } else if (now < nextExecutionOn + period1) {
       return 1;
-    } else if (
-      now <
-      this.details.lastExecutionAt +
-        this.details.intervalSeconds +
-        (this.agent as IRandaoAgent).getPeriod1Duration() +
-        (this.agent as IRandaoAgent).getPeriod2Duration()
-    ) {
+    } else if (now < nextExecutionOn + period1 + period2) {
       return 2;
     }
-
     return 3;
   }
 
