@@ -333,8 +333,8 @@ export class RandaoJob extends AbstractJob {
         this._selfUnassign();
         this.watch();
         this.failedIntervalEstimationsInARow = 0;
+        return;
       }
-      return;
     }
 
     this.incrementFailedExecutesInARow(err);
