@@ -324,6 +324,7 @@ export abstract class AbstractJob {
         e.message.includes('replacement fee too low') ||
         e.message.includes('replacement transaction underpriced') ||
         e.message.includes('max fee per gas less than block base fee') ||
+        e.message.includes('intrinsic gas too low') ||
         e.message.includes('0xaf605803') || // OnlyCurrentSlasher
         e.message.includes('0xe096085e')) // IntervalNotReached
     );
