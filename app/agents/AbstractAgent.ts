@@ -603,7 +603,7 @@ export abstract class AbstractAgent implements IAgent {
       } else {
         tx.maxPriorityFeePerGas = (maxPriority * 15n) / 10n;
       }
-      tx.maxFeePerGas = baseFeePerGas + tx.maxPriorityFeePerGas;
+      tx.maxFeePerGas = (baseFeePerGas * 11n) / 10n + tx.maxPriorityFeePerGas;
     } else {
       tx.type = 0;
       tx.gasPrice = await this.network.queryGasPrice();
