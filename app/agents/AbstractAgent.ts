@@ -594,12 +594,16 @@ export abstract class AbstractAgent implements IAgent {
         priorityFeeExtraFromConfig = BigInt(this.executorConfig.gas_price_priority_add_gwei);
       }
       const { baseFeePerGas, maxPriority } = await this.getEip1559TxFeeData();
+      this.clog(
+        'debug',
+        `populateTxExtraFields: getEip1559TxFeeData(baseFeePerGas: ${baseFeePerGas}, maxPriority: ${maxPriority}`,
+      );
       if (priorityFeeExtraFromConfig > 0n) {
         tx.maxPriorityFeePerGas = maxPriority + priorityFeeExtraFromConfig * 1000000000n;
       } else {
         tx.maxPriorityFeePerGas = (maxPriority * 15n) / 10n;
       }
-      tx.maxFeePerGas = baseFeePerGas + tx.maxPriorityFeePerGas;
+      tx.maxFeePerGas = baseFeePerGas * 2n + tx.maxPriorityFeePerGas;
     } else {
       tx.type = 0;
       tx.gasPrice = await this.network.queryGasPrice();

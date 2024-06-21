@@ -49,6 +49,7 @@ export default class ContractEventsEmitter {
     if (!this.blockLogsMode && !forceEmit) {
       return;
     }
+    console.log('[ContractEventsEmitter] emitByBlockLogs ( logs.length:', logs.length, ')');
     let blockNumber;
     const contractAddresses = {};
     logs.forEach(l => {
@@ -58,6 +59,13 @@ export default class ContractEventsEmitter {
       }
       const eventName = this.eventByContractTopic[address][l.topics[0]];
       if (!eventName) {
+        console.log(
+          '[ContractEventsEmitter] ' + blockNumber + ' event name not found ( topic:',
+          l.topics[0],
+          'address:',
+          address,
+          ')',
+        );
         return;
       }
       if (!this.emitByBlockCount[address]) {

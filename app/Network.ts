@@ -470,10 +470,13 @@ export class Network {
   }
 
   private async _onNewBlockCallbackSkipWrapper(blockNumber) {
+    // Skip every n blocks (_onNewBlockCallback will be triggered every n blocks)
     if (this.skipBlocksDivisor !== null && Number(blockNumber) % this.skipBlocksDivisor !== 0) {
       return;
     }
-    await this._onNewBlockCallback(blockNumber);
+    await this._onNewBlockCallback(blockNumber).catch(e =>
+      this.clog('error', '_onNewBlockCallback error: ' + e.message),
+    );
   }
 
   private async _onNewBlockCallback(blockNumber) {
@@ -500,8 +503,10 @@ export class Network {
     this._walkThroughTheJobs(block.number, block.timestamp);
 
     if (this.contractEventsEmitter.blockLogsMode) {
-      const fromBlock = bigintToHex(blockNumber);
-      this.contractEventsEmitter.emitByBlockQuery({ fromBlock, toBlock: fromBlock });
+      const blocksDiff = BigInt(blockNumber) - BigInt(oldLatestBlockNumber);
+      const fromBlock = bigintToHex(blocksDiff > 1n ? oldLatestBlockNumber + 1n : blockNumber);
+      const toBlock = bigintToHex(blockNumber);
+      this.contractEventsEmitter.emitByBlockQuery({ fromBlock, toBlock });
     }
 
     if (this.latestBlockNumber < blockNumber) {
