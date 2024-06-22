@@ -97,7 +97,12 @@ export class EthersContract implements ContractWrapper {
       const abiEvent = this.abiEventByTopic.get(topic0);
       this.eventEmitter.emit(abiEvent.name, this.parseLog(log));
     } else {
-      throw this.err('EthersContract: event missing from abi', JSON.stringify(log));
+      throw this.err(
+        'EthersContract: event missing from abi',
+        JSON.stringify(log),
+        'abiEventByTopic',
+        JSON.stringify(this.abiEventByTopic.keys()),
+      );
     }
   }
   public decodeError(response: string): ErrorWrapper {
@@ -118,7 +123,7 @@ export class EthersContract implements ContractWrapper {
   }
 
   private toString(): string {
-    return `EthersContract: (rpc=${this.network.getRpc()})`;
+    return `EthersContract: (rpc=${this.network.getRpc()}, address: ${this.address})`;
   }
 
   private clog(level: string, ...args: any[]) {
