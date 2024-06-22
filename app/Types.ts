@@ -276,6 +276,7 @@ export interface ContractWrapper {
   encodeABI(method: string, args?: any[]): string;
   getTopicOfEvent(eventName): string;
   parseLog(log): any;
+  subscribeForEvents(): void;
 }
 
 export interface EventWrapper {

@@ -102,4 +102,8 @@ export function stubAgent(agent: IAgent) {
   sinon.stub(agent, 'queryPastEvents').callsFake(async function () {
     return [];
   });
+  // @ts-ignore
+  sinon.stub(agent, '_subscribeForEvents').callsFake(async function () {
+    return null;
+  });
 }

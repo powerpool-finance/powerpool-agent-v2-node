@@ -74,8 +74,10 @@ export class EthersContract implements ContractWrapper {
           break;
       }
     }
+  }
 
-    network.getProvider().on(
+  public subscribeForEvents() {
+    this.network.getProvider().on(
       {
         address: this.address,
         // fromBlock: 'latest',
