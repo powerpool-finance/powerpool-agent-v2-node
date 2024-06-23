@@ -1078,6 +1078,14 @@ export abstract class AbstractAgent implements IAgent {
       }
     });
 
+    this.on('RegisterAsKeeper', event => {
+      const keeperWorker = event.args[2];
+      if (this.getWorkerSignerAddress().toLowerCase() == keeperWorker.toLowerCase()) {
+        this.clog('debug', "'RegisterAsKeeper' event requires the bot to be restarted");
+        process.exit(0);
+      }
+    });
+
     this.on('FinalizeKeeperActivation', event => {
       const keeperId = event.args[0];
       if (this.keeperId == keeperId) {
