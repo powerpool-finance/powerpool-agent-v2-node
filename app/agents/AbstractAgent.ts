@@ -178,6 +178,8 @@ export abstract class AbstractAgent implements IAgent {
       throw this.err('Constructor not initialized');
     }
 
+    this._subscribeForEvents();
+
     this.network.getNewBlockEventEmitter().on('newBlock', this.newBlockEventHandler.bind(this));
 
     this.network.getNewBlockEventEmitter().on('newBlockDelay', this.newBlockDelayEventHandler.bind(this));
@@ -257,6 +259,10 @@ export abstract class AbstractAgent implements IAgent {
     await this._afterInit();
     this.clog('info', '✅ Agent initialization done!');
     return upTo;
+  }
+
+  private async _subscribeForEvents() {
+    this.contract.subscribeForEvents();
   }
 
   private async initKeeperWorkerKey() {
@@ -1069,6 +1075,14 @@ export abstract class AbstractAgent implements IAgent {
           this.clog('debug', 'Deactivate Keeper.');
           this.activateOrTerminateAgentIfRequired();
         })();
+      }
+    });
+
+    this.on('RegisterAsKeeper', event => {
+      const keeperWorker = event.args[2];
+      if (this.getWorkerSignerAddress().toLowerCase() == keeperWorker.toLowerCase()) {
+        this.clog('debug', "'RegisterAsKeeper' event requires the bot to be restarted");
+        process.exit(0);
       }
     });
 
