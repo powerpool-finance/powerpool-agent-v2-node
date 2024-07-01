@@ -616,6 +616,7 @@ export class Network {
         ? ethers.utils.defaultAbiCoder.decode(['bool', 'bytes'], results[i].returnData)
         : [false];
       const { jobKey } = resolversToCall[i];
+      this.clog('debug', `CallResolvers: Job ${jobKey} resolver returned: ${decoded[0]}`);
       const job = this.resolverJobData[jobKey];
       if (this.latestBlockNumber > job.lastSuccessBlock) {
         job.lastSuccessBlock = decoded[0] ? this.latestBlockNumber : 0n;
