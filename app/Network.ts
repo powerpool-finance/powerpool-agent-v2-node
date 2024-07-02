@@ -651,6 +651,10 @@ export class Network {
             jobsToExecute += 1;
           } catch (e) {
             this.clog('error', `method: getOffchainResolveCalldata, jobKey: ${jobKey}, error message: ${e.message}`);
+            if (e.message.includes('Max execution time')) {
+              agent.addJobToBlacklist(jobKey, e.message);
+              this.unregisterResolver(jobKey);
+            }
           }
           delete this.offchainResolverPending[jobKey];
         } else {
