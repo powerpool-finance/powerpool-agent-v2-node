@@ -475,7 +475,7 @@ export class Network {
       return;
     }
     await this._onNewBlockCallback(blockNumber).catch(e =>
-      this.clog('error', '_onNewBlockCallback error: ' + e.message),
+      this.clog('error', '_onNewBlockCallback error: ' + e.message + ', stack' + e.stack),
     );
   }
 
@@ -483,7 +483,7 @@ export class Network {
     blockNumber = BigInt(blockNumber.toString());
     const before = this.nowMs();
 
-    const oldLatestBlockNumber = this.latestBlockNumber;
+    const oldLatestBlockNumber = BigInt(this.latestBlockNumber);
     if (this.latestBlockNumber && blockNumber <= this.latestBlockNumber) {
       return null;
     }
@@ -503,7 +503,7 @@ export class Network {
     this._walkThroughTheJobs(block.number, block.timestamp);
 
     if (this.contractEventsEmitter.blockLogsMode) {
-      const blocksDiff = BigInt(blockNumber) - BigInt(oldLatestBlockNumber);
+      const blocksDiff = blockNumber - oldLatestBlockNumber;
       const fromBlock = bigintToHex(blocksDiff > 1n ? oldLatestBlockNumber + 1n : blockNumber);
       const toBlock = bigintToHex(blockNumber);
       this.contractEventsEmitter.emitByBlockQuery({ fromBlock, toBlock });
@@ -608,8 +608,6 @@ export class Network {
     }
 
     this.clog('debug', `CallResolvers: Polling ${resolversToCall.length} resolvers...`);
-
-    this.clog('debug', `CallResolvers: Polling ${resolversToCall.length} resolvers...`);
     let results = null,
       jobsToExecute = 0;
     try {
@@ -618,20 +616,29 @@ export class Network {
       this.clog('error', `queryPollResolvers error: ${e.message}`);
       return;
     }
+    // this.clog('debug', `CallResolvers: Polling resolver results: ${JSON.stringify(results)}`);
 
     for (let i = 0; i < results.length; i++) {
-      const decoded = results[i].success
-        ? ethers.utils.defaultAbiCoder.decode(['bool', 'bytes'], results[i].returnData)
-        : [false];
       const { jobKey } = resolversToCall[i];
-      this.clog('debug', `CallResolvers: Job ${jobKey} resolver returned: ${decoded[0]}`);
+      const agent = this.getAgent(jobKey.split('/')[0]);
+      let decoded;
+      try {
+        decoded = results[i].success
+          ? ethers.utils.defaultAbiCoder.decode(['bool', 'bytes'], results[i].returnData)
+          : [false];
+      } catch (e) {
+        this.clog('error', `Resolver ${jobKey} decode error: ${e.message}, returnData: ${results[i].returnData}`);
+        agent.addJobToBlacklist(jobKey, `Resolver decode error: ${e.message}`);
+        this.unregisterResolver(jobKey);
+        continue;
+      }
+      // this.clog('debug', `CallResolvers: Job ${jobKey} resolver returned: ${decoded[0]}`);
       const job = this.resolverJobData[jobKey];
       if (this.latestBlockNumber > job.lastSuccessBlock) {
         job.lastSuccessBlock = decoded[0] ? this.latestBlockNumber : 0n;
         job.successCounter = decoded[0] ? job.successCounter + 1 : 0;
       }
       if (decoded[0] && job.successCounter >= this.networkConfig.resolve_min_success_count) {
-        const agent = this.getAgent(jobKey.split('/')[0]);
         const job = await agent.getJob(jobKey.split('/')[1]);
         if (job.isOffchainJob()) {
           if (this.offchainResolverPending[jobKey]) {
