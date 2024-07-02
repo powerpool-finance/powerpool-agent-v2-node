@@ -608,8 +608,6 @@ export class Network {
     }
 
     this.clog('debug', `CallResolvers: Polling ${resolversToCall.length} resolvers...`);
-
-    this.clog('debug', `CallResolvers: Polling ${resolversToCall.length} resolvers...`);
     let results = null,
       jobsToExecute = 0;
     try {
@@ -618,6 +616,7 @@ export class Network {
       this.clog('error', `queryPollResolvers error: ${e.message}`);
       return;
     }
+    this.clog('debug', `CallResolvers: Polling resolver results: ${JSON.stringify(results)}`);
 
     for (let i = 0; i < results.length; i++) {
       const decoded = results[i].success
