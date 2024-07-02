@@ -616,7 +616,7 @@ export class Network {
       this.clog('error', `queryPollResolvers error: ${e.message}`);
       return;
     }
-    this.clog('debug', `CallResolvers: Polling resolver results: ${JSON.stringify(results)}`);
+    // this.clog('debug', `CallResolvers: Polling resolver results: ${JSON.stringify(results)}`);
 
     for (let i = 0; i < results.length; i++) {
       const { jobKey } = resolversToCall[i];
@@ -632,7 +632,7 @@ export class Network {
         this.unregisterResolver(jobKey);
         continue;
       }
-      this.clog('debug', `CallResolvers: Job ${jobKey} resolver returned: ${decoded[0]}`);
+      // this.clog('debug', `CallResolvers: Job ${jobKey} resolver returned: ${decoded[0]}`);
       const job = this.resolverJobData[jobKey];
       if (this.latestBlockNumber > job.lastSuccessBlock) {
         job.lastSuccessBlock = decoded[0] ? this.latestBlockNumber : 0n;
