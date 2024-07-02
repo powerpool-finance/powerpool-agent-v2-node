@@ -608,8 +608,16 @@ export class Network {
     }
 
     this.clog('debug', `CallResolvers: Polling ${resolversToCall.length} resolvers...`);
-    const results = await this.queryPollResolvers(false, resolversToCall, this.agents[0].getWorkerSignerAddress());
-    let jobsToExecute = 0;
+
+    this.clog('debug', `CallResolvers: Polling ${resolversToCall.length} resolvers...`);
+    let results = null,
+      jobsToExecute = 0;
+    try {
+      results = await this.queryPollResolvers(false, resolversToCall, this.agents[0].getWorkerSignerAddress());
+    } catch (e) {
+      this.clog('error', `queryPollResolvers error: ${e.message}`);
+      return;
+    }
 
     for (let i = 0; i < results.length; i++) {
       const decoded = results[i].success
