@@ -9,6 +9,7 @@ export const DEFAULT_SYNC_FROM_CHAINS: { [network: string]: number } = {
   rinkeby: 11096966,
   arbitrumOne: 157531675,
   base: 14835289,
+  linea: 6897340,
 };
 
 export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: AgentHardcodedConfig } } = {
@@ -68,6 +69,13 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
   base: {
     '0x12e49CeDc34C4F455e0dfff7ec38cC535Cbd07C2': {
       deployedAt: 14835289,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
+  },
+  linea: {
+    '0x20D4029c783D5c9f47569940c656Af4189e53799': {
+      deployedAt: 6897340,
       version: '2.3.0',
       strategy: 'randao',
     },
@@ -196,6 +204,7 @@ export const MULTICALL_CONTRACTS: { [network: string]: string } = {
   arbitrumOne: '0x842ec2c7d803033edf55e478f461fc547bc54eb2',
   polygon: '0xed386fe855c1eff2f843b910923dd8846e45c5a4',
   base: '0xedf6d2a16e8081f777eb623eeb4411466556af3d',
+  linea: '0xa217f01e0b0e93508e131a44c4dbfc1db22adbd5',
 };
 
 export const EXTERNAL_LENS_CONTRACTS_2_3_0: { [network: string]: string } = {
@@ -206,6 +215,7 @@ export const EXTERNAL_LENS_CONTRACTS_2_3_0: { [network: string]: string } = {
   arbitrumOne: '0xa1be5a9d961aae6c6895e1579ce470e708e7cedb', // v2
   polygon: '0xB712Ab1263fd2D992E39Df1CF3F81EA9BB83e548',
   base: '0xa217F01E0b0E93508E131a44C4dBfc1db22ADBD5',
+  linea: '0x0D8879056cC1dfA4998B6f5c75c7ea4d8e939223',
 };
 
 export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {
@@ -217,6 +227,7 @@ export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {
   arbitrumOne: 0.25,
   polygon: 2,
   base: 2,
+  linea: 2,
 };
 
 // If specified, resolver should be called each X blocks, otherwise it will be
