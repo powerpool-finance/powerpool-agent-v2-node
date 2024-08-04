@@ -115,10 +115,13 @@ export class RandaoJob extends AbstractJob {
     this.failedIntervalEstimationsInARow = 0;
     this.failedResolverEstimationsInARow = 0;
     this.failedInitiateSlashingEstimationsInARow = 0;
+    this.applyClearResolverTimeouts();
     super.applyWasExecuted();
   }
 
   public applyClearResolverTimeouts(): void {
+    this.clog('debug', 'applyClearResolverTimeouts()');
+    this._initiateSlashingPending = false;
     this.t1 = 0;
     this.b1 = 0n;
     this.tn = 0;
@@ -375,6 +378,18 @@ export class RandaoJob extends AbstractJob {
   }
 
   protected async resolverSuccessCallback(triggeredByBlockNumber, invokeCalldata) {
+    this.clog(
+      'debug',
+      `resolverSuccessCallback kId=${this.agent.getKeeperId()}, akId=${this.assignedKeeperId}, currentPeriod=` +
+        `${this._getCurrentPeriodResolverJob()}, initiateSlashingPending=${this._initiateSlashingPending}`,
+    );
+    const now = this.agent.nowS();
+    const period1 = (this.agent as IRandaoAgent).getPeriod1Duration();
+
+    if (this._initiateSlashingPending && this.agent.nowS() - this.tn > period1 * 5) {
+      this.applyClearResolverTimeouts();
+    }
+
     if (this.agent.getKeeperId() === this.assignedKeeperId) {
       // execute
       await this.executeResolverJob(invokeCalldata);
@@ -387,19 +402,10 @@ export class RandaoJob extends AbstractJob {
       await this.executeResolverJob(invokeCalldata);
     } else if (!this._initiateSlashingPending) {
       // initiateSlashing
-      const now = this.agent.nowS();
       const latestBlock = this.agent.getNetwork().getLatestBlockNumber();
-      const period1 = (this.agent as IRandaoAgent).getPeriod1Duration();
 
       this.tn = Number(this.agent.getNetwork().getLatestBlockTimestamp());
       this.bn = latestBlock;
-
-      // reset t1 & b1 if the bn is more than two blocks behind
-      if (this.bn + 2n < latestBlock) {
-        this.clog('debug', `Resetting counter, bn=${triggeredByBlockNumber}`);
-        this.t1 = this.tn;
-        this.b1 = this.bn;
-      }
 
       if (this.t1) {
         const left = this.t1 + period1 - now;
