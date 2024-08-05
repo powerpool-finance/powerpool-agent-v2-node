@@ -483,7 +483,7 @@ export class Network {
     blockNumber = BigInt(blockNumber.toString());
     const before = this.nowMs();
 
-    const oldLatestBlockNumber = BigInt(this.latestBlockNumber);
+    const oldLatestBlockNumber = this.latestBlockNumber ? BigInt(this.latestBlockNumber) : null;
     if (this.latestBlockNumber && blockNumber <= this.latestBlockNumber) {
       return null;
     }
