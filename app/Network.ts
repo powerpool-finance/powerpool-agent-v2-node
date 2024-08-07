@@ -503,7 +503,7 @@ export class Network {
     this._walkThroughTheJobs(block.number, block.timestamp);
 
     if (this.contractEventsEmitter.blockLogsMode) {
-      const blocksDiff = blockNumber - oldLatestBlockNumber;
+      const blocksDiff = oldLatestBlockNumber ? blockNumber - oldLatestBlockNumber : 0n;
       const fromBlock = bigintToHex(blocksDiff > 1n ? oldLatestBlockNumber + 1n : blockNumber);
       const toBlock = bigintToHex(blockNumber);
       this.contractEventsEmitter.emitByBlockQuery({ fromBlock, toBlock });
