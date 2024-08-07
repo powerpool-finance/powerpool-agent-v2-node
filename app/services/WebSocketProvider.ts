@@ -73,8 +73,11 @@ export default class WebSocketProvider extends WebSocketProviderClass() {
       if (pongTimeout) clearTimeout(pongTimeout);
     });
 
-    provider._websocket.on('error', (code: number) => {
+    provider._websocket.on('error', (code: string) => {
       console.log('Cannot connect to ws with code: ' + code);
+      if (code && code.includes && code.includes('Max payload size exceeded')) {
+        setTimeout(() => this.create(), WEBSOCKET_RECONNECT_DELAY);
+      }
     });
 
     provider._websocket.on('close', (code: number) => {
