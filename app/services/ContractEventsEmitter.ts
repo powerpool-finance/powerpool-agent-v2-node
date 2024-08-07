@@ -38,6 +38,7 @@ export default class ContractEventsEmitter {
   }
 
   async emitByBlockQuery(queryObj) {
+    console.log('[ContractEventsEmitter] emitByBlockQuery ( queryObj:', queryObj, ')');
     const logs = await this.provider.getLogs(queryObj).catch(e => {
       console.warn('⚠️  [ContractEventsEmitter] provider.getLogs error, return empty array:', e.message);
       return [];

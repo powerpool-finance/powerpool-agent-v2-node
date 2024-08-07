@@ -444,6 +444,7 @@ export class Network {
   }
 
   private async _resyncAgents() {
+    this.latestBlockNumber = null;
     this.clog('info', `Resync agents on network: '${this.getName()}'`);
     for (const agent of this.getAgents()) {
       await agent.checkStatusAndResyncAllJobs();
