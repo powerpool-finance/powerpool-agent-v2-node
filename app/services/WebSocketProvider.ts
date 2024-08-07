@@ -73,11 +73,12 @@ export default class WebSocketProvider extends WebSocketProviderClass() {
       if (pongTimeout) clearTimeout(pongTimeout);
     });
 
-    provider._websocket.on('error', (code: number) => {
+    provider._websocket.on('error', (code: string) => {
       console.log('Cannot connect to ws with code: ' + code);
     });
 
     provider._websocket.on('close', (code: number) => {
+      console.log('Provider connection closed with code: ' + code);
       provider._wsReady = false;
 
       if (pingInterval) clearInterval(pingInterval);
