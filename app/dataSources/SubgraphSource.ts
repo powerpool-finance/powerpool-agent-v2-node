@@ -126,9 +126,9 @@ export class SubgraphSource extends AbstractSource {
       this.query(this.subgraphUrl, QUERY_META),
     ]);
     return {
-      diff: latestBock - BigInt(_meta.block.number),
-      nodeBlockNumber: latestBock,
-      sourceBlockNumber: latestBock,
+      diff: BigInt(latestBock) - BigInt(_meta.block.number),
+      nodeBlockNumber: BigInt(latestBock),
+      sourceBlockNumber: BigInt(latestBock),
     };
   }
 

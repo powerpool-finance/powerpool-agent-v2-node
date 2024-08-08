@@ -61,9 +61,9 @@ export class SubquerySource extends SubgraphSource {
       this.query(this.subgraphUrl, QUERY_META),
     ]);
     return {
-      diff: latestBock - BigInt(_metadata.lastProcessedHeight),
-      nodeBlockNumber: latestBock,
-      sourceBlockNumber: latestBock,
+      diff: BigInt(latestBock) - BigInt(_metadata.lastProcessedHeight),
+      nodeBlockNumber: BigInt(latestBock),
+      sourceBlockNumber: BigInt(latestBock),
     };
   }
 
