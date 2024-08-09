@@ -57,13 +57,13 @@ export class SubquerySource extends SubgraphSource {
 
   async getBlocksDelay(): Promise<{ diff: bigint; nodeBlockNumber: bigint; sourceBlockNumber: bigint }> {
     const [latestBock, { _metadata }] = await Promise.all([
-      this.network.getLatestBlockNumber(),
+      this.network.queryLatestBlock().then(b => BigInt(b.number.toString())),
       this.query(this.subgraphUrl, QUERY_META),
     ]);
     return {
-      diff: BigInt(latestBock) - BigInt(_metadata.lastProcessedHeight),
-      nodeBlockNumber: BigInt(latestBock),
-      sourceBlockNumber: BigInt(latestBock),
+      diff: latestBock - BigInt(_metadata.lastProcessedHeight),
+      nodeBlockNumber: latestBock,
+      sourceBlockNumber: latestBock,
     };
   }
 
