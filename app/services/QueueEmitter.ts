@@ -21,7 +21,7 @@ export default class QueueEmitter {
       try {
         await c.callback(c.value);
       } catch (e) {
-        logger.error('QueueEmitter.execute error: ' + JSON.stringify(c) + ' - ' + e.message);
+        logger.error('QueueEmitter.execute error: ' + JSON.stringify(c) + ' - ' + e.message + ', stack' + e.stack);
       }
     }
     this.executeInProcess = false;
