@@ -58,6 +58,11 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
       version: '2.5.0',
       strategy: 'randao',
     },
+    '0x9fDB1462Edb170aEf47f052bA69a7fa64130D149': {
+      deployedAt: 241395084,
+      version: '2.5.0',
+      strategy: 'randao',
+    },
   },
   polygon: {
     '0x20D4029c783D5c9f47569940c656Af4189e53799': {
@@ -76,6 +81,11 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
   linea: {
     '0x20D4029c783D5c9f47569940c656Af4189e53799': {
       deployedAt: 6897340,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
+    '0xF6335E70aBEb91451DcB7C33d973fdee0Da85b16а': {
+      deployedAt: 7941918,
       version: '2.3.0',
       strategy: 'randao',
     },
