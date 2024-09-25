@@ -2,9 +2,7 @@ import { SubgraphSource } from './SubgraphSource.js';
 import { Network } from '../Network.js';
 import { IAgent } from '../Types.js';
 
-export const QUERY_ALL_JOBS = `{
-  jobs(first: 1000) {
-  nodes {
+const jobFields = `
     id
     active
     jobAddress
@@ -31,7 +29,13 @@ export const QUERY_ALL_JOBS = `{
     jobNextKeeperId
     jobReservedSlasherId
     jobSlashingPossibleAfter
-  }
+`;
+
+export const QUERY_ALL_JOBS = `{
+  jobs(first: 1000) {
+    nodes {
+      ${jobFields}
+    }
   }
 }`;
 
@@ -73,5 +77,16 @@ export class SubquerySource extends SubgraphSource {
 
   async queryJobOwners() {
     return this.query(this.subgraphUrl, QUERY_JOB_OWNERS).then(res => res.jobOwners.nodes);
+  }
+
+  async queryJob(jobKey) {
+    return this.query(
+      this.subgraphUrl,
+      `{
+  job(id: "${jobKey}") {
+    ${jobFields}
+  }
+}`,
+    ).then(res => res.job);
   }
 }
