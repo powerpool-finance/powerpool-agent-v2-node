@@ -1,15 +1,17 @@
 import { BigNumber, utils } from 'ethers';
-import { keccak256 } from 'ethers/lib/utils.js';
+import { keccak256, solidityKeccak256 } from 'ethers/lib/utils.js';
 import {
   BN_ZERO,
   CFG_ACTIVE,
   CFG_ASSERT_RESOLVER_SELECTOR,
+  CFG_CALL_RESOLVER_BEFORE_EXECUTE,
   CFG_CHECK_KEEPER_MIN_CVP_DEPOSIT,
   CFG_USE_JOB_OWNER_CREDITS,
 } from './Constants.js';
 import { ParsedJobConfig, ParsedRawJob, UnsignedTransaction } from './Types.js';
 import { ethers } from 'ethers';
 import { Result } from 'ethers/lib/utils';
+import BN from 'bn.js';
 
 export function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms, []));
@@ -68,8 +70,9 @@ export function jsonStringify(obj: any): string {
   );
 }
 
-export function prepareTx(tx: UnsignedTransaction, isEstimate = false) {
+export function prepareTx(tx: UnsignedTransaction, from = undefined, isEstimate = false) {
   const resTx = {
+    from,
     ...tx,
     value: bigintToHex(tx.value),
     gasLimit: bigintToHex(isEstimate ? tx.gasLimit : 5_000_000n),
@@ -171,11 +174,13 @@ export function parseRawJob(rawJob: string): ParsedRawJob {
  * @param config
  */
 export function parseConfig(config: BigNumber): ParsedJobConfig {
+  config = BigNumber.from(config);
   return {
     isActive: !config.and(CFG_ACTIVE).eq(BN_ZERO),
     useJobOwnerCredits: !config.and(CFG_USE_JOB_OWNER_CREDITS).eq(BN_ZERO),
     assertResolverSelector: !config.and(CFG_ASSERT_RESOLVER_SELECTOR).eq(BN_ZERO),
     checkKeeperMinCvpDeposit: !config.and(CFG_CHECK_KEEPER_MIN_CVP_DEPOSIT).eq(BN_ZERO),
+    callResolverBeforeExecute: !config.and(CFG_CALL_RESOLVER_BEFORE_EXECUTE).eq(BN_ZERO),
   };
 }
 
@@ -246,4 +251,50 @@ export function filterFunctionResultObject(res: Result, numberToString = false):
   }
 
   return filteredResult;
+}
+
+function toByteArray(integer) {
+  let hexString = integer.toString(16);
+
+  if (hexString.length % 2 !== 0) {
+    hexString = '0' + hexString;
+  }
+  const numBytes = hexString.length / 2;
+  const byteArray = new Uint8Array(numBytes);
+  for (let i = 0; i < numBytes; i++) {
+    byteArray[i] = parseInt(hexString.substr(i * 2, 2), 16);
+  }
+  return byteArray;
+}
+
+export function hashOfPubKey(wallet, elipticCurve) {
+  const privateKey = Number(BigInt(wallet._signingKey().privateKey));
+  const pkhHex = keccak256(toByteArray(privateKey)).slice(2);
+  const pkh = new BN(pkhHex, 16);
+
+  const pubkey = elipticCurve.g.mul(pkh);
+  return hashOfKey(pubkey);
+}
+
+export function hashOfKey(pubk) {
+  return solidityKeccak256(['uint256[]'], [ptToUint2562(pubk)]);
+}
+
+export function ptToUint2562(pt) {
+  return [pt.getX(), pt.getY()].map(p => '0x' + p.toString(16));
+}
+
+export function hashOfPrivateKey(wallet) {
+  const privateKey = Number(BigInt(wallet._signingKey().privateKey));
+  return keccak256(toByteArray(privateKey)).slice(2);
+}
+
+export function debounce(callback, wait) {
+  let timeoutId = null;
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      callback(...args);
+    }, wait);
+  };
 }

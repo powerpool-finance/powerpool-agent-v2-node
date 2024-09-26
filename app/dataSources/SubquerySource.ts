@@ -2,9 +2,7 @@ import { SubgraphSource } from './SubgraphSource.js';
 import { Network } from '../Network.js';
 import { IAgent } from '../Types.js';
 
-export const QUERY_ALL_JOBS = `{
-  jobs(first: 1000) {
-  nodes {
+const jobFields = `
     id
     active
     jobAddress
@@ -31,7 +29,13 @@ export const QUERY_ALL_JOBS = `{
     jobNextKeeperId
     jobReservedSlasherId
     jobSlashingPossibleAfter
-  }
+`;
+
+export const QUERY_ALL_JOBS = `{
+  jobs(first: 1000) {
+    nodes {
+      ${jobFields}
+    }
   }
 }`;
 
@@ -57,13 +61,13 @@ export class SubquerySource extends SubgraphSource {
 
   async getBlocksDelay(): Promise<{ diff: bigint; nodeBlockNumber: bigint; sourceBlockNumber: bigint }> {
     const [latestBock, { _metadata }] = await Promise.all([
-      this.network.getLatestBlockNumber(),
+      this.network.queryLatestBlock().then(b => BigInt(b.number.toString())),
       this.query(this.subgraphUrl, QUERY_META),
     ]);
     return {
-      diff: latestBock - BigInt(_metadata.lastProcessedHeight),
-      nodeBlockNumber: latestBock,
-      sourceBlockNumber: latestBock,
+      diff: BigInt(latestBock) - BigInt(_metadata.lastProcessedHeight),
+      nodeBlockNumber: BigInt(latestBock),
+      sourceBlockNumber: BigInt(latestBock),
     };
   }
 
@@ -73,5 +77,16 @@ export class SubquerySource extends SubgraphSource {
 
   async queryJobOwners() {
     return this.query(this.subgraphUrl, QUERY_JOB_OWNERS).then(res => res.jobOwners.nodes);
+  }
+
+  async queryJob(jobKey) {
+    return this.query(
+      this.subgraphUrl,
+      `{
+  job(id: "${jobKey}") {
+    ${jobFields}
+  }
+}`,
+    ).then(res => res.job);
   }
 }

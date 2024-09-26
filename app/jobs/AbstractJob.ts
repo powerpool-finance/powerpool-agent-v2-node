@@ -173,6 +173,8 @@ export abstract class AbstractJob {
     this.details.selector = parsedJobData.selector;
     this.config = parseConfig(BigNumber.from(rawJob));
 
+    this.agent.removeJobFromBlacklist(this.key, 'applyBinJobData');
+
     return requiresRestart;
   }
 
@@ -188,6 +190,7 @@ export abstract class AbstractJob {
 
   public applyJobCreditsDeposit(credits: BigNumber) {
     this.details.credits = this.details.credits.add(credits);
+    this.agent.removeJobFromBlacklist(this.key, 'applyJobCreditsDeposit');
   }
 
   public applyJobCreditWithdrawal(credits: BigNumber) {
@@ -200,16 +203,19 @@ export abstract class AbstractJob {
 
   public applyResolver(resolverAddress: string, resolverCalldata: string) {
     this.resolver = { resolverAddress, resolverCalldata };
+    this.agent.removeJobFromBlacklist(this.key, 'applyResolver');
   }
 
   public applyPreDefinedCalldata(preDefinedCalldata: string) {
     this.preDefinedCalldata = preDefinedCalldata;
+    this.agent.removeJobFromBlacklist(this.key, 'applyPreDefinedCalldata');
   }
 
   public applyConfig(isActive: boolean, useJobOwnerCredits: boolean, assertResolverSelector: boolean) {
     this.config.isActive = isActive;
     this.config.useJobOwnerCredits = useJobOwnerCredits;
     this.config.assertResolverSelector = assertResolverSelector;
+    this.agent.removeJobFromBlacklist(this.key, 'applyConfig');
   }
 
   public applyOwner(owner: string) {
@@ -235,6 +241,7 @@ export abstract class AbstractJob {
     this.details.intervalSeconds = toNumber(intervalSeconds);
 
     this.jobLevelMinKeeperCvp = jobMinCvp;
+    this.agent.removeJobFromBlacklist(this.key, 'applyUpdate');
   }
 
   public unwatch() {
@@ -273,7 +280,7 @@ export abstract class AbstractJob {
       return;
     }
     if (!this.config.isActive) {
-      this.clog('debug', 'Ignoring a disabled job');
+      this.clog('debug', 'Ignoring a disabled (!isActive) job');
       return;
     }
 
@@ -301,7 +308,7 @@ export abstract class AbstractJob {
     return encodeExecute(this.address, this.id, this.agent.getCfg(), this.agent.getKeeperId());
   }
 
-  protected buildResolverCalldata(jobCalldata): string {
+  protected async buildResolverCalldata(jobCalldata): Promise<string> {
     return encodeExecute(this.address, this.id, this.agent.getCfg(), this.agent.getKeeperId(), jobCalldata);
   }
 
@@ -310,7 +317,16 @@ export abstract class AbstractJob {
       e.message &&
       (e.message.includes("sender doesn't have enough funds to send tx") ||
         e.message.includes('Tx not mined, max attempts') ||
-        e.message.includes('0xaf605803')) // OnlyCurrentSlasher
+        e.message.includes('Too many requests') ||
+        e.message.includes('InsufficientFunds') ||
+        e.message.toLowerCase().includes('insufficient funds') ||
+        e.message.includes('could not replace existing tx') ||
+        e.message.includes('replacement fee too low') ||
+        e.message.includes('replacement transaction underpriced') ||
+        e.message.includes('max fee per gas less than block base fee') ||
+        e.message.includes('intrinsic gas too low') ||
+        e.message.includes('0xaf605803') || // OnlyCurrentSlasher
+        e.message.includes('0xe096085e')) // IntervalNotReached
     );
   }
 
@@ -356,13 +372,18 @@ export abstract class AbstractJob {
         return 'Pre-Defined Calldata';
       case CALLDATA_SOURCE.RESOLVER:
         return 'Resolver';
+      case CALLDATA_SOURCE.OFFCHAIN:
+        return 'Offchain';
       default:
         throw this.err(`Invalid job calldata source: ${this.details.calldataSource}`);
     }
   }
 
   public getJobType(): JobType {
-    if (this.details.calldataSource === CALLDATA_SOURCE.RESOLVER) {
+    if (
+      this.details.calldataSource === CALLDATA_SOURCE.RESOLVER ||
+      this.details.calldataSource === CALLDATA_SOURCE.OFFCHAIN
+    ) {
       return JobType.Resolver;
     } else if (
       this.details.calldataSource === CALLDATA_SOURCE.PRE_DEFINED_CALLDATA ||
@@ -402,11 +423,31 @@ export abstract class AbstractJob {
   }
 
   public isResolverJob(): boolean {
-    return this.details.calldataSource === CALLDATA_SOURCE.RESOLVER;
+    return (
+      this.details.calldataSource === CALLDATA_SOURCE.RESOLVER ||
+      this.details.calldataSource === CALLDATA_SOURCE.OFFCHAIN
+    );
+  }
+
+  public isOffchainJob(): boolean {
+    return this.details.calldataSource === CALLDATA_SOURCE.OFFCHAIN;
   }
 
   public creditsSourceIsJobOwner(): boolean {
     return !!this.config.useJobOwnerCredits;
+  }
+
+  public getOffchainResolveParams(): object {
+    return {
+      resolverAddress: this.resolver.resolverAddress,
+      jobAddress: this.address,
+      jobId: this.id,
+      rpcUrl: this.network.getRpc(),
+      network: this.networkName,
+      agent: this.agentAddress,
+      chainId: this.network.getChainId(),
+      from: this.agent.getWorkerSignerAddress(),
+    };
   }
 
   public getStatusObjectForApi(): object {

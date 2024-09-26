@@ -26,6 +26,14 @@ export function getPPAgentV2_3_0_RandaoAbi(): ethers.ContractInterface {
   return getAbi('PPAgentV2.3.0.randao');
 }
 
+export function getPPAgentV2_5_0_RandaoAbi(): ethers.ContractInterface {
+  return getAbi('PPAgentV2.5.0.randao');
+}
+
+export function getPPAgentVersionInterface(): ethers.ContractInterface {
+  return getAbi('PPAgentVersionInterface');
+}
+
 export function getAbi(name): ethers.ContractInterface {
   if (!(name in abis)) {
     abis[name] = JSON.parse(

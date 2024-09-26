@@ -16,6 +16,7 @@ import {
   getDefaultNetworkConfig,
   getExternalLensAddress,
   getMulticall2Address,
+  getResolverCallSkipBlocksNumber,
   setConfigDefaultValues,
 } from './ConfigGetters.js';
 import { getExternalLensAbi, getMulticall2Abi } from './services/AbiService.js';
@@ -29,6 +30,8 @@ import { BlockchainSource } from './dataSources/BlockchainSource.js';
 import { SubquerySource } from './dataSources/SubquerySource.js';
 import { AgentRandao_2_3_0 } from './agents/Agent.2.3.0.randao.js';
 import { AgentLight_2_2_0 } from './agents/Agent.2.2.0.light.js';
+import axios from 'axios';
+import { AbstractJob } from './jobs/AbstractJob';
 
 interface ResolverJobWithCallback {
   lastSuccessBlock?: bigint;
@@ -55,6 +58,7 @@ export class Network {
   private agents: IAgent[];
   private resolverJobData: { [key: string]: ResolverJobWithCallback };
   private timeoutData: { [key: string]: TimeoutWithCallback };
+  private offchainResolverPending: { [key: string]: boolean };
   private multicall: ContractWrapper | undefined;
   private externalLens: ContractWrapper | undefined;
   private averageBlockTimeSeconds: number;
@@ -67,11 +71,13 @@ export class Network {
   private newBlockEventEmitter: EventEmitter;
   private contractEventsEmitter: ContractEventsEmitter;
 
+  private skipBlocksDivisor: number | null;
   private currentBlockDelay: number;
   private latestBaseFee: bigint;
   private agentsStartBlockNumber: bigint;
   private latestBlockNumber: bigint;
   private latestBlockTimestamp: bigint;
+  private onNewBlockTimeout: any;
 
   private toString(): string {
     return `(name: ${this.name}, rpc: ${this.rpc})`;
@@ -105,6 +111,13 @@ export class Network {
     this.multicall2Address = networkConfig.multicall2 || getMulticall2Address(name);
     this.newBlockEventEmitter = new EventEmitter();
     this.contractEventsEmitter = new ContractEventsEmitter(networkConfig.block_logs_mode);
+    this.skipBlocksDivisor = getResolverCallSkipBlocksNumber(name);
+    if (this.skipBlocksDivisor) {
+      this.clog(
+        'info',
+        `Resolver skip block activated. Jobs resolvers will be executed each ${this.skipBlocksDivisor} blocks.`,
+      );
+    }
 
     if (!this.rpc && !this.rpc.startsWith('ws')) {
       throw this.err(
@@ -114,6 +127,7 @@ export class Network {
 
     this.resolverJobData = {};
     this.timeoutData = {};
+    this.offchainResolverPending = {};
   }
 
   public nowS(): number {
@@ -166,15 +180,11 @@ export class Network {
   }
 
   // TODO: throttle node requests
-  public async getMaxPriorityFeePerGas(): Promise<number> {
+  public async queryMaxPriorityFeePerGas(): Promise<number> {
     return this.provider.send('eth_maxPriorityFeePerGas', []);
   }
 
-  public async getFeeData() {
-    return this.provider.getFeeData();
-  }
-
-  public async getClientVersion(): Promise<string> {
+  public async queryClientVersion(): Promise<string> {
     return this.provider.send('web3_clientVersion', []).catch(() => 'unknown');
   }
 
@@ -283,8 +293,10 @@ export class Network {
     this.multicall = this.contractWrapperFactory.build(this.multicall2Address, getMulticall2Abi());
     // TODO: initialize this after we know agent version and strategy
     this.externalLens = this.contractWrapperFactory.build(this.externalLensAddress, getExternalLensAbi());
-    this.provider.on('block', this._onNewBlockCallback.bind(this));
+    this.provider.on('block', this._onNewBlockCallbackSkipWrapper.bind(this));
     this.provider.on('reconnect', this._resyncAgents.bind(this));
+
+    this.contractEventsEmitter.setProvider(this.provider);
   }
 
   private fixProvider(provider) {
@@ -389,12 +401,10 @@ export class Network {
         blocks.forEach(block => this._handleNewBlock(block, before));
 
         if (this.contractEventsEmitter.blockLogsMode) {
-          this.contractEventsEmitter.emitByBlockLogs(
-            await this.provider.getLogs({
-              fromBlock: Number(this.agentsStartBlockNumber) + 1,
-              toBlock: Number(this.agentsStartBlockNumber) + count,
-            }),
-          );
+          this.contractEventsEmitter.emitByBlockQuery({
+            fromBlock: Number(this.agentsStartBlockNumber) + 1,
+            toBlock: Number(this.agentsStartBlockNumber) + count,
+          });
         }
 
         startBlockNumber += count;
@@ -434,6 +444,7 @@ export class Network {
   }
 
   private async _resyncAgents() {
+    this.latestBlockNumber = null;
     this.clog('info', `Resync agents on network: '${this.getName()}'`);
     for (const agent of this.getAgents()) {
       await agent.checkStatusAndResyncAllJobs();
@@ -459,11 +470,21 @@ export class Network {
     // this.agents = null;
   }
 
+  private async _onNewBlockCallbackSkipWrapper(blockNumber) {
+    // Skip every n blocks (_onNewBlockCallback will be triggered every n blocks)
+    if (this.skipBlocksDivisor !== null && Number(blockNumber) % this.skipBlocksDivisor !== 0) {
+      return;
+    }
+    await this._onNewBlockCallback(blockNumber).catch(e =>
+      this.clog('error', '_onNewBlockCallback error: ' + e.message + ', stack' + e.stack),
+    );
+  }
+
   private async _onNewBlockCallback(blockNumber) {
     blockNumber = BigInt(blockNumber.toString());
     const before = this.nowMs();
 
-    const oldLatestBlockNumber = this.latestBlockNumber;
+    const oldLatestBlockNumber = this.latestBlockNumber ? BigInt(this.latestBlockNumber) : null;
     if (this.latestBlockNumber && blockNumber <= this.latestBlockNumber) {
       return null;
     }
@@ -483,11 +504,17 @@ export class Network {
     this._walkThroughTheJobs(block.number, block.timestamp);
 
     if (this.contractEventsEmitter.blockLogsMode) {
-      const fromBlock = bigintToHex(blockNumber);
-      this.contractEventsEmitter.emitByBlockLogs(await this.provider.getLogs({ fromBlock, toBlock: fromBlock }));
+      const blocksDiff = oldLatestBlockNumber ? blockNumber - oldLatestBlockNumber : 0n;
+      const fromBlock = bigintToHex(blocksDiff > 1n ? oldLatestBlockNumber + 1n : blockNumber);
+      const toBlock = bigintToHex(blockNumber);
+      this.contractEventsEmitter.emitByBlockQuery({ fromBlock, toBlock });
     }
 
-    setTimeout(async () => {
+    if (this.latestBlockNumber < blockNumber) {
+      this.onNewBlockTimeout && clearTimeout(this.onNewBlockTimeout);
+    }
+
+    this.onNewBlockTimeout = setTimeout(async () => {
       if (this.latestBlockNumber > blockNumber) {
         return;
       }
@@ -577,25 +604,64 @@ export class Network {
       // TODO: let this.provider to be executed when making chunk requests;
     }
     if (callbacks.length === 0) {
+      this.clog('debug', 'CallResolvers: no resolvers to call');
       return;
     }
 
-    const results = await this.queryPollResolvers(false, resolversToCall);
-    let jobsToExecute = 0;
+    this.clog('debug', `CallResolvers: Polling ${resolversToCall.length} resolvers...`);
+    let results = null,
+      jobsToExecute = 0;
+    try {
+      results = await this.queryPollResolvers(false, resolversToCall, this.agents[0].getWorkerSignerAddress());
+    } catch (e) {
+      this.clog('error', `queryPollResolvers error: ${e.message}`);
+      return;
+    }
+    // this.clog('debug', `CallResolvers: Polling resolver results: ${JSON.stringify(results)}`);
 
     for (let i = 0; i < results.length; i++) {
-      const decoded = results[i].success
-        ? ethers.utils.defaultAbiCoder.decode(['bool', 'bytes'], results[i].returnData)
-        : [false];
       const { jobKey } = resolversToCall[i];
+      const agent = this.getAgent(jobKey.split('/')[0]);
+      let decoded;
+      try {
+        decoded = results[i].success
+          ? ethers.utils.defaultAbiCoder.decode(['bool', 'bytes'], results[i].returnData)
+          : [false];
+      } catch (e) {
+        this.clog('error', `Resolver ${jobKey} decode error: ${e.message}, returnData: ${results[i].returnData}`);
+        agent.addJobToBlacklist(jobKey, `Resolver decode error: ${e.message}`);
+        this.unregisterResolver(jobKey);
+        continue;
+      }
+      // this.clog('debug', `CallResolvers: Job ${jobKey} resolver returned: ${decoded[0]}`);
       const job = this.resolverJobData[jobKey];
       if (this.latestBlockNumber > job.lastSuccessBlock) {
         job.lastSuccessBlock = decoded[0] ? this.latestBlockNumber : 0n;
         job.successCounter = decoded[0] ? job.successCounter + 1 : 0;
       }
       if (decoded[0] && job.successCounter >= this.networkConfig.resolve_min_success_count) {
-        callbacks[i](blockNumber, decoded[1]);
-        jobsToExecute += 1;
+        const job = await agent.getJob(jobKey.split('/')[1]);
+        if (job.isOffchainJob()) {
+          if (this.offchainResolverPending[jobKey]) {
+            this.clog('debug', `CallResolvers: Waiting ${jobKey} to finish...`);
+            continue;
+          }
+          try {
+            this.offchainResolverPending[jobKey] = true;
+            callbacks[i](blockNumber, await this.getOffchainResolveCalldata(job, decoded[1]));
+            jobsToExecute += 1;
+          } catch (e) {
+            this.clog('error', `method: getOffchainResolveCalldata, jobKey: ${jobKey}, error message: ${e.message}`);
+            if (e.message.includes('Max execution time')) {
+              agent.addJobToBlacklist(jobKey, e.message);
+              this.unregisterResolver(jobKey);
+            }
+          }
+          delete this.offchainResolverPending[jobKey];
+        } else {
+          callbacks[i](blockNumber, decoded[1]);
+          jobsToExecute += 1;
+        }
       }
     }
 
@@ -603,6 +669,17 @@ export class Network {
       'debug',
       `Block ${blockNumber} resolver estimation results: (resolversToCall=${resolversToCall.length},jobsToExecute=${jobsToExecute})`,
     );
+  }
+
+  private async getOffchainResolveCalldata(job: AbstractJob, resolverCalldata) {
+    const offchainServiceEndpoint = process.env.OFFCHAIN_SERVICE_ENDPOINT || 'http://offchain-service:3423';
+    const params = job.getOffchainResolveParams();
+    return axios
+      .post(`${offchainServiceEndpoint}/offchain-resolve/${params['resolverAddress']}`, {
+        resolverCalldata,
+        ...params,
+      })
+      .then(r => r.data.resultCalldata);
   }
 
   private _validateKeyLength(key: string, type: string): void {
@@ -640,6 +717,7 @@ export class Network {
   }
 
   public registerResolver(key: string, resolver: Resolver, callback: (calldata: string) => void) {
+    this.clog('debug', 'SET Resolver', key);
     this._validateKeyLength(key, 'resolver');
     this._validateKeyNotInMap(key, this.resolverJobData, 'resolver');
     this.resolverJobData[key] = {
@@ -651,13 +729,14 @@ export class Network {
   }
 
   public unregisterResolver(key: string) {
+    this.clog('debug', 'UNSET Resolver', key);
     this._validateKeyLength(key, 'resolver');
     delete this.resolverJobData[key];
   }
 
-  // public async queryGasPrice(): Promise<number> {
-  //   return (await this.provider.getGasPrice()).toNumber();
-  // }
+  public async queryGasPrice(): Promise<bigint> {
+    return BigInt((await this.provider.getGasPrice()).toString());
+  }
 
   public async queryBlock(number): Promise<ethers.providers.Block> {
     return this.provider.getBlock(parseInt(number.toString())).catch(e => {
@@ -674,8 +753,8 @@ export class Network {
     return (await this.provider.getNetwork()).chainId;
   }
 
-  public async queryPollResolvers(bl: boolean, resolversToCall: any[]): Promise<any> {
-    return this.multicall.ethCallStatic('tryAggregate', [false, resolversToCall]);
+  public async queryPollResolvers(bl: boolean, resolversToCall: any[], from: string): Promise<any> {
+    return this.multicall.ethCallStatic('tryAggregate', [false, resolversToCall], { from });
   }
 
   public async queryLensJobsRawBytes32(agent: string, jobKey: string): Promise<string> {

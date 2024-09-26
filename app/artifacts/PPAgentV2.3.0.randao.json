@@ -1,3177 +1,3174 @@
 [
   {
+    "type": "constructor",
     "inputs": [
       {
-        "internalType": "address",
         "name": "cvp_",
-        "type": "address"
+        "type": "address",
+        "internalType": "address"
       }
     ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
+    "stateMutability": "nonpayable"
   },
   {
-    "inputs": [],
-    "name": "ActivationNotInitiated",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "wanted",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "actualStake",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "actualSlashedStake",
-        "type": "uint256"
-      }
-    ],
-    "name": "AmountGtStake",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "AssignedKeeperCantSlash",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "baseFee",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "jobMaxBaseFeeGwei",
-        "type": "uint256"
-      }
-    ],
-    "name": "BaseFeeGtGasPrice",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "CantAssignKeeper",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "CantRelease",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "CreditsDepositOverflow",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "CreditsWithdrawalUnderflow",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ExecutionReentrancyLocked",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "FeeTooBig",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "jobKey",
-        "type": "bytes32"
-      }
-    ],
-    "name": "InactiveJob",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InactiveKeeper",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InitiateSlashingUnexpectedError",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InsufficientAmount",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "wanted",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "actual",
-        "type": "uint256"
-      }
-    ],
-    "name": "InsufficientAmountToCoverSlashedStake",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "actual",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "wanted",
-        "type": "uint256"
-      }
-    ],
-    "name": "InsufficientJobCredits",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "actual",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "wanted",
-        "type": "uint256"
-      }
-    ],
-    "name": "InsufficientJobOwnerCredits",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InsufficientJobScopedKeeperStake",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InsufficientKeeperStake",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "jobKey",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "uint256",
-        "name": "assignedKeeperId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "keeperCurrentStake",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amountToSlash",
-        "type": "uint256"
-      }
-    ],
-    "name": "InsufficientKeeperStakeToSlash",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "lastExecutedAt",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "interval",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_now",
-        "type": "uint256"
-      }
-    ],
-    "name": "IntervalNotReached",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidCalldataSource",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidJobAddress",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidKeeperId",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidMinKeeperCvp",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidPeriod1",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidPeriod2",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidSlashingFeeFixedCVP",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidStakeDivisor",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "JobCallRevertedWithoutDetails",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes",
-        "name": "returndata",
-        "type": "bytes"
-      }
-    ],
-    "name": "JobCheckCanBeExecuted",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes",
-        "name": "errReason",
-        "type": "bytes"
-      }
-    ],
-    "name": "JobCheckCanNotBeExecuted",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "JobCheckResolverReturnedFalse",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "JobCompensationMultiplierBpsLT10000",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "keeperId",
-        "type": "uint256"
-      }
-    ],
-    "name": "JobHasKeeperAssigned",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "JobHasNoKeeperAssigned",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "JobIdOverflow",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "JobShouldHaveInterval",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "JobWithoutOwner",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "KeeperIsAlreadyActive",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "KeeperIsAlreadyInactive",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "amountOfJobs",
-        "type": "uint256"
-      }
-    ],
-    "name": "KeeperIsAssignedToJobs",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "KeeperShouldBeDisabledForStakeLTMinKeeperCvp",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "KeeperWorkerNotAuthorized",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "MissingAmount",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "MissingDeposit",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "MissingInputCalldata",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "MissingJobAddress",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "MissingMaxBaseFeeGwei",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "MissingResolverAddress",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "NoFixedNorPremiumPctReward",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "NoPendingWithdrawal",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "NonEOASender",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "NonIntervalJob",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "NotSupportedByJobCalldataSource",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "expectedSlasherId",
-        "type": "uint256"
-      }
-    ],
-    "name": "OnlyCurrentSlasher",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "OnlyJobOwner",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "OnlyKeeperAdmin",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "OnlyKeeperAdminOrJobOwner",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "OnlyKeeperAdminOrWorker",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "assignedKeeperId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "lastExecutedAt",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "interval",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slashingInterval",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_now",
-        "type": "uint256"
-      }
-    ],
-    "name": "OnlyNextKeeper",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "OnlyOwner",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "OnlyPendingOwner",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "reservedSlasherId",
-        "type": "uint256"
-      }
-    ],
-    "name": "OnlyReservedSlasher",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ResolverJobCantHaveInterval",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "SelectorCheckFailed",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "SlashingBpsGt5000Bps",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "SlashingEpochBlocksTooLow",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "SlashingNotInitiated",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "SlashingNotInitiatedExecutionReverted",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "StakeAmountOverflow",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "TimeoutTooBig",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "now",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "availableAt",
-        "type": "uint256"
-      }
-    ],
-    "name": "TooEarlyForActivationFinalization",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "now_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "possibleAfter",
-        "type": "uint256"
-      }
-    ],
-    "name": "TooEarlyForSlashing",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "TooEarlyToReinitiateSlashing",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "jobKey",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "uint256",
-        "name": "period2End",
-        "type": "uint256"
-      }
-    ],
-    "name": "TooEarlyToRelease",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "UnableToDecodeResolverResponse",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "UnexpectedCodeBlock",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "wanted",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "actual",
-        "type": "uint256"
-      }
-    ],
-    "name": "WithdrawAmountExceedsAvailable",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "WithdrawalTimoutNotReached",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "WorkerAlreadyAssigned",
-    "type": "error"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "jobKey_",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "to_",
-        "type": "address"
-      }
-    ],
-    "name": "AcceptJobTransfer",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "jobKey",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "depositor",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "fee",
-        "type": "uint256"
-      }
-    ],
-    "name": "DepositJobCredits",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "jobOwner",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "depositor",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "fee",
-        "type": "uint256"
-      }
-    ],
-    "name": "DepositJobOwnerCredits",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "keeperId",
-        "type": "uint256"
-      }
-    ],
-    "name": "DisableKeeper",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "jobKey",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "job",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "keeperId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "gasUsed",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "baseFee",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "gasPrice",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "compensation",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes32",
-        "name": "binJobAfter",
-        "type": "bytes32"
-      }
-    ],
-    "name": "Execute",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "jobKey",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "assignedKeeperId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "actualKeeperId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes",
-        "name": "executionReturndata",
-        "type": "bytes"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "compensation",
-        "type": "uint256"
-      }
-    ],
-    "name": "ExecutionReverted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "keeperId",
-        "type": "uint256"
-      }
-    ],
-    "name": "FinalizeKeeperActivation",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "keeperId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "beneficiary",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "FinalizeRedeem",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint8",
-        "name": "version",
-        "type": "uint8"
-      }
-    ],
-    "name": "Initialized",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "jobKey",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "from",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      }
-    ],
-    "name": "InitiateJobTransfer",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "keeperId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "canBeFinalizedAt",
-        "type": "uint256"
-      }
-    ],
-    "name": "InitiateKeeperActivation",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "jobKey",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "slasherKeeperId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bool",
-        "name": "useResolver",
-        "type": "bool"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "jobSlashingPossibleAfter",
-        "type": "uint256"
-      }
-    ],
-    "name": "InitiateKeeperSlashing",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "keeperId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "redeemAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "stakeAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "slashedStakeAmount",
-        "type": "uint256"
-      }
-    ],
-    "name": "InitiateRedeem",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "jobKey",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "keeperFrom",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "keeperTo",
-        "type": "uint256"
-      }
-    ],
-    "name": "JobKeeperChanged",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "jobKey",
-        "type": "bytes32"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "maxBaseFeeGwei",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "rewardPct",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "fixedReward",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "jobMinCvp",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "intervalSeconds",
-        "type": "uint256"
-      }
-    ],
-    "name": "JobUpdate",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "keeperId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "currentAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "pendingAmount",
-        "type": "uint256"
-      }
-    ],
-    "name": "OwnerSlash",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "previousOwner",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "newOwner",
-        "type": "address"
-      }
-    ],
-    "name": "OwnershipTransferred",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "keeperId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "keeperAdmin",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "keeperWorker",
-        "type": "address"
-      }
-    ],
-    "name": "RegisterAsKeeper",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "jobKey",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "jobAddress",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "jobId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "owner",
-        "type": "address"
-      },
-      {
-        "components": [
-          {
-            "internalType": "address",
-            "name": "jobAddress",
-            "type": "address"
-          },
-          {
-            "internalType": "bytes4",
-            "name": "jobSelector",
-            "type": "bytes4"
-          },
-          {
-            "internalType": "bool",
-            "name": "useJobOwnerCredits",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "assertResolverSelector",
-            "type": "bool"
-          },
-          {
-            "internalType": "uint16",
-            "name": "maxBaseFeeGwei",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint16",
-            "name": "rewardPct",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint32",
-            "name": "fixedReward",
-            "type": "uint32"
-          },
-          {
-            "internalType": "uint256",
-            "name": "jobMinCvp",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint8",
-            "name": "calldataSource",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint24",
-            "name": "intervalSeconds",
-            "type": "uint24"
-          }
-        ],
-        "indexed": false,
-        "internalType": "struct IPPAgentV2JobOwner.RegisterJobParams",
-        "name": "params",
-        "type": "tuple"
-      }
-    ],
-    "name": "RegisterJob",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "minKeeperCvp_",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "timeoutSeconds_",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "feePpm_",
-        "type": "uint256"
-      }
-    ],
-    "name": "SetAgentParams",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "jobKey",
-        "type": "bytes32"
-      },
-      {
-        "indexed": false,
-        "internalType": "bool",
-        "name": "isActive_",
-        "type": "bool"
-      },
-      {
-        "indexed": false,
-        "internalType": "bool",
-        "name": "useJobOwnerCredits_",
-        "type": "bool"
-      },
-      {
-        "indexed": false,
-        "internalType": "bool",
-        "name": "assertResolverSelector_",
-        "type": "bool"
-      }
-    ],
-    "name": "SetJobConfig",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "jobKey",
-        "type": "bytes32"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes",
-        "name": "preDefinedCalldata",
-        "type": "bytes"
-      }
-    ],
-    "name": "SetJobPreDefinedCalldata",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "jobKey",
-        "type": "bytes32"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "resolverAddress",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes",
-        "name": "resolverCalldata",
-        "type": "bytes"
-      }
-    ],
-    "name": "SetJobResolver",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint8",
-            "name": "slashingEpochBlocks",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint24",
-            "name": "period1",
-            "type": "uint24"
-          },
-          {
-            "internalType": "uint16",
-            "name": "period2",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint24",
-            "name": "slashingFeeFixedCVP",
-            "type": "uint24"
-          },
-          {
-            "internalType": "uint16",
-            "name": "slashingFeeBps",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint16",
-            "name": "jobMinCreditsFinney",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint40",
-            "name": "agentMaxCvpStake",
-            "type": "uint40"
-          },
-          {
-            "internalType": "uint16",
-            "name": "jobCompensationMultiplierBps",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint32",
-            "name": "stakeDivisor",
-            "type": "uint32"
-          },
-          {
-            "internalType": "uint8",
-            "name": "keeperActivationTimeoutHours",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint16",
-            "name": "jobFixedRewardFinney",
-            "type": "uint16"
-          }
-        ],
-        "indexed": false,
-        "internalType": "struct IPPAgentV2RandaoViewer.RandaoConfig",
-        "name": "rdConfig",
-        "type": "tuple"
-      }
-    ],
-    "name": "SetRdConfig",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "keeperId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "prev",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "worker",
-        "type": "address"
-      }
-    ],
-    "name": "SetWorkerAddress",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "jobKey",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "assignedKeeperId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "actualKeeperId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "fixedSlashAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "dynamicSlashAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "slashAmountMissing",
-        "type": "uint256"
-      }
-    ],
-    "name": "SlashKeeper",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "keeperId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "staker",
-        "type": "address"
-      }
-    ],
-    "name": "Stake",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "keeperId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "WithdrawCompensation",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "WithdrawFees",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "jobKey",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "owner",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "WithdrawJobCredits",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "jobOwner",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "WithdrawJobOwnerCredits",
-    "type": "event"
-  },
-  {
-    "inputs": [],
+    "type": "function",
     "name": "CVP",
+    "inputs": [],
     "outputs": [
       {
-        "internalType": "address",
         "name": "",
-        "type": "address"
+        "type": "address",
+        "internalType": "address"
       }
     ],
-    "stateMutability": "view",
-    "type": "function"
+    "stateMutability": "view"
   },
   {
-    "inputs": [],
+    "type": "function",
     "name": "VERSION",
+    "inputs": [],
     "outputs": [
       {
-        "internalType": "string",
         "name": "",
-        "type": "string"
+        "type": "string",
+        "internalType": "string"
       }
     ],
-    "stateMutability": "view",
-    "type": "function"
+    "stateMutability": "view"
   },
   {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "jobKey_",
-        "type": "bytes32"
-      }
-    ],
+    "type": "function",
     "name": "acceptJobTransfer",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
-        "internalType": "bytes32[]",
-        "name": "jobKeys_",
-        "type": "bytes32[]"
+        "name": "jobKey_",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "assignKeeper",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
-        "internalType": "bool",
-        "name": "ok_",
-        "type": "bool"
-      },
-      {
-        "internalType": "uint256",
-        "name": "job_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "keeperId_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "baseFee_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "gasUsed_",
-        "type": "uint256"
-      }
-    ],
-    "name": "calculateCompensation",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "rewardPct_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "fixedReward_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "blockBaseFee_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "gasUsed_",
-        "type": "uint256"
-      }
-    ],
-    "name": "calculateCompensationPure",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "jobAddress_",
-        "type": "address"
-      },
-      {
-        "internalType": "bytes",
-        "name": "jobCalldata_",
-        "type": "bytes"
-      }
-    ],
-    "name": "checkCouldBeExecuted",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "jobKey_",
-        "type": "bytes32"
-      }
-    ],
-    "name": "depositJobCredits",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "for_",
-        "type": "address"
-      }
-    ],
-    "name": "depositJobOwnerCredits",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "for_",
-        "type": "address"
-      },
-      {
-        "internalType": "bytes32[]",
         "name": "jobKeys_",
-        "type": "bytes32[]"
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
       }
     ],
-    "name": "depositJobOwnerCreditsAndAssignKeepers",
     "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
+    "stateMutability": "nonpayable"
   },
   {
+    "type": "function",
+    "name": "calculateCompensation",
     "inputs": [
       {
-        "internalType": "uint256",
+        "name": "ok_",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "job_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
         "name": "keeperId_",
-        "type": "uint256"
-      }
-    ],
-    "name": "disableKeeper",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "execute_44g58pv",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "keeperId_",
-        "type": "uint256"
-      }
-    ],
-    "name": "finalizeKeeperActivation",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "keeperId_",
-        "type": "uint256"
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        "internalType": "address",
-        "name": "to_",
-        "type": "address"
+        "name": "baseFee_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "gasUsed_",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
-    "name": "finalizeRedeem",
     "outputs": [
       {
-        "internalType": "uint256",
-        "name": "redeemedCvp",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getActiveKeepers",
-    "outputs": [
-      {
-        "internalType": "uint256[]",
         "name": "",
-        "type": "uint256[]"
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
-    "stateMutability": "view",
-    "type": "function"
+    "stateMutability": "view"
   },
   {
-    "inputs": [],
-    "name": "getActiveKeepersLength",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getConfig",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "minKeeperCvp_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "pendingWithdrawalTimeoutSeconds_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "feeTotal_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "feePpm_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "lastKeeperId_",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
+    "type": "function",
+    "name": "calculateCompensationPure",
     "inputs": [
       {
-        "internalType": "bytes32",
-        "name": "jobKey_",
-        "type": "bytes32"
-      }
-    ],
-    "name": "getCurrentSlasherId",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "jobKey_",
-        "type": "bytes32"
-      }
-    ],
-    "name": "getJob",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "owner",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "pendingTransfer",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "jobLevelMinKeeperCvp",
-        "type": "uint256"
-      },
-      {
-        "components": [
-          {
-            "internalType": "uint8",
-            "name": "config",
-            "type": "uint8"
-          },
-          {
-            "internalType": "bytes4",
-            "name": "selector",
-            "type": "bytes4"
-          },
-          {
-            "internalType": "uint88",
-            "name": "credits",
-            "type": "uint88"
-          },
-          {
-            "internalType": "uint16",
-            "name": "maxBaseFeeGwei",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint16",
-            "name": "rewardPct",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint32",
-            "name": "fixedReward",
-            "type": "uint32"
-          },
-          {
-            "internalType": "uint8",
-            "name": "calldataSource",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint24",
-            "name": "intervalSeconds",
-            "type": "uint24"
-          },
-          {
-            "internalType": "uint32",
-            "name": "lastExecutionAt",
-            "type": "uint32"
-          }
-        ],
-        "internalType": "struct IPPAgentV2Viewer.Job",
-        "name": "details",
-        "type": "tuple"
-      },
-      {
-        "internalType": "bytes",
-        "name": "preDefinedCalldata",
-        "type": "bytes"
-      },
-      {
-        "components": [
-          {
-            "internalType": "address",
-            "name": "resolverAddress",
-            "type": "address"
-          },
-          {
-            "internalType": "bytes",
-            "name": "resolverCalldata",
-            "type": "bytes"
-          }
-        ],
-        "internalType": "struct IPPAgentV2Viewer.Resolver",
-        "name": "resolver",
-        "type": "tuple"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "jobAddress_",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "jobId_",
-        "type": "uint256"
-      }
-    ],
-    "name": "getJobKey",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "jobKey",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "jobKey_",
-        "type": "bytes32"
-      }
-    ],
-    "name": "getJobRaw",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "rawJob",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "keeperId_",
-        "type": "uint256"
-      }
-    ],
-    "name": "getJobsAssignedToKeeper",
-    "outputs": [
-      {
-        "internalType": "bytes32[]",
-        "name": "actualJobKeys",
-        "type": "bytes32[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "keeperId_",
-        "type": "uint256"
-      }
-    ],
-    "name": "getJobsAssignedToKeeperLength",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "keeperId_",
-        "type": "uint256"
-      }
-    ],
-    "name": "getKeeper",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "admin",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "worker",
-        "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "isActive",
-        "type": "bool"
-      },
-      {
-        "internalType": "uint256",
-        "name": "currentStake",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slashedStake",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "compensation",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "pendingWithdrawalAmount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "pendingWithdrawalEndAt",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "keeperId_",
-        "type": "uint256"
-      }
-    ],
-    "name": "getKeeperWorkerAndStake",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "worker",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "currentStake",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bool",
-        "name": "isActive",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getRdConfig",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint8",
-            "name": "slashingEpochBlocks",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint24",
-            "name": "period1",
-            "type": "uint24"
-          },
-          {
-            "internalType": "uint16",
-            "name": "period2",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint24",
-            "name": "slashingFeeFixedCVP",
-            "type": "uint24"
-          },
-          {
-            "internalType": "uint16",
-            "name": "slashingFeeBps",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint16",
-            "name": "jobMinCreditsFinney",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint40",
-            "name": "agentMaxCvpStake",
-            "type": "uint40"
-          },
-          {
-            "internalType": "uint16",
-            "name": "jobCompensationMultiplierBps",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint32",
-            "name": "stakeDivisor",
-            "type": "uint32"
-          },
-          {
-            "internalType": "uint8",
-            "name": "keeperActivationTimeoutHours",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint16",
-            "name": "jobFixedRewardFinney",
-            "type": "uint16"
-          }
-        ],
-        "internalType": "struct IPPAgentV2RandaoViewer.RandaoConfig",
-        "name": "",
-        "type": "tuple"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "blockNumber_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "jobKey_",
-        "type": "bytes32"
-      }
-    ],
-    "name": "getSlasherIdByBlock",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getStrategy",
-    "outputs": [
-      {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
-      }
-    ],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "owner_",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "minKeeperCvp_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "pendingWithdrawalTimeoutSeconds_",
-        "type": "uint256"
-      }
-    ],
-    "name": "initialize",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "owner_",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "minKeeperCvp_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "pendingWithdrawalTimeoutSeconds_",
-        "type": "uint256"
-      },
-      {
-        "components": [
-          {
-            "internalType": "uint8",
-            "name": "slashingEpochBlocks",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint24",
-            "name": "period1",
-            "type": "uint24"
-          },
-          {
-            "internalType": "uint16",
-            "name": "period2",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint24",
-            "name": "slashingFeeFixedCVP",
-            "type": "uint24"
-          },
-          {
-            "internalType": "uint16",
-            "name": "slashingFeeBps",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint16",
-            "name": "jobMinCreditsFinney",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint40",
-            "name": "agentMaxCvpStake",
-            "type": "uint40"
-          },
-          {
-            "internalType": "uint16",
-            "name": "jobCompensationMultiplierBps",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint32",
-            "name": "stakeDivisor",
-            "type": "uint32"
-          },
-          {
-            "internalType": "uint8",
-            "name": "keeperActivationTimeoutHours",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint16",
-            "name": "jobFixedRewardFinney",
-            "type": "uint16"
-          }
-        ],
-        "internalType": "struct IPPAgentV2RandaoViewer.RandaoConfig",
-        "name": "rdConfig_",
-        "type": "tuple"
-      }
-    ],
-    "name": "initializeRandao",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "jobKey_",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "address",
-        "name": "to_",
-        "type": "address"
-      }
-    ],
-    "name": "initiateJobTransfer",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "keeperId_",
-        "type": "uint256"
-      }
-    ],
-    "name": "initiateKeeperActivation",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "jobAddress_",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "jobId_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slasherKeeperId_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bool",
-        "name": "useResolver_",
-        "type": "bool"
-      },
-      {
-        "internalType": "bytes",
-        "name": "jobCalldata_",
-        "type": "bytes"
-      }
-    ],
-    "name": "initiateKeeperSlashing",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "keeperId_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount_",
-        "type": "uint256"
-      }
-    ],
-    "name": "initiateRedeem",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "pendingWithdrawalAfter",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "name": "jobCreatedAt",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "jobLastIds",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "name": "jobNextKeeperId",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "jobOwnerCredits",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "name": "jobReservedSlasherId",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "name": "jobSlashingPossibleAfter",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "keeperActivationCanBeFinalizedAt",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "owner",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "keeperId_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "to_",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "currentAmount_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "pendingAmount_",
-        "type": "uint256"
-      }
-    ],
-    "name": "ownerSlash",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "keeperId_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "to_",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "currentAmount_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "pendingAmount_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bool",
-        "name": "disable_",
-        "type": "bool"
-      }
-    ],
-    "name": "ownerSlashDisable",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "worker_",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "initialDepositAmount_",
-        "type": "uint256"
-      }
-    ],
-    "name": "registerAsKeeper",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "keeperId",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "address",
-            "name": "jobAddress",
-            "type": "address"
-          },
-          {
-            "internalType": "bytes4",
-            "name": "jobSelector",
-            "type": "bytes4"
-          },
-          {
-            "internalType": "bool",
-            "name": "useJobOwnerCredits",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "assertResolverSelector",
-            "type": "bool"
-          },
-          {
-            "internalType": "uint16",
-            "name": "maxBaseFeeGwei",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint16",
-            "name": "rewardPct",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint32",
-            "name": "fixedReward",
-            "type": "uint32"
-          },
-          {
-            "internalType": "uint256",
-            "name": "jobMinCvp",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint8",
-            "name": "calldataSource",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint24",
-            "name": "intervalSeconds",
-            "type": "uint24"
-          }
-        ],
-        "internalType": "struct IPPAgentV2JobOwner.RegisterJobParams",
-        "name": "params_",
-        "type": "tuple"
-      },
-      {
-        "components": [
-          {
-            "internalType": "address",
-            "name": "resolverAddress",
-            "type": "address"
-          },
-          {
-            "internalType": "bytes",
-            "name": "resolverCalldata",
-            "type": "bytes"
-          }
-        ],
-        "internalType": "struct IPPAgentV2Viewer.Resolver",
-        "name": "resolver_",
-        "type": "tuple"
-      },
-      {
-        "internalType": "bytes",
-        "name": "preDefinedCalldata_",
-        "type": "bytes"
-      }
-    ],
-    "name": "registerJob",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "jobKey",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "uint256",
-        "name": "jobId",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "jobKey_",
-        "type": "bytes32"
-      }
-    ],
-    "name": "releaseJob",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "renounceOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "minKeeperCvp_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "timeoutSeconds_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "feePpm_",
-        "type": "uint256"
-      }
-    ],
-    "name": "setAgentParams",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "jobKey_",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "bool",
-        "name": "isActive_",
-        "type": "bool"
-      },
-      {
-        "internalType": "bool",
-        "name": "useJobOwnerCredits_",
-        "type": "bool"
-      },
-      {
-        "internalType": "bool",
-        "name": "assertResolverSelector_",
-        "type": "bool"
-      }
-    ],
-    "name": "setJobConfig",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "jobKey_",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "bytes",
-        "name": "preDefinedCalldata_",
-        "type": "bytes"
-      }
-    ],
-    "name": "setJobPreDefinedCalldata",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "jobKey_",
-        "type": "bytes32"
-      },
-      {
-        "components": [
-          {
-            "internalType": "address",
-            "name": "resolverAddress",
-            "type": "address"
-          },
-          {
-            "internalType": "bytes",
-            "name": "resolverCalldata",
-            "type": "bytes"
-          }
-        ],
-        "internalType": "struct IPPAgentV2Viewer.Resolver",
-        "name": "resolver_",
-        "type": "tuple"
-      }
-    ],
-    "name": "setJobResolver",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint8",
-            "name": "slashingEpochBlocks",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint24",
-            "name": "period1",
-            "type": "uint24"
-          },
-          {
-            "internalType": "uint16",
-            "name": "period2",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint24",
-            "name": "slashingFeeFixedCVP",
-            "type": "uint24"
-          },
-          {
-            "internalType": "uint16",
-            "name": "slashingFeeBps",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint16",
-            "name": "jobMinCreditsFinney",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint40",
-            "name": "agentMaxCvpStake",
-            "type": "uint40"
-          },
-          {
-            "internalType": "uint16",
-            "name": "jobCompensationMultiplierBps",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint32",
-            "name": "stakeDivisor",
-            "type": "uint32"
-          },
-          {
-            "internalType": "uint8",
-            "name": "keeperActivationTimeoutHours",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint16",
-            "name": "jobFixedRewardFinney",
-            "type": "uint16"
-          }
-        ],
-        "internalType": "struct IPPAgentV2RandaoViewer.RandaoConfig",
-        "name": "rdConfig_",
-        "type": "tuple"
-      }
-    ],
-    "name": "setRdConfig",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "keeperId_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "worker_",
-        "type": "address"
-      }
-    ],
-    "name": "setWorkerAddress",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "jobKey_",
-        "type": "bytes32"
-      }
-    ],
-    "name": "shouldAssignKeeper",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "keeperId_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount_",
-        "type": "uint256"
-      }
-    ],
-    "name": "stake",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "newOwner",
-        "type": "address"
-      }
-    ],
-    "name": "transferOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "jobKey_",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "uint16",
-        "name": "maxBaseFeeGwei_",
-        "type": "uint16"
-      },
-      {
-        "internalType": "uint16",
         "name": "rewardPct_",
-        "type": "uint16"
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        "internalType": "uint32",
         "name": "fixedReward_",
-        "type": "uint32"
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        "internalType": "uint256",
-        "name": "jobMinCvp_",
-        "type": "uint256"
+        "name": "blockBaseFee_",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        "internalType": "uint24",
-        "name": "intervalSeconds_",
-        "type": "uint24"
+        "name": "gasUsed_",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
-    "name": "updateJob",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "keeperId_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address payable",
-        "name": "to_",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount_",
-        "type": "uint256"
-      }
-    ],
-    "name": "withdrawCompensation",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address payable",
-        "name": "to_",
-        "type": "address"
-      }
-    ],
-    "name": "withdrawFees",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "jobKey_",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "address payable",
-        "name": "to_",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount_",
-        "type": "uint256"
-      }
-    ],
-    "name": "withdrawJobCredits",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address payable",
-        "name": "to_",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount_",
-        "type": "uint256"
-      }
-    ],
-    "name": "withdrawJobOwnerCredits",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "workerKeeperIds",
     "outputs": [
       {
-        "internalType": "uint256",
         "name": "",
-        "type": "uint256"
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
-    "stateMutability": "view",
-    "type": "function"
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "checkCouldBeExecuted",
+    "inputs": [
+      {
+        "name": "jobAddress_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "jobCalldata_",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "depositJobCredits",
+    "inputs": [
+      {
+        "name": "jobKey_",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "depositJobOwnerCredits",
+    "inputs": [
+      {
+        "name": "for_",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "depositJobOwnerCreditsAndAssignKeepers",
+    "inputs": [
+      {
+        "name": "for_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "jobKeys_",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "disableKeeper",
+    "inputs": [
+      {
+        "name": "keeperId_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "execute_44g58pv",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "finalizeKeeperActivation",
+    "inputs": [
+      {
+        "name": "keeperId_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "finalizeRedeem",
+    "inputs": [
+      {
+        "name": "keeperId_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "to_",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "redeemedCvp",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getActiveKeepers",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getActiveKeepersLength",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getConfig",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "minKeeperCvp_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "pendingWithdrawalTimeoutSeconds_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "feeTotal_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "feePpm_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "lastKeeperId_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getCurrentSlasherId",
+    "inputs": [
+      {
+        "name": "jobKey_",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getJob",
+    "inputs": [
+      {
+        "name": "jobKey_",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "pendingTransfer",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "jobLevelMinKeeperCvp",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "details",
+        "type": "tuple",
+        "internalType": "struct IPPAgentV2Viewer.Job",
+        "components": [
+          {
+            "name": "config",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "selector",
+            "type": "bytes4",
+            "internalType": "bytes4"
+          },
+          {
+            "name": "credits",
+            "type": "uint88",
+            "internalType": "uint88"
+          },
+          {
+            "name": "maxBaseFeeGwei",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "rewardPct",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "fixedReward",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "calldataSource",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "intervalSeconds",
+            "type": "uint24",
+            "internalType": "uint24"
+          },
+          {
+            "name": "lastExecutionAt",
+            "type": "uint32",
+            "internalType": "uint32"
+          }
+        ]
+      },
+      {
+        "name": "preDefinedCalldata",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "resolver",
+        "type": "tuple",
+        "internalType": "struct IPPAgentV2Viewer.Resolver",
+        "components": [
+          {
+            "name": "resolverAddress",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "resolverCalldata",
+            "type": "bytes",
+            "internalType": "bytes"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getJobKey",
+    "inputs": [
+      {
+        "name": "jobAddress_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "jobId_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "jobKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "getJobRaw",
+    "inputs": [
+      {
+        "name": "jobKey_",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "rawJob",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getJobsAssignedToKeeper",
+    "inputs": [
+      {
+        "name": "keeperId_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "actualJobKeys",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getJobsAssignedToKeeperLength",
+    "inputs": [
+      {
+        "name": "keeperId_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getKeeper",
+    "inputs": [
+      {
+        "name": "keeperId_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "admin",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "worker",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "isActive",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "currentStake",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "slashedStake",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "compensation",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "pendingWithdrawalAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "pendingWithdrawalEndAt",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getKeeperWorkerAndStake",
+    "inputs": [
+      {
+        "name": "keeperId_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "worker",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "currentStake",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "isActive",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getRdConfig",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct IPPAgentV2RandaoViewer.RandaoConfig",
+        "components": [
+          {
+            "name": "slashingEpochBlocks",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "period1",
+            "type": "uint24",
+            "internalType": "uint24"
+          },
+          {
+            "name": "period2",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "slashingFeeFixedCVP",
+            "type": "uint24",
+            "internalType": "uint24"
+          },
+          {
+            "name": "slashingFeeBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "jobMinCreditsFinney",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "agentMaxCvpStake",
+            "type": "uint40",
+            "internalType": "uint40"
+          },
+          {
+            "name": "jobCompensationMultiplierBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "stakeDivisor",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "keeperActivationTimeoutHours",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "jobFixedRewardFinney",
+            "type": "uint16",
+            "internalType": "uint16"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getSlasherIdByBlock",
+    "inputs": [
+      {
+        "name": "blockNumber_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "jobKey_",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getStrategy",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "initialize",
+    "inputs": [
+      {
+        "name": "owner_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "minKeeperCvp_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "pendingWithdrawalTimeoutSeconds_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "initializeRandao",
+    "inputs": [
+      {
+        "name": "owner_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "minKeeperCvp_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "pendingWithdrawalTimeoutSeconds_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "rdConfig_",
+        "type": "tuple",
+        "internalType": "struct IPPAgentV2RandaoViewer.RandaoConfig",
+        "components": [
+          {
+            "name": "slashingEpochBlocks",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "period1",
+            "type": "uint24",
+            "internalType": "uint24"
+          },
+          {
+            "name": "period2",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "slashingFeeFixedCVP",
+            "type": "uint24",
+            "internalType": "uint24"
+          },
+          {
+            "name": "slashingFeeBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "jobMinCreditsFinney",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "agentMaxCvpStake",
+            "type": "uint40",
+            "internalType": "uint40"
+          },
+          {
+            "name": "jobCompensationMultiplierBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "stakeDivisor",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "keeperActivationTimeoutHours",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "jobFixedRewardFinney",
+            "type": "uint16",
+            "internalType": "uint16"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "initiateJobTransfer",
+    "inputs": [
+      {
+        "name": "jobKey_",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "to_",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "initiateKeeperActivation",
+    "inputs": [
+      {
+        "name": "keeperId_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "initiateKeeperSlashing",
+    "inputs": [
+      {
+        "name": "jobAddress_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "jobId_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "slasherKeeperId_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "useResolver_",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "jobCalldata_",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "initiateRedeem",
+    "inputs": [
+      {
+        "name": "keeperId_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amount_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "pendingWithdrawalAfter",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "jobCreatedAt",
+    "inputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "jobLastIds",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "jobNextKeeperId",
+    "inputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "jobOwnerCredits",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "jobReservedSlasherId",
+    "inputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "jobSlashingPossibleAfter",
+    "inputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "keeperActivationCanBeFinalizedAt",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "owner",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "ownerSlash",
+    "inputs": [
+      {
+        "name": "keeperId_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "to_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "currentAmount_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "pendingAmount_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "ownerSlashDisable",
+    "inputs": [
+      {
+        "name": "keeperId_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "to_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "currentAmount_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "pendingAmount_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "disable_",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "registerAsKeeper",
+    "inputs": [
+      {
+        "name": "worker_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "initialDepositAmount_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "keeperId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "registerJob",
+    "inputs": [
+      {
+        "name": "params_",
+        "type": "tuple",
+        "internalType": "struct IPPAgentV2JobOwner.RegisterJobParams",
+        "components": [
+          {
+            "name": "jobAddress",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "jobSelector",
+            "type": "bytes4",
+            "internalType": "bytes4"
+          },
+          {
+            "name": "useJobOwnerCredits",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "assertResolverSelector",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "maxBaseFeeGwei",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "rewardPct",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "fixedReward",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "jobMinCvp",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "calldataSource",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "intervalSeconds",
+            "type": "uint24",
+            "internalType": "uint24"
+          }
+        ]
+      },
+      {
+        "name": "resolver_",
+        "type": "tuple",
+        "internalType": "struct IPPAgentV2Viewer.Resolver",
+        "components": [
+          {
+            "name": "resolverAddress",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "resolverCalldata",
+            "type": "bytes",
+            "internalType": "bytes"
+          }
+        ]
+      },
+      {
+        "name": "preDefinedCalldata_",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "jobKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "jobId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "releaseJob",
+    "inputs": [
+      {
+        "name": "jobKey_",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "renounceOwnership",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setAgentParams",
+    "inputs": [
+      {
+        "name": "minKeeperCvp_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "timeoutSeconds_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "feePpm_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setJobConfig",
+    "inputs": [
+      {
+        "name": "jobKey_",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "isActive_",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "useJobOwnerCredits_",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "assertResolverSelector_",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "callResolverBeforeExecute_",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setJobPreDefinedCalldata",
+    "inputs": [
+      {
+        "name": "jobKey_",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "preDefinedCalldata_",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setJobResolver",
+    "inputs": [
+      {
+        "name": "jobKey_",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "resolver_",
+        "type": "tuple",
+        "internalType": "struct IPPAgentV2Viewer.Resolver",
+        "components": [
+          {
+            "name": "resolverAddress",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "resolverCalldata",
+            "type": "bytes",
+            "internalType": "bytes"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setRdConfig",
+    "inputs": [
+      {
+        "name": "rdConfig_",
+        "type": "tuple",
+        "internalType": "struct IPPAgentV2RandaoViewer.RandaoConfig",
+        "components": [
+          {
+            "name": "slashingEpochBlocks",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "period1",
+            "type": "uint24",
+            "internalType": "uint24"
+          },
+          {
+            "name": "period2",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "slashingFeeFixedCVP",
+            "type": "uint24",
+            "internalType": "uint24"
+          },
+          {
+            "name": "slashingFeeBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "jobMinCreditsFinney",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "agentMaxCvpStake",
+            "type": "uint40",
+            "internalType": "uint40"
+          },
+          {
+            "name": "jobCompensationMultiplierBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "stakeDivisor",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "keeperActivationTimeoutHours",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "jobFixedRewardFinney",
+            "type": "uint16",
+            "internalType": "uint16"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setWorkerAddress",
+    "inputs": [
+      {
+        "name": "keeperId_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "worker_",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "stake",
+    "inputs": [
+      {
+        "name": "keeperId_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amount_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "transferOwnership",
+    "inputs": [
+      {
+        "name": "newOwner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updateJob",
+    "inputs": [
+      {
+        "name": "jobKey_",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "maxBaseFeeGwei_",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "rewardPct_",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "fixedReward_",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "jobMinCvp_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "intervalSeconds_",
+        "type": "uint24",
+        "internalType": "uint24"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "withdrawCompensation",
+    "inputs": [
+      {
+        "name": "keeperId_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "to_",
+        "type": "address",
+        "internalType": "address payable"
+      },
+      {
+        "name": "amount_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "withdrawFees",
+    "inputs": [
+      {
+        "name": "to_",
+        "type": "address",
+        "internalType": "address payable"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "withdrawJobCredits",
+    "inputs": [
+      {
+        "name": "jobKey_",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "to_",
+        "type": "address",
+        "internalType": "address payable"
+      },
+      {
+        "name": "amount_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "withdrawJobOwnerCredits",
+    "inputs": [
+      {
+        "name": "to_",
+        "type": "address",
+        "internalType": "address payable"
+      },
+      {
+        "name": "amount_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "workerKeeperIds",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "AcceptJobTransfer",
+    "inputs": [
+      {
+        "name": "jobKey_",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "to_",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DepositJobCredits",
+    "inputs": [
+      {
+        "name": "jobKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "depositor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "fee",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DepositJobOwnerCredits",
+    "inputs": [
+      {
+        "name": "jobOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "depositor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "fee",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DisableKeeper",
+    "inputs": [
+      {
+        "name": "keeperId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Execute",
+    "inputs": [
+      {
+        "name": "jobKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "job",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "keeperId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "gasUsed",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "baseFee",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "gasPrice",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "compensation",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "binJobAfter",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ExecutionReverted",
+    "inputs": [
+      {
+        "name": "jobKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "assignedKeeperId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "actualKeeperId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "executionReturndata",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      },
+      {
+        "name": "compensation",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "FinalizeKeeperActivation",
+    "inputs": [
+      {
+        "name": "keeperId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "FinalizeRedeem",
+    "inputs": [
+      {
+        "name": "keeperId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "beneficiary",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Initialized",
+    "inputs": [
+      {
+        "name": "version",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "InitiateJobTransfer",
+    "inputs": [
+      {
+        "name": "jobKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "InitiateKeeperActivation",
+    "inputs": [
+      {
+        "name": "keeperId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "canBeFinalizedAt",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "InitiateKeeperSlashing",
+    "inputs": [
+      {
+        "name": "jobKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "slasherKeeperId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "useResolver",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "jobSlashingPossibleAfter",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "InitiateRedeem",
+    "inputs": [
+      {
+        "name": "keeperId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "redeemAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "stakeAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "slashedStakeAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "JobKeeperChanged",
+    "inputs": [
+      {
+        "name": "jobKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "keeperFrom",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "keeperTo",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "JobUpdate",
+    "inputs": [
+      {
+        "name": "jobKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "maxBaseFeeGwei",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "rewardPct",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "fixedReward",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "jobMinCvp",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "intervalSeconds",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OwnerSlash",
+    "inputs": [
+      {
+        "name": "keeperId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "currentAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "pendingAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OwnershipTransferred",
+    "inputs": [
+      {
+        "name": "previousOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RegisterAsKeeper",
+    "inputs": [
+      {
+        "name": "keeperId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "keeperAdmin",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "keeperWorker",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RegisterJob",
+    "inputs": [
+      {
+        "name": "jobKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "jobAddress",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "jobId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "params",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct IPPAgentV2JobOwner.RegisterJobParams",
+        "components": [
+          {
+            "name": "jobAddress",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "jobSelector",
+            "type": "bytes4",
+            "internalType": "bytes4"
+          },
+          {
+            "name": "useJobOwnerCredits",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "assertResolverSelector",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "maxBaseFeeGwei",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "rewardPct",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "fixedReward",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "jobMinCvp",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "calldataSource",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "intervalSeconds",
+            "type": "uint24",
+            "internalType": "uint24"
+          }
+        ]
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetAgentParams",
+    "inputs": [
+      {
+        "name": "minKeeperCvp_",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "timeoutSeconds_",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "feePpm_",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetJobConfig",
+    "inputs": [
+      {
+        "name": "jobKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "isActive_",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "useJobOwnerCredits_",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "assertResolverSelector_",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "callResolverBeforeExecute_",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetJobPreDefinedCalldata",
+    "inputs": [
+      {
+        "name": "jobKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "preDefinedCalldata",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetJobResolver",
+    "inputs": [
+      {
+        "name": "jobKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "resolverAddress",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "resolverCalldata",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetRdConfig",
+    "inputs": [
+      {
+        "name": "rdConfig",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct IPPAgentV2RandaoViewer.RandaoConfig",
+        "components": [
+          {
+            "name": "slashingEpochBlocks",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "period1",
+            "type": "uint24",
+            "internalType": "uint24"
+          },
+          {
+            "name": "period2",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "slashingFeeFixedCVP",
+            "type": "uint24",
+            "internalType": "uint24"
+          },
+          {
+            "name": "slashingFeeBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "jobMinCreditsFinney",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "agentMaxCvpStake",
+            "type": "uint40",
+            "internalType": "uint40"
+          },
+          {
+            "name": "jobCompensationMultiplierBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "stakeDivisor",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "keeperActivationTimeoutHours",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "jobFixedRewardFinney",
+            "type": "uint16",
+            "internalType": "uint16"
+          }
+        ]
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetWorkerAddress",
+    "inputs": [
+      {
+        "name": "keeperId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "prev",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "worker",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SlashKeeper",
+    "inputs": [
+      {
+        "name": "jobKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "assignedKeeperId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "actualKeeperId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "fixedSlashAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "dynamicSlashAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "slashAmountMissing",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Stake",
+    "inputs": [
+      {
+        "name": "keeperId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "staker",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "WithdrawCompensation",
+    "inputs": [
+      {
+        "name": "keeperId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "WithdrawFees",
+    "inputs": [
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "WithdrawJobCredits",
+    "inputs": [
+      {
+        "name": "jobKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "WithdrawJobOwnerCredits",
+    "inputs": [
+      {
+        "name": "jobOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "ActivationNotInitiated",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "AmountGtStake",
+    "inputs": [
+      {
+        "name": "wanted",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "actualStake",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "actualSlashedStake",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "AssignedKeeperCantSlash",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "BaseFeeGtGasPrice",
+    "inputs": [
+      {
+        "name": "baseFee",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "jobMaxBaseFeeGwei",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CantAssignKeeper",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CantRelease",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CreditsDepositOverflow",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CreditsWithdrawalUnderflow",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ExecutionReentrancyLocked",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FeeTooBig",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InactiveJob",
+    "inputs": [
+      {
+        "name": "jobKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InactiveKeeper",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientAmount",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientAmountToCoverSlashedStake",
+    "inputs": [
+      {
+        "name": "wanted",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "actual",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InsufficientJobCredits",
+    "inputs": [
+      {
+        "name": "actual",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "wanted",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InsufficientJobOwnerCredits",
+    "inputs": [
+      {
+        "name": "actual",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "wanted",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InsufficientJobScopedKeeperStake",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientKeeperStake",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientKeeperStakeToSlash",
+    "inputs": [
+      {
+        "name": "jobKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "assignedKeeperId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "keeperCurrentStake",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amountToSlash",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "IntervalNotReached",
+    "inputs": [
+      {
+        "name": "lastExecutedAt",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "interval",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_now",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidCalldataSource",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidJobAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidKeeperId",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidMinKeeperCvp",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidPeriod1",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidPeriod2",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidSlashingFeeFixedCVP",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidStakeDivisor",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "JobCallRevertedWithoutDetails",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "JobCheckCalldataError",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "JobCheckCanBeExecuted",
+    "inputs": [
+      {
+        "name": "returndata",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "JobCheckCanNotBeExecuted",
+    "inputs": [
+      {
+        "name": "errReason",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "JobCheckResolverReturnedFalse",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "JobCheckUnexpectedError",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "JobCompensationMultiplierBpsLT10000",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "JobDoesNotSupposedToHaveInterval",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "JobHasKeeperAssigned",
+    "inputs": [
+      {
+        "name": "keeperId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "JobHasNoKeeperAssigned",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "JobIdOverflow",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "JobShouldHaveInterval",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "JobWithoutOwner",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "KeeperIsAlreadyActive",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "KeeperIsAlreadyInactive",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "KeeperIsAssignedToJobs",
+    "inputs": [
+      {
+        "name": "amountOfJobs",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "KeeperShouldBeDisabledForStakeLTMinKeeperCvp",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "KeeperWorkerNotAuthorized",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MissingAmount",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MissingDeposit",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MissingInputCalldata",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MissingJobAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MissingMaxBaseFeeGwei",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MissingResolverAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NoFixedNorPremiumPctReward",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NoPendingWithdrawal",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NonEOASender",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NonIntervalJob",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotSupportedByJobCalldataSource",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OnlyCurrentSlasher",
+    "inputs": [
+      {
+        "name": "expectedSlasherId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "OnlyJobOwner",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OnlyKeeperAdmin",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OnlyKeeperAdminOrJobOwner",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OnlyKeeperAdminOrWorker",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OnlyNextKeeper",
+    "inputs": [
+      {
+        "name": "assignedKeeperId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "lastExecutedAt",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "interval",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "slashingInterval",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_now",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "OnlyOwner",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OnlyPendingOwner",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OnlyReservedSlasher",
+    "inputs": [
+      {
+        "name": "reservedSlasherId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SelectorCheckFailed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SlashingBpsGt5000Bps",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SlashingEpochBlocksTooLow",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SlashingNotInitiated",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SlashingNotInitiatedExecutionReverted",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "StakeAmountOverflow",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TimeoutTooBig",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TooEarlyForActivationFinalization",
+    "inputs": [
+      {
+        "name": "now",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "availableAt",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "TooEarlyForSlashing",
+    "inputs": [
+      {
+        "name": "now_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "possibleAfter",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "TooEarlyToReinitiateSlashing",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TooEarlyToRelease",
+    "inputs": [
+      {
+        "name": "jobKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "period2End",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnableToDecodeResolverResponse",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "UnexpectedCodeBlock",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "WithdrawAmountExceedsAvailable",
+    "inputs": [
+      {
+        "name": "wanted",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "actual",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "WithdrawalTimoutNotReached",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "WorkerAlreadyAssigned",
+    "inputs": []
   }
 ]

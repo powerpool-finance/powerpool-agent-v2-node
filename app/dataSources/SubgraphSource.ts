@@ -10,9 +10,7 @@ import { toChecksummedAddress } from '../Utils.js';
 import logger from '../services/Logger.js';
 import { getMaxBlocksSubgraphDelay } from '../ConfigGetters.js';
 
-export const QUERY_ALL_JOBS = `{
-  jobs(first: 1000) {
-    id
+const JOBS_FIELDS = `id
     active
     jobAddress
     jobId
@@ -38,6 +36,10 @@ export const QUERY_ALL_JOBS = `{
     jobNextKeeperId
     jobReservedSlasherId
     jobSlashingPossibleAfter
+`;
+export const QUERY_ALL_JOBS = `{
+  jobs(first: 1000) {
+    ${JOBS_FIELDS}
   }
 }`;
 
@@ -120,18 +122,51 @@ export class SubgraphSource extends AbstractSource {
 
   async getBlocksDelay(): Promise<{ diff: bigint; nodeBlockNumber: bigint; sourceBlockNumber: bigint }> {
     const [latestBock, { _meta }] = await Promise.all([
-      this.network.getLatestBlockNumber(),
+      this.network.queryLatestBlock().then(b => BigInt(b.number.toString())),
       this.query(this.subgraphUrl, QUERY_META),
     ]);
     return {
-      diff: latestBock - BigInt(_meta.block.number),
-      nodeBlockNumber: latestBock,
-      sourceBlockNumber: latestBock,
+      diff: BigInt(latestBock) - BigInt(_meta.block.number),
+      nodeBlockNumber: BigInt(latestBock),
+      sourceBlockNumber: BigInt(latestBock),
     };
   }
 
   async queryJobs() {
     return this.query(this.subgraphUrl, QUERY_ALL_JOBS).then(res => res.jobs);
+  }
+
+  async queryJob(jobKey) {
+    return this.query(
+      this.subgraphUrl,
+      `{
+        jobs(where: { id: "${jobKey}" }) {
+            ${JOBS_FIELDS}
+          }
+        }`,
+    ).then(res => res.jobs[0]);
+  }
+
+  async getJob(context, jobKey): Promise<RandaoJob | LightJob> {
+    return this.queryJob(jobKey).then(job => this.buildJob(context, job));
+  }
+
+  buildJob(context, job) {
+    const newJob = context._buildNewJob({
+      name: 'RegisterJob',
+      args: {
+        jobAddress: job.jobAddress,
+        jobId: BigNumber.from(job.jobId),
+        jobKey: job.id,
+      },
+    });
+    const lensJob = this.addLensFieldsToJobs(job);
+    newJob.applyJob({
+      ...lensJob,
+      owner: lensJob.owner,
+      config: lensJob.config,
+    });
+    return newJob;
   }
 
   /**
@@ -153,21 +188,7 @@ export class SubgraphSource extends AbstractSource {
     try {
       const jobs = await this.queryJobs();
       jobs.forEach(job => {
-        const newJob = context._buildNewJob({
-          name: 'RegisterJob',
-          args: {
-            jobAddress: job.jobAddress,
-            jobId: BigNumber.from(job.jobId),
-            jobKey: job.id,
-          },
-        });
-        const lensJob = this.addLensFieldsToJobs(job);
-        newJob.applyJob({
-          ...lensJob,
-          owner: lensJob.owner,
-          config: lensJob.config,
-        });
-        newJobs.set(job.id, newJob);
+        newJobs.set(job.id, this.buildJob(context, job));
       });
     } catch (e) {
       throw this.err(e);

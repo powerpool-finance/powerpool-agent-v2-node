@@ -1,18 +1,18 @@
 {
   "name": "powerpool-agent-v2-node",
-  "version": "0.5.5",
+  "version": "0.5.8",
   "description": "PowerPool Agent V2 Keeper Node",
   "main": "app/Run.ts",
   "scripts": {
     "build": "tsc && yarn write-version-data",
     "build:release": "yarn clean && yarn run build",
-    "start": "ts-node app/Cli.ts",
+    "start": "tsx app/Cli.ts",
     "dev": "NODE_ENV=dev ts-node app/Cli.ts",
     "lint": "eslint --ext .ts app/ tests/",
     "lint:fix": "eslint --fix --ext .ts app/ tests/",
     "test": "NODE_ENV=test LOG_LEVEL=error mocha tests/**/*.test.ts",
     "test:debug": "NODE_ENV=test LOG_LEVEL=debug mocha tests/**/*.test.ts",
-    "write-version-data": "DIR=dist ts-node ./writeVersionData.ts"
+    "write-version-data": "DIR=. tsx ./writeVersionData.ts"
   },
   "author": "PowerPool",
   "license": "ISC",
@@ -22,10 +22,11 @@
     "@sentry/node": "^7.64.0",
     "@types/yamljs": "^0.2.31",
     "axios": "^1.3.6",
+    "elliptic": "^6.5.5",
     "ethers": "5.7.2",
     "fastify": "^4.19.2",
     "p-iteration": "^1.1.8",
-    "web3": "^1.9.0",
+    "tsx": "^4.11.0",
     "winston": "^3.10.0",
     "winston-daily-rotate-file": "4.5.0",
     "winston-transport": "^4.5.0",
@@ -48,7 +49,6 @@
     "mocha": "^10.0.0",
     "prettier": "^2.8.8",
     "sinon": "^15.2.0",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.0.4"
+    "typescript": "^5.4.5"
   }
 }

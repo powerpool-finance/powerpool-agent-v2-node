@@ -1,5 +1,5 @@
 import { BigNumber } from 'ethers';
-import { AgentHardcodedConfig } from './Types';
+import { AgentHardcodedConfig, EnvConfigMapType } from './Types.js';
 
 export const MIN_EXECUTION_GAS = 55_000;
 
@@ -8,6 +8,8 @@ export const DEFAULT_SYNC_FROM_CHAINS: { [network: string]: number } = {
   goerli: 10064335,
   rinkeby: 11096966,
   arbitrumOne: 157531675,
+  base: 14835289,
+  linea: 6897340,
 };
 
 export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: AgentHardcodedConfig } } = {
@@ -29,6 +31,16 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
       version: '2.3.0',
       strategy: 'randao',
     },
+    '0x77E54beB5b23512F8dcBf617a7615A5614Ea9194': {
+      deployedAt: 34054595,
+      version: '2.5.0',
+      strategy: 'randao',
+    },
+    '0x8ea807157e2905Ba866f609b5c09CCa78a48DEE9': {
+      deployedAt: 34623754,
+      version: '2.5.0',
+      strategy: 'randao',
+    },
   },
   arbitrumOne: {
     '0xad1e507f8A0cB1B91421F3bb86BBE29f001CbcC6': {
@@ -36,10 +48,44 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
       version: '2.3.0',
       strategy: 'randao',
     },
+    '0x366354b65fbC1599bC67577E49556A1395791D06': {
+      deployedAt: 213530652,
+      version: '2.5.0',
+      strategy: 'randao',
+    },
+    '0x29d7D44420ca2BFCaE2cB0c59ddc1227DCBEadEb': {
+      deployedAt: 216885699,
+      version: '2.5.0',
+      strategy: 'randao',
+    },
+    '0x9fDB1462Edb170aEf47f052bA69a7fa64130D149': {
+      deployedAt: 241395084,
+      version: '2.5.0',
+      strategy: 'randao',
+    },
   },
   polygon: {
     '0x20D4029c783D5c9f47569940c656Af4189e53799': {
       deployedAt: 52818115,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
+  },
+  base: {
+    '0x12e49CeDc34C4F455e0dfff7ec38cC535Cbd07C2': {
+      deployedAt: 14835289,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
+  },
+  linea: {
+    '0x20D4029c783D5c9f47569940c656Af4189e53799': {
+      deployedAt: 6897340,
+      version: '2.3.0',
+      strategy: 'randao',
+    },
+    '0xF6335E70aBEb91451DcB7C33d973fdee0Da85b16': {
+      deployedAt: 7941918,
       version: '2.3.0',
       strategy: 'randao',
     },
@@ -167,6 +213,8 @@ export const MULTICALL_CONTRACTS: { [network: string]: string } = {
   sepolia: '0x3BEDdA2f411409448e0033024d68f1cDb0EEDd7B',
   arbitrumOne: '0x842ec2c7d803033edf55e478f461fc547bc54eb2',
   polygon: '0xed386fe855c1eff2f843b910923dd8846e45c5a4',
+  base: '0xedf6d2a16e8081f777eb623eeb4411466556af3d',
+  linea: '0xa217f01e0b0e93508e131a44c4dbfc1db22adbd5',
 };
 
 export const EXTERNAL_LENS_CONTRACTS_2_3_0: { [network: string]: string } = {
@@ -176,6 +224,8 @@ export const EXTERNAL_LENS_CONTRACTS_2_3_0: { [network: string]: string } = {
   sepolia: '0x42a2D286Bac644CfdB4030d96b4f7b2ad9dFA998', // v2
   arbitrumOne: '0xa1be5a9d961aae6c6895e1579ce470e708e7cedb', // v2
   polygon: '0xB712Ab1263fd2D992E39Df1CF3F81EA9BB83e548',
+  base: '0xa217F01E0b0E93508E131a44C4dBfc1db22ADBD5',
+  linea: '0x0D8879056cC1dfA4998B6f5c75c7ea4d8e939223',
 };
 
 export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {
@@ -186,6 +236,57 @@ export const AVERAGE_BLOCK_TIME_SECONDS: { [network: string]: number } = {
   testnet: 5,
   arbitrumOne: 0.25,
   polygon: 2,
+  base: 2,
+  linea: 2,
+};
+
+// If specified, resolver should be called each X blocks, otherwise it will be
+// called each new block
+export const RESOLVER_CALL_EACH_BLOCKS: { [network: string]: number } = {
+  arbitrumOne: 10,
+};
+
+export const ENV_CONFIG_MAP: { [key: string]: EnvConfigMapType } = {
+  SENTRY_DSN: { path: 'sentry', type: 'string' },
+  NETWORK_NAME: { path: 'networks.enabled[0]', type: 'string' },
+  NETWORK_RPC: { path: 'networks.details.${NETWORK_NAME}.rpc', type: 'string' },
+  NETWORK_MAX_BLOCK_DELAY: { path: 'networks.details.${NETWORK_NAME}.max_block_delay', type: 'number' },
+  NETWORK_MAX_NEW_BLOCK_DELAY: { path: 'networks.details.${NETWORK_NAME}.max_new_block_delay', type: 'number' },
+  NETWORK_MIN_SUCCESS_RESOLVE: { path: 'networks.details.${NETWORK_NAME}.resolve_min_success_count', type: 'number' },
+  NETWORK_BLOCK_LOGS_MODE: { path: 'networks.details.${NETWORK_NAME}.block_logs_mode', type: 'boolean' },
+  AGENT_ADDRESS: { path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}', type: 'address' },
+  DATA_SOURCE: {
+    path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.data_source',
+    type: 'string',
+    validValues: ['blockchain', 'subgraph', 'subquery'],
+  },
+  SUBGRAPH_URL: { path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.subgraph_url', type: 'string' },
+  KEEPER_WORKER_ADDRESS: {
+    path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.keeper_worker_address',
+    type: 'address',
+  },
+  KEYPASSWORD: { path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.key_pass', type: 'string' },
+  ACCEPT_MAX_BASE_FEE_LIMIT: {
+    path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.accept_max_base_fee_limit',
+    type: 'boolean',
+  },
+  ACCRUE_REWARD: { path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.accrue_reward', type: 'boolean' },
+  TX_RESEND_OR_DROP_AFTER_BLOCKS: {
+    path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.executor_config.tx_resend_or_drop_after_blocks',
+    type: 'number',
+  },
+  TX_RESEND_MAX_GAS_PRICE: {
+    path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.executor_config.tx_resend_max_gas_price_gwei',
+    type: 'number',
+  },
+  TX_RESEND_MAX_ATTEMPTS: {
+    path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.executor_config.tx_resend_max_attempts',
+    type: 'number',
+  },
+  GAS_PRICE_ADD_GWEI: {
+    path: 'networks.details.${NETWORK_NAME}.agents.${AGENT_ADDRESS}.executor_config.gas_price_priority_add_gwei',
+    type: 'number',
+  },
 };
 
 // export const FLAG_ACCEPT_MAX_BASE_FEE_LIMIT = 0x01;
@@ -201,3 +302,4 @@ export const CFG_ACTIVE = BigNumber.from(0x01);
 export const CFG_USE_JOB_OWNER_CREDITS = BigNumber.from(0x02);
 export const CFG_ASSERT_RESOLVER_SELECTOR = BigNumber.from(0x04);
 export const CFG_CHECK_KEEPER_MIN_CVP_DEPOSIT = BigNumber.from(0x08);
+export const CFG_CALL_RESOLVER_BEFORE_EXECUTE = BigNumber.from(0x10);

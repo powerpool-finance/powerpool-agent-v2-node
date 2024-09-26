@@ -1,7 +1,5 @@
-import { BigNumber, ethers } from 'ethers';
+import { BigNumber, ethers, Wallet } from 'ethers';
 import { Network } from './Network';
-import { Contract } from 'web3-eth-contract';
-import { WebsocketProvider } from 'web3-core';
 import { RandaoJob } from './jobs/RandaoJob';
 import { LightJob } from './jobs/LightJob';
 import { BytesLike } from '@ethersproject/bytes';
@@ -12,11 +10,18 @@ export type AvailableNetworkNames = 'mainnet' | 'bsc' | 'polygon' | 'goerli';
 export type ExecutorType = 'flashbots' | 'pga';
 export type Strategy = 'randao' | 'light';
 export type DataSourceType = 'blockchain' | 'subgraph' | 'subquery';
+export type EnvValueType = 'string' | 'number' | 'boolean' | 'address';
 
 export enum CALLDATA_SOURCE {
   SELECTOR,
   PRE_DEFINED_CALLDATA,
   RESOLVER,
+  OFFCHAIN,
+}
+export interface EnvConfigMapType {
+  path: string;
+  type: EnvValueType;
+  validValues?: string[];
 }
 
 export interface ExecutorConfig {
@@ -262,8 +267,8 @@ export interface ContractWrapper {
   readonly address: string;
   decodeError(response: string): ErrorWrapper;
   decodeTxData(data: string): TxDataWrapper;
-  getNativeContract(): ethers.Contract | Contract;
-  getDefaultProvider(): ethers.providers.BaseProvider | WebsocketProvider;
+  getNativeContract(): ethers.Contract;
+  getDefaultProvider(): ethers.providers.BaseProvider;
   ethCall(method: string, args?: any[], overrides?: object, callStatic?: boolean): Promise<any>;
   ethCallStatic(method: string, args?: any[], overrides?: object): Promise<any>;
   getPastEvents(eventName: string, from: number, to: number): Promise<any[]>;
@@ -271,6 +276,7 @@ export interface ContractWrapper {
   encodeABI(method: string, args?: any[]): string;
   getTopicOfEvent(eventName): string;
   parseLog(log): any;
+  subscribeForEvents(): void;
 }
 
 export interface EventWrapper {
@@ -288,6 +294,7 @@ export type WrapperListener = (event: EventWrapper) => void;
 export enum JobType {
   Interval,
   Resolver,
+  Offchain,
 }
 
 export interface ParsedJobConfig {
@@ -295,6 +302,7 @@ export interface ParsedJobConfig {
   useJobOwnerCredits: boolean;
   assertResolverSelector: boolean;
   checkKeeperMinCvpDeposit: boolean;
+  callResolverBeforeExecute: boolean;
 }
 
 // Only values that could be changed during
@@ -362,6 +370,7 @@ export interface IRandaoAgent extends IAgent {
 export interface IDataSource {
   getType(): string;
   getBlocksDelay(): Promise<{ diff: bigint; nodeBlockNumber: bigint; sourceBlockNumber: bigint }>;
+  getJob(_context, jobKey): Promise<RandaoJob | LightJob>;
   getRegisteredJobs(_context): Promise<{ data: Map<string, RandaoJob | LightJob>; meta: SourceMetadata }>;
   getOwnersBalances(
     context,
@@ -390,11 +399,17 @@ export interface IAgent {
 
   getKeyAddress(): string;
 
+  getWorkerSigner(): Wallet;
+
+  getWorkerSignerAddress(): string;
+
   getKeeperId(): number;
 
   getCfg(): number;
 
   isJobBlacklisted(jobKey: string): boolean;
+
+  getJob(jobKey: string): Promise<RandaoJob | LightJob | null>;
 
   getStatusObjectForApi(): object;
 
@@ -427,7 +442,7 @@ export interface IAgent {
 
   getBaseFeePerGas(): bigint;
 
-  queryPastEvents(eventName: string, from: number, to: number): Promise<any>;
+  queryPastEvents(eventName: string, from: number, to: number, filters?: [any]): Promise<any>;
 
   buildTx(calldata: string): Promise<UnsignedTransaction>;
 
@@ -438,6 +453,8 @@ export interface IAgent {
   txEstimationFailed(err, txData): any;
 
   updateJob(jobObj: AbstractJob): Promise<any>;
+
+  parseAndSetUnrecognizedErrorMessage(err);
 
   nowS(): number;
 

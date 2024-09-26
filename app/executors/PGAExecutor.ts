@@ -52,18 +52,18 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
     this.clog('debug', `📩 Starting to process tx with calldata=${tx.data} ...`);
     let gasLimitEstimation;
     try {
-      gasLimitEstimation = await this.network.getProvider().estimateGas(prepareTx(tx));
+      gasLimitEstimation = await this.network.getProvider().estimateGas(prepareTx(tx, this.workerSigner.address));
     } catch (e) {
       let txSimulation;
       try {
-        txSimulation = await this.network.getProvider().call(prepareTx(tx));
+        txSimulation = await this.network.getProvider().call(prepareTx(tx, this.workerSigner.address));
       } catch (_e) {
         envelope.executorCallbacks.txEstimationFailed(_e, tx.data as string);
         return callback(this.err(`gasLimitEstimation failed with error: ${_e.message}`));
       }
       if (e.message && e.message.includes('insufficient funds')) {
         try {
-          await this.network.getProvider().estimateGas(prepareTx(tx, true));
+          await this.network.getProvider().estimateGas(prepareTx(tx, this.workerSigner.address, true));
         } catch (_e) {
           e = _e;
         }
@@ -102,7 +102,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
     const signedTx = await this.workerSigner.signTransaction(prepareTx(tx));
 
     const txHash = utils.parseTransaction(signedTx).hash;
-    let res;
+    let res, immediateResend;
 
     const eConfig = this.executorConfig || {};
     if (eConfig.tx_resend_or_drop_after_blocks) {
@@ -124,7 +124,17 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       );
     } catch (e) {
       envelope.executorCallbacks.txExecutionFailed(e, tx.data as string);
-      callback();
+      if (
+        e.message &&
+        (e.message.includes('could not replace existing tx') ||
+          e.message.includes('underpriced') ||
+          e.message.includes('replacement fee too low'))
+      ) {
+        immediateResend = true;
+      } else {
+        res = e;
+        callback();
+      }
     }
 
     function waitForResendTransaction() {
@@ -132,7 +142,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
         if (res) {
           return;
         }
-        if (resendCount >= eConfig.tx_resend_max_attempts) {
+        if (resendCount >= (eConfig.tx_resend_max_attempts || 3)) {
           envelope.executorCallbacks.txExecutionFailed(
             this.err('Tx not mined, max attempts: ' + txHash),
             tx.data as string,
@@ -140,11 +150,18 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
           return callback();
         }
         const { action, newMax, newPriority } = await envelope.executorCallbacks.txNotMinedInBlock(tx, txHash);
+        this.clog(
+          'debug',
+          `waitForResendTransaction() action: ${action}, newMax: ${newMax}, newPriority: ${newPriority}`,
+        );
         if (action === 'ignore') {
           // envelope.executorCallbacks.txExecutionFailed(this.err('Tx not mined, ignore: ' + txHash), tx.data as string);
           return callback();
         }
-        if (newMax > BigInt(eConfig.tx_resend_max_gas_price_gwei) * 1000000000n) {
+        if (
+          eConfig.tx_resend_max_gas_price_gwei &&
+          newMax > BigInt(eConfig.tx_resend_max_gas_price_gwei) * 1000000000n
+        ) {
           envelope.executorCallbacks.txExecutionFailed(
             this.err('Tx not mined, max gas price: ' + txHash),
             tx.data as string,
@@ -165,7 +182,7 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
       let blocksPast = 0;
       const onNewBlock = () => {
         blocksPast++;
-        if (blocksPast >= eConfig.tx_resend_or_drop_after_blocks) {
+        if (immediateResend || blocksPast >= eConfig.tx_resend_or_drop_after_blocks) {
           this.getProvider().off('block', onNewBlock);
           resend();
         }
@@ -210,10 +227,10 @@ export class PGAExecutor extends AbstractExecutor implements Executor {
         appEnv: process.env.APP_ENV,
         appVersion: this.network.getAppVersion(),
         baseFeeGwei: weiValueToGwei(networkStatusObj['baseFee']),
-        maxPriorityFeeGwei: weiValueToGwei(BigInt(await this.network.getMaxPriorityFeePerGas().catch(() => 0))),
+        maxPriorityFeeGwei: weiValueToGwei(BigInt(await this.network.queryMaxPriorityFeePerGas().catch(() => 0))),
         keeperId: agent ? agent.keeperId : null,
         rpc: networkStatusObj['rpc'],
-        rpcClient: await this.network.getClientVersion(),
+        rpcClient: await this.network.queryClientVersion(),
         resendCount,
         chainId,
         txHash,

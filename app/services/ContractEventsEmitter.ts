@@ -1,8 +1,10 @@
 import QueueEmitter from './QueueEmitter.js';
 import EventEmitter from 'events';
 import { ContractWrapper } from '../Types.js';
+import { ethers } from 'ethers';
 
 export default class ContractEventsEmitter {
+  provider: ethers.providers.WebSocketProvider | undefined;
   blockLogsMode = false;
   contractEmitterByAddress = {};
   contractEventsByAddress = {};
@@ -18,6 +20,11 @@ export default class ContractEventsEmitter {
     this.setBlockLogsMode(_blockLogsMode);
   }
 
+  setProvider(_provider) {
+    this.provider = _provider;
+    console.log('[ContractEventsEmitter] setProvider');
+  }
+
   setBlockLogsMode(_blockLogsMode) {
     this.blockLogsMode = _blockLogsMode;
     console.log('[ContractEventsEmitter] setBlockLogsMode', _blockLogsMode);
@@ -30,10 +37,20 @@ export default class ContractEventsEmitter {
     }
   }
 
+  async emitByBlockQuery(queryObj) {
+    console.log('[ContractEventsEmitter] emitByBlockQuery ( queryObj:', queryObj, ')');
+    const logs = await this.provider.getLogs(queryObj).catch(e => {
+      console.warn('⚠️  [ContractEventsEmitter] provider.getLogs error, return empty array:', e.message);
+      return [];
+    });
+    return this.emitByBlockLogs(logs);
+  }
+
   emitByBlockLogs(logs, forceEmit = false) {
     if (!this.blockLogsMode && !forceEmit) {
       return;
     }
+    console.log('[ContractEventsEmitter] emitByBlockLogs ( logs.length:', logs.length, ')');
     let blockNumber;
     const contractAddresses = {};
     logs.forEach(l => {
@@ -43,6 +60,13 @@ export default class ContractEventsEmitter {
       }
       const eventName = this.eventByContractTopic[address][l.topics[0]];
       if (!eventName) {
+        console.log(
+          '[ContractEventsEmitter] ' + blockNumber + ' event name not found ( topic:',
+          l.topics[0],
+          'address:',
+          address,
+          ')',
+        );
         return;
       }
       if (!this.emitByBlockCount[address]) {

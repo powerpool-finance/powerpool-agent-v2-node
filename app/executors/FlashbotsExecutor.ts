@@ -60,14 +60,14 @@ export class FlashbotsExecutor extends AbstractExecutor implements Executor {
     const { tx } = envelope;
     let gasLimitEstimation;
     try {
-      gasLimitEstimation = await this.network.getProvider().estimateGas(prepareTx(tx));
+      gasLimitEstimation = await this.network.getProvider().estimateGas(prepareTx(tx, this.workerSigner.address));
     } catch (e) {
       // TODO (DANGER): hard limit
       tx.gasLimit = 700_000n;
       tx.nonce = await this.network.getProvider().getTransactionCount(this.workerSigner.address);
       let txSimulation;
       try {
-        txSimulation = await this.network.getProvider().call(prepareTx(tx));
+        txSimulation = await this.network.getProvider().call(prepareTx(tx, this.workerSigner.address));
         printSolidityCustomError(
           this.clog.bind(this),
           this.agentContract.decodeError.bind(this.agentContract),

@@ -23,6 +23,9 @@ export function stubNetwork(network: Network) {
   sinon.stub(network, 'queryNetworkId').callsFake(async function () {
     return 42;
   });
+  sinon.stub(network, 'queryMaxPriorityFeePerGas').callsFake(async function () {
+    return 2;
+  });
   sinon.stub(network, 'queryLensJobs').callsFake(async function () {
     return [];
   });
@@ -45,6 +48,10 @@ export function stubAgent(agent: IAgent) {
     this.contract = 'contractStub';
   });
   // @ts-ignore
+  sinon.stub(agent, 'queryAgentVersion').callsFake(async function () {
+    return '2.5.0';
+  });
+  // @ts-ignore
   sinon.stub(agent, 'initKeeperWorkerKey').callsFake(function () {
     this.workerSigner = {
       address: KEEPER_WORKER_ADDRESS,
@@ -53,10 +60,6 @@ export function stubAgent(agent: IAgent) {
   // @ts-ignore
   sinon.stub(agent, 'encodeABI').callsFake(function () {
     return 'Stub:encodedABI';
-  });
-  // @ts-ignore
-  sinon.stub(agent, 'queryContractVersion').callsFake(async function () {
-    return '2.3.0';
   });
   // @ts-ignore
   sinon.stub(agent, 'queryKeeperId').callsFake(async function () {
@@ -98,5 +101,9 @@ export function stubAgent(agent: IAgent) {
   // @ts-ignore
   sinon.stub(agent, 'queryPastEvents').callsFake(async function () {
     return [];
+  });
+  // @ts-ignore
+  sinon.stub(agent, '_subscribeForEvents').callsFake(async function () {
+    return null;
   });
 }

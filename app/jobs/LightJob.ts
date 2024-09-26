@@ -28,6 +28,6 @@ export class LightJob extends AbstractJob {
 
   protected async resolverSuccessCallback(triggeredByBlockNumber, invokeCalldata) {
     this.agent.unregisterResolver(this.key);
-    return this.executeTx(this.key, await this.agent.buildTx(this.buildResolverCalldata(invokeCalldata)));
+    return this.executeTx(this.key, await this.agent.buildTx(await this.buildResolverCalldata(invokeCalldata)));
   }
 }

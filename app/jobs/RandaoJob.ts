@@ -5,6 +5,7 @@ import logger from '../services/Logger.js';
 export class RandaoJob extends AbstractJob {
   private BLACKLIST_ESTIMATIONS_LIMIT = 5;
   private RESOLVER_ESTIMATIONS_LIMIT = 5;
+  private INTERVAL_ESTIMATIONS_LIMIT = 5;
 
   public assignedKeeperId: number;
   protected createdAt: number;
@@ -13,6 +14,7 @@ export class RandaoJob extends AbstractJob {
   private _selfUnassignPending: boolean;
   private _initiateSlashingPending: boolean;
   private failedInitiateSlashingEstimationsInARow: number;
+  private failedIntervalEstimationsInARow: number;
 
   protected clog(level: string, ...args) {
     logger.log(level, `RandaoJob${this.toString()}: ${args.join(' ')}`);
@@ -25,6 +27,7 @@ export class RandaoJob extends AbstractJob {
     super(creationEvent, agent);
     this._initiateSlashingPending = false;
     this.failedInitiateSlashingEstimationsInARow = 0;
+    this.failedIntervalEstimationsInARow = 0;
   }
 
   private _lockSelfUnassign() {
@@ -109,10 +112,16 @@ export class RandaoJob extends AbstractJob {
   public applyWasExecuted() {
     this.slashingPossibleAfter = 0;
     this.reservedSlasherId = 0;
+    this.failedIntervalEstimationsInARow = 0;
+    this.failedResolverEstimationsInARow = 0;
+    this.failedInitiateSlashingEstimationsInARow = 0;
+    this.applyClearResolverTimeouts();
     super.applyWasExecuted();
   }
 
   public applyClearResolverTimeouts(): void {
+    this.clog('debug', 'applyClearResolverTimeouts()');
+    this._initiateSlashingPending = false;
     this.t1 = 0;
     this.b1 = 0n;
     this.tn = 0;
@@ -146,12 +155,14 @@ export class RandaoJob extends AbstractJob {
       return false;
     }
     if (this.getCreditsAvailable() < (this.agent as IRandaoAgent).getJobMinCredits()) {
-      this.clog(
-        'warn',
-        `_beforeJobWatch(): Scheduling self-unassign due insufficient credits (required=${(
-          this.agent as IRandaoAgent
-        ).getJobMinCredits()},available=${this.getCreditsAvailable()}`,
-      );
+      if (this.assignedKeeperId === this.agent.getKeeperId()) {
+        this.clog(
+          'warn',
+          `_beforeJobWatch(): Scheduling self-unassign due insufficient credits (required=${(
+            this.agent as IRandaoAgent
+          ).getJobMinCredits()},available=${this.getCreditsAvailable()}`,
+        );
+      }
       this._selfUnassign();
       return false;
     }
@@ -205,11 +216,13 @@ export class RandaoJob extends AbstractJob {
 
   private async initiateSlashing(resolverCalldata) {
     const txEstimationFailed = error => {
+      this.agent.parseAndSetUnrecognizedErrorMessage(error);
       this.clog('error', 'Error: InitiateSlashing() execution failed', error);
       this.exitIfStrictTopic('estimations');
       this._initiateSlashingIncrementFailedCounter(error);
     };
     const txExecutionFailed = error => {
+      this.agent.parseAndSetUnrecognizedErrorMessage(error);
       this.clog('error', 'Error: InitiateSlashing() execution failed', error);
       this.exitIfStrictTopic('executions');
       this._initiateSlashingIncrementFailedCounter(error);
@@ -246,24 +259,17 @@ export class RandaoJob extends AbstractJob {
 
   private _getCurrentPeriodIntervalJob(): number {
     const now = this.agent.nowS();
+    const nextExecutionOn = this.details.lastExecutionAt + this.details.intervalSeconds;
+    const period1 = (this.agent as IRandaoAgent).getPeriod1Duration();
+    const period2 = (this.agent as IRandaoAgent).getPeriod2Duration();
 
-    if (now < this.details.lastExecutionAt + this.details.intervalSeconds) {
+    if (now < nextExecutionOn) {
       return 0;
-    } else if (
-      now <
-      this.details.lastExecutionAt + this.details.intervalSeconds + (this.agent as IRandaoAgent).getPeriod1Duration()
-    ) {
+    } else if (now < nextExecutionOn + period1) {
       return 1;
-    } else if (
-      now <
-      this.details.lastExecutionAt +
-        this.details.intervalSeconds +
-        (this.agent as IRandaoAgent).getPeriod1Duration() +
-        (this.agent as IRandaoAgent).getPeriod2Duration()
-    ) {
+    } else if (now < nextExecutionOn + period1 + period2) {
       return 2;
     }
-
     return 3;
   }
 
@@ -312,15 +318,19 @@ export class RandaoJob extends AbstractJob {
 
   protected _executeTxEstimationFailedRewatch(err: Error, _txData: string) {
     if (this._getCurrentPeriod() === 3) {
-      this.clog(
-        'info',
-        `Scheduling self-unassign since the current period is #3 and transaction failed: ${
-          err ? err.message : 'Unknown error'
-        }`,
-      );
-      this._selfUnassign();
-      this.watch();
-      return;
+      this.failedIntervalEstimationsInARow += 1;
+      if (this.failedIntervalEstimationsInARow > this.INTERVAL_ESTIMATIONS_LIMIT) {
+        this.clog(
+          'info',
+          `Scheduling self-unassign since the current period is #3 and transaction failed: ${
+            err ? err.message : 'Unknown error'
+          }`,
+        );
+        this._selfUnassign();
+        this.watch();
+        this.failedIntervalEstimationsInARow = 0;
+        return;
+      }
     }
 
     this.incrementFailedExecutesInARow(err);
@@ -364,10 +374,22 @@ export class RandaoJob extends AbstractJob {
   private async executeResolverJob(invokeCalldata) {
     this.clog('info', 'executeResolverJob()');
     this.agent.unregisterResolver(this.key);
-    return this.executeTx(this.key, await this.agent.buildTx(this.buildResolverCalldata(invokeCalldata)));
+    return this.executeTx(this.key, await this.agent.buildTx(await this.buildResolverCalldata(invokeCalldata)));
   }
 
   protected async resolverSuccessCallback(triggeredByBlockNumber, invokeCalldata) {
+    this.clog(
+      'debug',
+      `resolverSuccessCallback kId=${this.agent.getKeeperId()}, akId=${this.assignedKeeperId}, currentPeriod=` +
+        `${this._getCurrentPeriodResolverJob()}, initiateSlashingPending=${this._initiateSlashingPending}`,
+    );
+    const now = this.agent.nowS();
+    const period1 = (this.agent as IRandaoAgent).getPeriod1Duration();
+
+    if (this._initiateSlashingPending && this.agent.nowS() - this.tn > period1 * 5) {
+      this.applyClearResolverTimeouts();
+    }
+
     if (this.agent.getKeeperId() === this.assignedKeeperId) {
       // execute
       await this.executeResolverJob(invokeCalldata);
@@ -380,19 +402,10 @@ export class RandaoJob extends AbstractJob {
       await this.executeResolverJob(invokeCalldata);
     } else if (!this._initiateSlashingPending) {
       // initiateSlashing
-      const now = this.agent.nowS();
       const latestBlock = this.agent.getNetwork().getLatestBlockNumber();
-      const period1 = (this.agent as IRandaoAgent).getPeriod1Duration();
 
       this.tn = Number(this.agent.getNetwork().getLatestBlockTimestamp());
       this.bn = latestBlock;
-
-      // reset t1 & b1 if the bn is more than two blocks behind
-      if (this.bn + 2n < latestBlock) {
-        this.clog('debug', `Resetting counter, bn=${triggeredByBlockNumber}`);
-        this.t1 = this.tn;
-        this.b1 = this.bn;
-      }
 
       if (this.t1) {
         const left = this.t1 + period1 - now;
@@ -463,9 +476,8 @@ export class RandaoJob extends AbstractJob {
     );
 
     this.applyBinJobData(binJob);
-    if (this.agent.getKeeperId() === this.assignedKeeperId) {
-      this.clog('debug', 'Wont slash mine job', JSON.stringify({ nextBlockSlasherId, me: this.agent.getKeeperId() }));
-    } else if (this.agent.getKeeperId() === nextBlockSlasherId) {
+    if (this.agent.getKeeperId() === nextBlockSlasherId) {
+      this.clog('debug', 'Unwatch and execute slashing', nextBlockSlasherId);
       this.unwatch();
       return this.executeTx(this.key, await this.agent.buildTx(this.buildIntervalCalldata()));
     } else {
