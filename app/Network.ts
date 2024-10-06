@@ -15,6 +15,7 @@ import {
   getAverageBlockTime,
   getDefaultNetworkConfig,
   getExternalLensAddress,
+  getMaxBlockEventsQuery,
   getMulticall2Address,
   getResolverCallSkipBlocksNumber,
   setConfigDefaultValues,
@@ -402,8 +403,8 @@ export class Network {
 
         if (this.contractEventsEmitter.blockLogsMode) {
           this.contractEventsEmitter.emitByBlockQuery({
-            fromBlock: Number(this.agentsStartBlockNumber) + 1,
-            toBlock: Number(this.agentsStartBlockNumber) + count,
+            fromBlock: startBlockNumber + 1,
+            toBlock: startBlockNumber + count,
           });
         }
 
@@ -484,7 +485,7 @@ export class Network {
     blockNumber = BigInt(blockNumber.toString());
     const before = this.nowMs();
 
-    const oldLatestBlockNumber = this.latestBlockNumber ? BigInt(this.latestBlockNumber) : null;
+    let oldLatestBlockNumber = this.latestBlockNumber ? BigInt(this.latestBlockNumber) : null;
     if (this.latestBlockNumber && blockNumber <= this.latestBlockNumber) {
       return null;
     }
@@ -505,6 +506,9 @@ export class Network {
 
     if (this.contractEventsEmitter.blockLogsMode) {
       const blocksDiff = oldLatestBlockNumber ? blockNumber - oldLatestBlockNumber : 0n;
+      if (blocksDiff > getMaxBlockEventsQuery(this.name)) {
+        oldLatestBlockNumber = blockNumber - BigInt(getMaxBlockEventsQuery(this.name));
+      }
       const fromBlock = bigintToHex(blocksDiff > 1n ? oldLatestBlockNumber + 1n : blockNumber);
       const toBlock = bigintToHex(blockNumber);
       this.contractEventsEmitter.emitByBlockQuery({ fromBlock, toBlock });
