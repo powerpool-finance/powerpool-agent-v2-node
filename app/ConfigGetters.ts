@@ -98,6 +98,10 @@ export function getMaxBlocksSubgraphDelay(_ /*networkName*/) {
   return 10000;
 }
 
+export function getMaxBlockEventsQuery(_ /*networkName*/) {
+  return 4900;
+}
+
 export function setConfigDefaultValues(config, defaultValues) {
   Object.keys(defaultValues).forEach(name => {
     if (typeof config[name] === 'undefined') {

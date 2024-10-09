@@ -17,11 +17,10 @@ let app: App;
   const version = await getVersion(__dirname);
   console.log(`PowerPool Agent Node version: ${version}`);
 
-  let config: Config;
-  let configPath;
+  let config: Config, configPath: string;
 
   try {
-    const configPath = process.env.CONFIG_PATH || path.resolve(__dirname, '../config/main.yaml');
+    configPath = process.env.CONFIG_PATH || path.resolve(__dirname, '../config/main.yaml');
     logger.info(`CLI: Reading configuration from ${configPath} ...`);
     config = YAML.parse(fs.readFileSync(configPath).toString()) as Config;
   } catch (error) {
