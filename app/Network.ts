@@ -8,7 +8,7 @@ import {
 } from './Types.js';
 import { bigintToHex, toChecksummedAddress } from './Utils.js';
 import pIteration from 'p-iteration';
-import { ethers } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 import EventEmitter from 'events';
 import {
   getAgentVersionAndType,
@@ -598,6 +598,7 @@ export class Network {
     // TODO: protect from handlers queueing on the networks with < 3s block time
     const resolversToCall = [];
     const callbacks = [];
+
     for (const [jobKey, jobData] of Object.entries(this.resolverJobData)) {
       callbacks.push(jobData.callback);
       resolversToCall.push({
@@ -626,6 +627,13 @@ export class Network {
     for (let i = 0; i < results.length; i++) {
       const { jobKey } = resolversToCall[i];
       const agent = this.getAgent(jobKey.split('/')[0]);
+
+      // Watch job in case of blockchain node lag
+      if (!this.resolverJobData[jobKey]) {
+        const jobEntity = await agent.getJob(jobKey.split('/')[1]);
+        jobEntity.watch();
+      }
+
       let decoded;
       try {
         decoded = results[i].success
