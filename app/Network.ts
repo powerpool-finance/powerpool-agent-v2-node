@@ -8,7 +8,7 @@ import {
 } from './Types.js';
 import { bigintToHex, toChecksummedAddress } from './Utils.js';
 import pIteration from 'p-iteration';
-import { BigNumber, ethers } from 'ethers';
+import { ethers } from 'ethers';
 import EventEmitter from 'events';
 import {
   getAgentVersionAndType,
