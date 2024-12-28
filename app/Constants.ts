@@ -41,6 +41,16 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
       version: '2.5.0',
       strategy: 'randao',
     },
+    '0xD6d094a2a2dB8ceB9c00ae719E37011f22B7a8Ac': {
+      deployedAt: 37155151,
+      version: '2.5.0',
+      strategy: 'randao',
+    },
+    '0xa7Dabab40BAe7a920C437483549f42762815DBA2': {
+      deployedAt: 37312227,
+      version: '2.5.0',
+      strategy: 'randao',
+    },
   },
   arbitrumOne: {
     '0xad1e507f8A0cB1B91421F3bb86BBE29f001CbcC6': {
@@ -63,6 +73,11 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
       version: '2.5.0',
       strategy: 'randao',
     },
+    '0x0eBcc7B676E2b29971173CECA72De79853124879': {
+      deployedAt: 280364988,
+      version: '2.5.0',
+      strategy: 'randao',
+    },
   },
   polygon: {
     '0x20D4029c783D5c9f47569940c656Af4189e53799': {
@@ -70,11 +85,31 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
       version: '2.3.0',
       strategy: 'randao',
     },
+    '0xCDF80C73640a756D0810babA52F3d01280e5be32': {
+      deployedAt: 64973530,
+      version: '2.5.0',
+      strategy: 'randao',
+    },
+    '0xCB2A4200a0B42018FeAb87815B1AACB0eB2Ce638': {
+      deployedAt: 64973715,
+      version: '2.5.0',
+      strategy: 'randao',
+    },
   },
   base: {
     '0x12e49CeDc34C4F455e0dfff7ec38cC535Cbd07C2': {
       deployedAt: 14835289,
       version: '2.3.0',
+      strategy: 'randao',
+    },
+    '0xcD7D8e8Fe442253Fa65A3BFcdF12cdCD0013631a': {
+      deployedAt: 22752546,
+      version: '2.5.0',
+      strategy: 'randao',
+    },
+    '0x59ad18f31Ad6AC183d136AF4d7aDAc01b6cC4421': {
+      deployedAt: 23155296,
+      version: '2.5.0',
       strategy: 'randao',
     },
   },
@@ -87,6 +122,11 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
     '0xF6335E70aBEb91451DcB7C33d973fdee0Da85b16': {
       deployedAt: 7941918,
       version: '2.3.0',
+      strategy: 'randao',
+    },
+    '0x98D73653D64Ea1779C616A823064CA4da05dAD86': {
+      deployedAt: 12787200,
+      version: '2.5.0',
       strategy: 'randao',
     },
   },
@@ -201,6 +241,16 @@ export const AGENT_HARDCODED_CONFIGS: { [network: string]: { [agent: string]: Ag
     '0xbdE2Aed54521000DC033B67FB522034e0F93A7e5': {
       deployedAt: 4443031,
       version: '2.3.0',
+      strategy: 'randao',
+    },
+    '0xd78521F50D252b6075B3c05C6A3043ea4bE0E52B': {
+      deployedAt: 7190875,
+      version: '2.5.0',
+      strategy: 'randao',
+    },
+    '0x518D1741F4B1bf1f859E64dd4B52047e9Dd2d499': {
+      deployedAt: 7190881,
+      version: '2.5.0',
       strategy: 'randao',
     },
   },

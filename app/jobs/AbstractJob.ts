@@ -319,6 +319,7 @@ export abstract class AbstractJob {
         e.message.includes('Tx not mined, max attempts') ||
         e.message.includes('Too many requests') ||
         e.message.includes('InsufficientFunds') ||
+        e.message.includes('exceeds the configured cap') ||
         e.message.toLowerCase().includes('insufficient funds') ||
         e.message.includes('could not replace existing tx') ||
         e.message.includes('replacement fee too low') ||
