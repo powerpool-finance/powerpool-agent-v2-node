@@ -6,7 +6,13 @@ import {
   NetworkConfig,
   Resolver,
 } from './Types.js';
-import { bigintToHex, toChecksummedAddress } from './Utils.js';
+import {
+  bigintToHex,
+  cacheAxiosRequestCallback,
+  numberToBigInt,
+  numberToGwei,
+  toChecksummedAddress,
+} from './Utils.js';
 import pIteration from 'p-iteration';
 import { ethers } from 'ethers';
 import EventEmitter from 'events';
@@ -33,6 +39,7 @@ import { AgentRandao_2_3_0 } from './agents/Agent.2.3.0.randao.js';
 import { AgentLight_2_2_0 } from './agents/Agent.2.2.0.light.js';
 import axios from 'axios';
 import { AbstractJob } from './jobs/AbstractJob';
+import { parseUnits } from '@ethersproject/units/src.ts';
 
 interface ResolverJobWithCallback {
   lastSuccessBlock?: bigint;
@@ -747,7 +754,23 @@ export class Network {
   }
 
   public async queryGasPrice(): Promise<bigint> {
-    return BigInt((await this.provider.getGasPrice()).toString());
+    const getGasPriceByChainId = {
+      100: cacheAxiosRequestCallback('gnosisscan.eth_gasPrice', () => this.queryBlockscoutGasPrice('xdai')),
+    };
+    let resByChainId;
+    try {
+      if (getGasPriceByChainId[this.chainId]) {
+        resByChainId = ethers.utils.parseUnits(await getGasPriceByChainId[this.chainId](), 'gwei');
+      }
+    } catch (e) {
+      console.warn('Failed to get gas price from Blockscout, getting from RPC...');
+    }
+    return resByChainId || numberToBigInt(await this.provider.getGasPrice());
+  }
+
+  public async queryBlockscoutGasPrice(network) {
+    const url = `https://blockscout.com/${network}/mainnet/api/v1/gas-price-oracle`;
+    return axios.get(url).then(r => numberToGwei(r.data.average));
   }
 
   public async queryBlock(number): Promise<ethers.providers.Block> {
@@ -762,7 +785,7 @@ export class Network {
   }
 
   public async queryNetworkId(): Promise<number> {
-    return (await this.provider.getNetwork()).chainId;
+    return Number((await this.provider.getNetwork()).chainId.toString());
   }
 
   public async queryPollResolvers(bl: boolean, resolversToCall: any[], from: string): Promise<any> {
