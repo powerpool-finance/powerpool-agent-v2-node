@@ -6,7 +6,7 @@ import EventEmitter from 'events';
 import { BigNumber, ethers } from 'ethers';
 import { KEEPER_WORKER_ADDRESS } from './constants.js';
 
-export function stubNetwork(network: Network) {
+export function stubNetwork(network: Network, chainId = 42) {
   // @ts-ignore
   sinon.stub(network, 'initProvider').callsFake(function () {
     return undefined;
@@ -21,7 +21,7 @@ export function stubNetwork(network: Network) {
     } as ethers.providers.Block;
   });
   sinon.stub(network, 'queryNetworkId').callsFake(async function () {
-    return 42;
+    return chainId;
   });
   sinon.stub(network, 'queryMaxPriorityFeePerGas').callsFake(async function () {
     return 2;

@@ -57,7 +57,7 @@ export async function cacheAxiosRequest(name, request) {
   }
   cachedResponse[name] = {
     value: await request(),
-    expiresAt: new Date(new Date().getTime() + 30 * 1000),
+    expiresAt: new Date(new Date().getTime() + 10000),
   };
   return cachedResponse[name].value;
 }
