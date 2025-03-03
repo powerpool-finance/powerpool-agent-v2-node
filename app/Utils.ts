@@ -45,6 +45,27 @@ export function numberToBigInt(n) {
   return BigInt(n.toString());
 }
 
+export function numberToGwei(n) {
+  return numberToBigInt(ethers.utils.parseUnits(n.toString(), 'gwei'));
+}
+
+const cachedResponse = {};
+
+export async function cacheAxiosRequest(name, request) {
+  if (cachedResponse[name] && cachedResponse[name].expiresAt >= new Date()) {
+    return cachedResponse[name].value;
+  }
+  cachedResponse[name] = {
+    value: await request(),
+    expiresAt: new Date(new Date().getTime() + 10000),
+  };
+  return cachedResponse[name].value;
+}
+
+export function cacheAxiosRequestCallback(name, request) {
+  return () => cacheAxiosRequest(name, request);
+}
+
 export function weiValueToEth(value): number {
   if (!value) {
     return 0;

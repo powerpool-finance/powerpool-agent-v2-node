@@ -6,7 +6,7 @@ import {
   NetworkConfig,
   Resolver,
 } from './Types.js';
-import { bigintToHex, toChecksummedAddress } from './Utils.js';
+import { bigintToHex, cacheAxiosRequestCallback, numberToBigInt, numberToGwei, toChecksummedAddress } from './Utils.js';
 import pIteration from 'p-iteration';
 import { ethers } from 'ethers';
 import EventEmitter from 'events';
@@ -747,7 +747,23 @@ export class Network {
   }
 
   public async queryGasPrice(): Promise<bigint> {
-    return BigInt((await this.provider.getGasPrice()).toString());
+    const getGasPriceByChainId = {
+      100: cacheAxiosRequestCallback('gnosisscan.eth_gasPrice', () => this.queryBlockscoutGasPrice('xdai')),
+    };
+    let resByChainId;
+    try {
+      if (getGasPriceByChainId[this.chainId]) {
+        resByChainId = ethers.utils.parseUnits(await getGasPriceByChainId[this.chainId](), 'gwei');
+      }
+    } catch (e) {
+      console.warn('Failed to get gas price from Blockscout, getting from RPC...', e);
+    }
+    return numberToBigInt(resByChainId || (await this.provider.getGasPrice()));
+  }
+
+  public async queryBlockscoutGasPrice(network) {
+    const url = `https://blockscout.com/${network}/mainnet/api/v1/gas-price-oracle`;
+    return axios.get(url).then(r => numberToGwei(r.data.average).toString());
   }
 
   public async queryBlock(number): Promise<ethers.providers.Block> {
@@ -762,7 +778,7 @@ export class Network {
   }
 
   public async queryNetworkId(): Promise<number> {
-    return (await this.provider.getNetwork()).chainId;
+    return Number((await this.provider.getNetwork()).chainId.toString());
   }
 
   public async queryPollResolvers(bl: boolean, resolversToCall: any[], from: string): Promise<any> {

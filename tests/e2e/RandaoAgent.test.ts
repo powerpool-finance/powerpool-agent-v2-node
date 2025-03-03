@@ -15,6 +15,7 @@ import {
 } from '../responses.js';
 import { CALLDATA_SOURCE, JobType } from '../../app/Types.js';
 import { BI_10E18 } from '../../app/Constants.js';
+import { BigNumber } from 'ethers';
 
 describe('AgentRandao_2_3_0', () => {
   it('should initialize empty agent correctly', async () => {
@@ -191,6 +192,31 @@ describe('AgentRandao_2_3_0', () => {
         assert.deepEqual(api.jobRandaoFields.canInitiateSlashingIn, 0);
       });
     });
+  });
+
+  it.skip('should get gas price from gnosis blockscout', async function () {
+    this.timeout(60 * 1000);
+    const app = new App(APP_CONFIG);
+
+    const network = new Network('testnet', NETWORK_CONFIG, app);
+    network['chainId'] = 100;
+    network['provider'] = {
+      async getGasPrice() {
+        return BigNumber.from('1');
+      },
+    } as any;
+    // await network.init();
+
+    const gasPrice = await network.queryGasPrice();
+    assert.notEqual(gasPrice, 1n);
+    console.log('gasPrice', gasPrice);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    assert.equal(gasPrice, await network.queryGasPrice());
+    await new Promise(resolve => setTimeout(resolve, 8000));
+    assert.equal(gasPrice, await network.queryGasPrice());
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    assert.notEqual(gasPrice, await network.queryGasPrice());
+    assert.notEqual(gasPrice, 1n);
   });
 });
 
